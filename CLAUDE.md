@@ -1,0 +1,185 @@
+# CLAUDE.md — working on Growing Cousin
+
+Sibling of [Growing Spine](https://github.com/Tubifix77/growing-spine). Same
+creature, same volume, same instruments; the deterministic framework replaced by
+a second agent — the cousin — carrying stated purpose instead of encoded
+mechanism.
+
+Tue is the human. **This file is yours.** Maintain it: when a measurement
+contradicts §7, correct §7 and commit. When you learn a rule the hard way, add it
+to §5. Date what you write and name the instrument behind every number.
+
+**Read `ARCHITECTURE.md` and `MANAGER-PROMPT.md` before touching anything.** This
+file is doctrine for *maintaining the engine*. `MANAGER-PROMPT.md` is doctrine
+*toward the creature*, and it is the product — the artifact the parent project
+never had, because there the creature-facing doctrine was implemented rather than
+stated.
+
+---
+
+## 0. Status — read this before anything else
+
+**Design only. No code exists. Nothing is deployed. The creature does not run.**
+
+Every number in this repository is measured from **Growing Spine**, the parent.
+Not one of them was produced by this engine, because this engine has never run.
+When the first cousin verdict lands, that changes and this section is the first
+thing to rewrite.
+
+Do not let a borrowed number turn into a claim about this system. The parent
+project's most expensive errors were numbers nobody could source.
+
+## 1. The two rules
+
+**1. This engine's faults will be in what the manager SAYS, not in what it does.**
+The parent's faults were in Python: a constant nobody chose, a guard hunting one
+literal, a default branch that raised. Those failure modes are mostly gone here.
+What replaces them is worse-behaved, because it is not reproducible and no test
+catches it. So:
+
+- When the creature does something wrong, read the manager's last three verdicts
+  before reading the creature's code. The fault is usually upstream in prose.
+- Fix the **brief**, never the individual verdict. A verdict is one sample; the
+  brief is the machine that produced it.
+- State the invariant, never the mechanism — the same rule the manager is given,
+  applied to the manager itself. Telling it "stop mentioning `jq`" reproduces the
+  exact fault the parent spent a week diagnosing, one level up.
+- A change to `MANAGER-PROMPT.md` is a behaviour change and needs a test that
+  fails without it. Text here is held to the same standard as code, because text
+  here **is** the code.
+
+**2. You are the engine's debugger, not the creature's nanny, and not the
+manager's either.** Neither agent may depend on your inspection. If a fault is
+only caught because a human reads a log, it is not fixed.
+
+- **Stop the bleeding first, and that is not an intervention.** If something is
+  wedging the system, kill processes and respawn the body immediately. Its
+  *tools* are its world; its *processes* are not.
+- If a hand had to intervene at all, **that is the finding**: the kernel was
+  missing a bound. The fix is a limiter — a cap, a timeout, a reaper — never an
+  edit to a tool.
+
+## 2. Hard boundaries
+
+1. **Never edit the creature's `tools/own/`.** Its tools are its world. Exception:
+   explicit consent from the creature, for a specific job, backed up first.
+2. **Never edit a manager verdict after the fact.** It is testimony; rewriting it
+   makes the complaint-fidelity census meaningless, and that census is the only
+   thing keeping the manager honest.
+3. **The manager never writes or edits the creature's tools.** It is the second
+   *user*, not a second builder. If you find yourself adding a write path from
+   manager to `tools/own/`, you are building the thing the parent project
+   examined and rejected.
+4. **Never tell the creature about its own bugs.** Not through the manager, not
+   through chat. The manager reports what happened *to it*; the diagnosis is the
+   creature's work and its growth.
+5. **Never let the manager claim an experience it did not have.** A fabricated
+   complaint is the exact fault this design exists to prevent, committed by the
+   agent meant to catch it. Instrument it (§7 complaint fidelity); do not trust
+   it.
+6. **Never touch Growing Spine from this repo.** They run in parallel; the
+   comparison is void if either is edited to make the other look better. No
+   shared files, no shared volume, no shared container.
+7. **Culls need the creature's consent.** Ask, offer alternatives, honour what it
+   keeps.
+8. **Never commit secrets.** No `config.yaml`, no keys, no laptop-only failure
+   maps. If this repo goes public, that rule is load-bearing.
+
+## 3. What transfers from the parent, and what does not
+
+**Transfers — these are engine-independent:**
+
+- All of §2's boundaries above, adapted from the parent's.
+- The method: fix the machine that produced the fault, never the fault; make the
+  fault visible so the creature prunes it itself; surface on a change of state,
+  never continuously; state the invariant, never the mechanism.
+- Tue's standing decisions (§4 below).
+- **8 of the parent's ~33 scars** — specifically the ones about text the creature
+  reads. Those are the only scars that have ever *recurred* after being fixed,
+  and this engine is entirely text, so they hit harder here.
+
+**Does not transfer — do not copy these in as if earned:**
+
+- Every scar about Python framework internals: `classify_error`'s default,
+  truncation caps in series, the quadratic dependency scan, guards keyed on one
+  literal string, the `st_mode` cache key. This engine does not have those
+  failure modes. Importing them as doctrine would be archaeology posing as
+  experience.
+- The parent's §8 live state. It describes a different running system.
+
+**This repo starts with almost no scars, and that is the honest condition.** The
+parent's doctrine is valuable *because it was earned*. Resist the urge to
+pre-populate §5 with plausible-sounding lessons; a scar nobody paid for is a
+guess with authority it has not earned.
+
+## 4. Standing decisions (Tue's, inherited)
+
+- **Free tier only, permanently.** "We get what is available without paying
+  anything ever." A rung behind a paywall is defunct by definition; removing one
+  needs no decision. Rung count and concentration are *outcomes*, not targets.
+- **Quality floor over capacity.** No weak model in the ladder. Under a shared
+  cap, weak calls starve smart rungs and a weak author's buggy tools are lasting
+  pollution.
+- **Reversible actions are just done**, not asked about.
+- **A known-failing behaviour in our own framework is fixed without asking.** A
+  fault in the creature's *own output* is never fixed and never needs sign-off
+  either: the response is always visibility.
+- **Don't tune a constant with no evidence.** **Don't fix what has no symptom.**
+- Distinguish a hold with a **named trigger and date** from a hold waiting on
+  "more information" — the second is inaction in the costume of caution.
+
+## 5. Scars
+
+*Empty by design. Nothing has run. The first entry will be earned, dated, and
+will name the instrument that found it.*
+
+Format when the time comes: signature first, so a recurrence is a lookup and not
+a re-diagnosis. Name what was measured, with what, and on what date.
+
+## 6. Open questions the design does not answer
+
+Carried forward from `ARCHITECTURE.md` so they are not lost:
+
+1. **What keeps the manager's running state honest over a month?** Its `tried` /
+   `outcome` fields are checkable against a journal it cannot edit — that is the
+   proposed answer and it is unproven. **Build this first, not last.**
+2. **The seed.** Full copy of the live spine, empty, or layout-plus-hands with an
+   empty `tools/own/`. `ARCHITECTURE.md` §11 recommends the third and says why.
+   Tue's call.
+3. **Repo visibility.** Private while it is documents only (Tue, 2026-09-10).
+   Revisit when code lands — the parent is public, so the default is public, but
+   confirm rather than assume.
+4. **Which rung serves the manager.** In the parent, one pool rung wasted 86.7%
+   of the cycles it served with clean, complete, command-free replies. A manager
+   on a rung like that produces confident garbage instead of an obvious failure.
+   Record the model per verdict from day one.
+
+## 7. State — 2026-09-10
+
+**Nothing running. Four documents, no code, no deployment, no creature.**
+
+- `MANAGER-PROMPT.md` — the cousin's brief. The novel artifact; everything else
+  supports it.
+- `ARCHITECTURE.md` — engine design, economics, kernel, triggers, metrics.
+- `CLAUDE.md` — this file.
+- `README.md` — public-facing explanation.
+
+Written 2026-09-10 in one design session, from the parent project's doctrine and
+measurements. **No independent verification of any parent number was performed in
+this session** — they are quoted from `growing-spine/CLAUDE.md` §5 and §8 as of
+its 2026-09-04 state. If a number matters enough to act on, re-measure it against
+the live spine before relying on it.
+
+**Nothing is deployed and nothing is scheduled.** The next step is a decision on
+§6.2 (the seed), then the smallest possible kernel: body, journal, one trigger
+(`DONE_CLAIM`), and one manager invocation end to end.
+
+## 8. Session reports
+
+Same rule as the parent: one report per session, published as a **private
+artifact**, never a file in this repo. Written for Tue; §7 is what the next
+session reads.
+
+Name the instrument behind every number. When a number was wrong, print the
+correction *and the discarded method* — the methods that produce plausible wrong
+answers are worth more than the answers.
