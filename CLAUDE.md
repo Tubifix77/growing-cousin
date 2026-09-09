@@ -148,9 +148,17 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    remains open is narrower: **complaint fidelity**, whether the manager's
    `tried`/`outcome` correspond to events that really happened. Build that
    census early; nothing else checks the manager.
-2. **Does it start with a copy of the spine's tools, or empty?**
-   `ARCHITECTURE.md` §11 recommends same layout and same hands with an empty
-   `tools/own/`, and says why. Tue's call.
+2. ~~Copy the parent's tools, or start empty?~~ **Decided 2026-09-10: copy**,
+   reversing the first recommendation. The parent library is a known-answer test
+   set, so the cousin can be refuted in a week instead of months. Requires
+   tagging every inherited tool at t=0 and splitting every metric on it, for the
+   life of the project. `ARCHITECTURE.md` §11. **Still open: does it also inherit
+   the journal and memory?** Tue's call.
+3. **When does the cousin earn the right to audit?** It may look at the whole
+   library from day one (`ARCHITECTURE.md` §2, the audit rules), but an audit is
+   where a manager most easily produces confident garbage, and nothing checks it
+   but the complaint-fidelity census. Consider proving it on the
+   touched-this-cycle path first. No named trigger yet — this needs one.
 3. **Repo visibility.** Private while it is documents only (Tue, 2026-09-10).
    Revisit when code lands — the parent is public, so the default is public, but
    confirm rather than assume.
@@ -187,6 +195,21 @@ module docstring says *"STANDALONE (not wired into loop.py yet)"*, but `loop.py`
 imports and calls it at 1320, 1747 and 1799. Stale doc in the parent repo, no
 functional effect — another instance of the parent's own *a docstring is a claim,
 not an instrument*.
+
+**Design settled 2026-09-10 in discussion, after three corrections that each
+changed the architecture.** Recorded here because the wrong versions are the
+instructive part, and each is written up in place rather than quietly replaced:
+
+1. The guard list was taken from the parent's prose, not its code. Reading the
+   source found four more guards and showed two populations had been merged.
+2. The manager's state is **derived** from the trigger/verdict event log, not
+   authored by the manager. Imposes the one-kind-per-trigger rule.
+3. The split between kernel and cousin is neither audience nor determinism. **A
+   scan gathers a fact and decides what to say about it; only the second half is
+   framework.** Scans become scripts the cousin runs. The deleted 99% is the
+   apparatus around them — scheduling, caches, edge-trigger state files, warning
+   composition, surfacing rules — all of which exists because nobody was there to
+   decide.
 
 **Nothing is deployed and nothing is scheduled.** The next step is a decision on
 §6.2 (copy the parent's tools, or start empty), then the smallest possible

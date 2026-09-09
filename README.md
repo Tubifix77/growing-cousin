@@ -160,6 +160,18 @@ lifecycle and PID reaping, liveness proved by doing rather than by status,
 command timeouts, the journal, truncation-marker honesty, ladder mechanics, the
 test gate, and trigger detection. Small and boring, by design.
 
+**What about all the free deterministic scans the framework does?** A scan does
+two separable things: it gathers a fact, and it decides to look, decides the fact
+matters, and decides what to say about it. Only the second is framework. So the
+scans survive as **small scripts the cousin runs when it wants to know** — and
+what gets deleted is everything around them: per-cycle scheduling, parse caches,
+edge-trigger state files, set-comparison logic, warning composition, rules about
+when to speak. All of it exists because nobody was there to decide.
+
+That is where the 99% actually is. It also kills an entire failure class: nothing
+runs per wake, so nothing can silently grow quadratic in the library's size —
+which is what 187,489 regex scans per cycle were.
+
 Manager cost at the chosen trigger policy: **~13% of total LLM calls** — the
 project is free-tier only, permanently, so this is the binding constraint and not
 a detail. A per-cycle manager would be 50% and halve coder throughput.
@@ -187,6 +199,10 @@ is whether the manager's guidance recurs as a fault after being given.
 
 ## Status
 
-Design, 2026-09-10. Next: decide whether it starts with a copy of the parent's
-tools (`ARCHITECTURE.md` §11), then the
-smallest kernel that runs end to end — body, journal, one trigger, one verdict.
+Design settled 2026-09-10. It starts with a copy of the parent's library — a
+known-answer test set, so the design can be refuted in a week rather than
+months (`ARCHITECTURE.md` §11).
+
+Next: prove the cousin against that known-answer library before building any
+engine — no container, no loop, just the brief, a provider call and a verdict
+parser. Then the smallest kernel that runs end to end.

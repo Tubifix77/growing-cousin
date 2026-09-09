@@ -105,18 +105,80 @@ whose only checker is the agent being checked has no checker.
 ### Which of Population B the cousin makes redundant
 
 Three, and only three, because a cousin that genuinely tries to *use* the work
-hits them naturally in the course of using it:
+hits them naturally in the course of using it: `check_sensor` (a cousin reading
+three `example.com` articles needs no phrase list), `check_jsonl` (a cousin that
+cannot read the store *is* the parse-rate check), and `check_tool_wiring` (a
+cousin looking for data where it was told it lives finds the split).
 
-| Check | Why the cousin subsumes it |
-|---|---|
-| `check_sensor` (fabricated feeds) | A cousin reading three `example.com` articles doesn't need a phrase list |
-| `check_jsonl` (parse rates) | A cousin that cannot read the store *is* the parse-rate check |
-| `check_tool_wiring` (writer/reader path split) | A cousin looking for data where it was told it lives finds the split |
+Keep them anyway through the first months. They are cheap, and they are the
+cross-check that catches a cousin reporting a clean handover over a broken one.
+The other six have no cousin equivalent: nothing about a handover reveals a
+stalled loop, a wake-cost regression, or a dark provider rung.
 
-Keep them anyway, at least through the first months. They are cheap, and they are
-the cross-check that catches a cousin reporting a clean handover over a broken
-one. The remaining six have no cousin equivalent and must stay: nothing about a
-handover reveals a stalled loop, a wake-cost regression, or a dark provider rung.
+### The dividing line is not audience — and it is not determinism either
+
+*Revised 2026-09-10, twice, in discussion with Tue. Both earlier versions are
+recorded because the second wrong answer is the more instructive one.*
+
+**First attempt:** split by audience — creature-facing guards go to the cousin,
+outward-facing tripwires stay. Wrong: it puts a free, deterministic, already-
+working startability scan in front of an LLM, which buys nothing and costs calls.
+
+**Second attempt:** split by cost — *deterministic and cheap stays in code,
+judgment goes to the cousin*. Also wrong, and wrong in the way that matters: the
+free Python scans **are** the framework. Keep them all and you have deleted the
+judgment layer and kept the machinery — about 20%, not 99%.
+
+**The resolution: a scan does two separable things.**
+
+1. **Gather the fact** — walk `tools/own/`, parse 643 files, report which do not
+   start.
+2. **Decide to look, decide it matters, decide what to say about it.**
+
+Only the second is framework. The first is *reading the filesystem*, which every
+agent does; enumerating this document's own guard list was a `grep`, and that did
+not make `grep` a framework.
+
+**So the scans do not stay as framework code. They become small scripts the
+cousin runs when it wants to know.** Determinism stays. The framework does not.
+
+And that is where the 99% actually is. Around a ~30-line startability scan, the
+parent carries: per-cycle scheduling; a `(mtime, size, st_mode)` parse cache —
+which itself had a bug, because `chmod +x` changes neither mtime nor size; an
+edge-trigger state file remembering what was last said; set-comparison logic;
+warning-composition code turning facts into a string; and rules about when to
+speak at all. **Every one of those exists because nobody was there to decide.**
+With someone there, it is a script and a judgment.
+
+This also kills the wake-cost failure class outright. Nothing runs per wake, so
+nothing can silently grow quadratic in the library's size — which is what
+187,489 regex scans per cycle were.
+
+### The audit rules
+
+The cousin **may** look at the whole library. An earlier draft of this document
+said it never audits; that was a blanket rule with no justification behind it,
+and the parent framework audits constantly. Three real constraints replace it,
+and the first two are the parent's own doctrine:
+
+1. **Edge-triggered, never continuous.** *A fact repeated every cycle is a nag it
+   learns to skip, or a trap it cannot exit when it looks and finds nothing it
+   can fix.*
+2. **Library-wide visibility is fine; library-wide blocking is a trap.** A cousin
+   may look at anything. It may never withhold a done-mark over something the
+   creature did not touch — *a tool it wrote sixty seconds ago is always still
+   fixable*, and a library-wide block is not.
+3. **Pull works for the cousin and not for the creature.** The creature *cannot
+   request a check for a problem it does not know it has*, so a pull-only scan is
+   worthless to it. Going to look is the cousin's natural mode. Facts still reach
+   the creature unprompted — as testimony from someone who went and looked,
+   rather than as a string composed by a formatter.
+
+What a cousin audit is actually for is the judgments no scan can make: are these
+twins redundant or did they diverge into different jobs; does this tool's
+description match what it does; this store parses fine, but is what is in it
+*information*; fifteen tools cluster on one job — is that a capability or a
+habit.
 
 Population A's goals collapse into five:
 
@@ -219,7 +281,22 @@ intervene was a missing bound. The fix is always a limiter, never a judgment.
 | Test gate | Must literally contain `ALL TESTS PASS`, written to a file, never a pipe |
 | Trigger detection | Mechanical, cheap, unarguable — see below |
 
-That is the whole kernel: small and boring, which is the point.
+That is the whole kernel: small and boring, which is the point. Note what is
+**not** in it — no scans, no censuses, no warning composition, no catalogue
+assembly, no context building.
+
+### Beside the kernel, not inside it: the cousin's instruments
+
+A handful of small deterministic scripts — startability, hollow-stub detection,
+duplicate-stem listing, dependency edges, store parse rates. These are **not
+kernel**. Nothing schedules them, nothing caches them, nothing formats their
+output into a warning. They are tools, they live where tools live, and the cousin
+runs one when it wants to know something.
+
+A library audit is therefore cheap: one script invocation, twenty-three names
+back, then judgment. Not 643 LLM reads. An earlier draft of this document argued
+audits had to be paced because of that imagined cost; that was a mistake about
+how an agent looks at a filesystem.
 
 ## 6. Triggers — mechanical only
 
@@ -371,23 +448,48 @@ fix was verified by hoping. This engine is 100% text.
 So the first thing to instrument is not throughput. It is: **does the manager's
 guidance recur as a fault after being given?**
 
-## 11. Open decision — does it start with a copy of the spine's tools?
+## 11. Does it start with a copy of the parent's tools?
 
-The one thing not settled. Plainly: when this creature first wakes, does its
-`tools/own/` contain the parent's 643 tools, or nothing?
+**Direction: copy them.** Decided in discussion 2026-09-10, reversing this
+document's first recommendation. One sub-question below is still open.
 
-- **Copy them.** Same starting point, so any difference is engine and not age.
-  But it inherits 23 tools that cannot start, 39 duplicate twins, and ~50 that
-  return error text as their value. The cousin's first thousand complaints would
-  all be about work it did not cause, and the engine never gets tested on its
-  own output.
-- **Start empty.** Clean signal, but a long cold start and no shared baseline.
-- **Recommended: same volume layout and the same `framework-tools/` hands, with
-  an empty `tools/own/`.** The comparison then is not "who has more tools" — it
-  is *surviving useful capability per unit of budget*, measured for each engine
-  from its own zero. The parent's first weeks are in its journal, so
-  cousin-week-1 against spine-week-1 is an honest comparison, and a better one
-  than running them side by side from different ages.
+The two options answer different questions, and the first draft picked the wrong
+one as primary:
+
+- **Copy** answers *does the cousin work at all?*
+- **Empty** answers *does the cousin produce better work?*
+
+We do not yet know the first, and it is strictly prior.
+
+**Why copy wins.** The parent library is a **known-answer test set**: 23 tools
+that cannot start, 39 twins, ~50 returning error text as their value, a fetcher
+serving three `example.com` articles. If the cousin runs against that and does
+not notice — accepts a handover of a tool that will not start, never trips on the
+mock — **the design is refuted in a week, cheaply.** That is the most valuable
+thing available right now and an empty library does not sell it.
+
+The "inherited debt" objection in the first draft was weak. The creature does not
+know or care who wrote its library; it inherits it *as its own*. And repairing an
+inherited broken library is exactly the capability-expansion the goal names. The
+parent moved `cannot_start` 32 → 23 over months; a cousin taking it to zero in a
+week would be a headline result, and it is only available under copy.
+
+**A claim from the first draft that does not hold:** that the parent's early
+journal makes cousin-week-1 against spine-week-1 an honest comparison.
+Spine-week-1 was the v0.4 skeleton — the era that produced the 300-character
+window nobody chose. That compares the cousin to a framework nobody would defend.
+
+**What copy costs.** Attribution: every number now confounds inherited with
+created, forever. Mitigation is to **tag all inherited tools at t=0** and split
+every metric on it — discipline that has to hold for the life of the project, and
+this lineage has a bad record there (a "67 unused tools" figure that was really
+8; a "+151 in three days" from mixing two counters).
+
+**Still open — does it also inherit the journal and memory?** The argument for
+no: a fresh event log is what the derived state in §9 needs, and a creature that
+wakes to 643 tools it has no memory of building **is** the handover situation,
+structurally, on day one. Whether that is the sharpest possible start for this
+engine or simply disorienting is not resolved. Tue's call.
 
 ## 12. What gets measured
 
