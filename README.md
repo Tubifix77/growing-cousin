@@ -55,7 +55,12 @@ expressing the thing the project learned is correct.
 Delete ~99% of the framework. Take the *goal* each guard served and write it into
 a brief for a second agent.
 
-Sixteen guards, written out as goals, collapse into five:
+Enumerated from the source, the parent has **seventeen creature-facing guards**
+and, separately, **nine health tripwires** that report outward to its maintainers.
+Only the first set is replaced — an engine whose only checker is the agent being
+checked has no checker.
+
+Those seventeen, written out as goals, collapse into five:
 
 1. A claim must be true.
 2. A thing must actually run.
@@ -68,9 +73,15 @@ the form the medium could not hold.
 
 ## The part that makes it work
 
-All five of those are **negatives**. So is every guard in the parent framework:
-all sixteen are refusals. The framework can prevent a bad tool; it has no
-vocabulary for promoting a good one. It binds, it never aims.
+All five of those are **negatives** — and so is almost every guard in the parent
+framework. Of the seventeen, fourteen are refusals. The framework can prevent a
+bad tool; it has almost no vocabulary for promoting a good one. It binds far more
+than it aims.
+
+(The three that *do* aim — the active-project block, the retro directive, and the
+architect's KEEP/DROP/RESHAPE ruling — are the ones the cousin replaces with
+*accept-with-a-want* rather than with complaints. That distinction only became
+visible by reading the code.)
 
 The positive goal is *expand your capability*. But that is precisely what the
 creature believed it was doing when it wrote a "cost-aware routing" wrapper whose
@@ -99,7 +110,7 @@ that survives only because the author is the sole user.
 | 23 tools that cannot start | …they are never called |
 
 None is a logic error. All are the same error, and none is visible from inside.
-The framework needed sixteen guards to *enumerate* the ways single-occupancy
+The framework needed seventeen guards to *enumerate* the ways single-occupancy
 fails. A second inhabitant makes the whole class impossible to hide.
 
 **And here the cousin is not hypothetical** — it is the manager agent, which
@@ -176,5 +187,6 @@ is whether the manager's guidance recurs as a fault after being given.
 
 ## Status
 
-Design, 2026-09-10. Next: decide the seed (`ARCHITECTURE.md` §11), then the
+Design, 2026-09-10. Next: decide whether it starts with a copy of the parent's
+tools (`ARCHITECTURE.md` §11), then the
 smallest kernel that runs end to end — body, journal, one trigger, one verdict.

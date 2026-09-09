@@ -140,12 +140,17 @@ a re-diagnosis. Name what was measured, with what, and on what date.
 
 Carried forward from `ARCHITECTURE.md` so they are not lost:
 
-1. **What keeps the manager's running state honest over a month?** Its `tried` /
-   `outcome` fields are checkable against a journal it cannot edit — that is the
-   proposed answer and it is unproven. **Build this first, not last.**
-2. **The seed.** Full copy of the live spine, empty, or layout-plus-hands with an
-   empty `tools/own/`. `ARCHITECTURE.md` §11 recommends the third and says why.
-   Tue's call.
+1. ~~What keeps the manager's running state honest?~~ **Closed 2026-09-10 (Tue):
+   the state is derived from the trigger/verdict event log, not authored by the
+   manager.** A derivation cannot drift. This imposes one hard rule — every
+   trigger and verdict gets its **own journal `kind` with structured fields**,
+   never a shared kind behind a prose prefix. See `ARCHITECTURE.md` §9. What
+   remains open is narrower: **complaint fidelity**, whether the manager's
+   `tried`/`outcome` correspond to events that really happened. Build that
+   census early; nothing else checks the manager.
+2. **Does it start with a copy of the spine's tools, or empty?**
+   `ARCHITECTURE.md` §11 recommends same layout and same hands with an empty
+   `tools/own/`, and says why. Tue's call.
 3. **Repo visibility.** Private while it is documents only (Tue, 2026-09-10).
    Revisit when code lands — the parent is public, so the default is public, but
    confirm rather than assume.
@@ -165,13 +170,27 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
 - `README.md` — public-facing explanation.
 
 Written 2026-09-10 in one design session, from the parent project's doctrine and
-measurements. **No independent verification of any parent number was performed in
-this session** — they are quoted from `growing-spine/CLAUDE.md` §5 and §8 as of
-its 2026-09-04 state. If a number matters enough to act on, re-measure it against
-the live spine before relying on it.
+measurements. **Counts and rates are quoted from `growing-spine/CLAUDE.md` §5 and
+§8 as of its 2026-09-04 state and were NOT re-measured.** If a number matters
+enough to act on, re-measure it against the live spine first.
+
+**One thing WAS verified against source** (`growing-spine` at `57f702f`,
+2026-09-10): the guard enumeration in `ARCHITECTURE.md` §2. An earlier draft
+listed sixteen guards taken from the parent's prose; reading the code found four
+more and, more importantly, showed that the list had merged two populations —
+creature-facing guards, which the cousin replaces, and health tripwires, which
+report outward and must not be. That check was Tue's instruction and it changed
+the design.
+
+Incidental finding, reported to Tue and not acted on: `executive/idea_gate.py`'s
+module docstring says *"STANDALONE (not wired into loop.py yet)"*, but `loop.py`
+imports and calls it at 1320, 1747 and 1799. Stale doc in the parent repo, no
+functional effect — another instance of the parent's own *a docstring is a claim,
+not an instrument*.
 
 **Nothing is deployed and nothing is scheduled.** The next step is a decision on
-§6.2 (the seed), then the smallest possible kernel: body, journal, one trigger
+§6.2 (copy the parent's tools, or start empty), then the smallest possible
+kernel: body, journal, one trigger
 (`DONE_CLAIM`), and one manager invocation end to end.
 
 ## 8. Session reports

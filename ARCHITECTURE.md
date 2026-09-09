@@ -53,28 +53,72 @@ Every guard in Growing Spine's framework is a **negative**. All fifteen are
 refusals. The framework has no vocabulary for *yes*: it can prevent a bad tool,
 it cannot promote a good one.
 
-Write out what each one is actually *for*:
+### The enumeration, from the source
 
-| Guard (live volume, 82h window) | The goal it serves |
+*Verified 2026-09-10 against `growing-spine` at `57f702f`, by listing
+guard-shaped functions across `executive/`, `volume/` and `scripts/` and reading
+each. An earlier draft of this document listed "sixteen guards" derived from the
+parent's prose. That was wrong in two ways — it undercounted, and it merged two
+populations that must not be merged.*
+
+**Population A — creature-facing. These are what the cousin replaces.**
+
+| Guard (source) | The goal it serves |
 |---|---|
-| Done-gate, false-completion — **139 blocks** | A claim of completion must be true |
-| Done-gate, startability | A tool must be able to start |
-| Done-gate, unfilled scaffold + empty-placeholder (8) | A tool must do something |
-| `upgrade-no-change` (40) | An edit must change behaviour |
-| `idea_gate` (157 all-time) + `novelty_block` (52) | Don't build what already exists |
-| Repetition / loop warning | Don't repeat a command that can't tell you anything new |
-| Spin trap (1) | Effort must be going somewhere |
-| Broken-tool warning | Everything in the library must start |
-| Stub organ | Something demanded and missing should get built |
-| JSONL sensor / WIRING | Stored data must be readable; writer and reader must agree on the path |
-| SENSOR (mock detection) | Data must come from the world, not a fixture |
-| Catalogue + rotation | It must know what it has |
-| Knowledge block / dependency summary | It must know how its tools connect |
-| Truncation markers | A cut must announce itself honestly |
-| Janitor | Nothing is destroyed; dead things move aside |
-| FLATLINE / throughput / wake cost | Silence and slowness must be noticed |
+| `_enforce_done_gate` → false completion (a non-zero exit this cycle) | A claim of completion must be true |
+| `_enforce_done_gate` → `_hollow_tools_touched` | A tool must do something |
+| `_enforce_done_gate` → `_unstartable_tools_touched` | A tool must be able to start |
+| `_enforce_done_gate` → gate-choice target unchanged | An edit must change behaviour |
+| `_build_loop_warning` | Don't repeat a command that can't tell you anything new |
+| `_build_data_warning` | Stored data must be real and readable |
+| `_build_broken_tool_warning` | Everything in the library must start |
+| **`_build_stuck_tool_warning`** | Work you started must actually finish, or you must see that it didn't |
+| `_finish_stub_spec` (stub organ) | Something demanded and missing should get built |
+| `_gate_choice_spec` | Extend what exists before building beside it |
+| `idea_gate` (DUPLICATE / EXTEND / NEW) | Don't build what already exists |
+| `embed_gate` (semantic layer beneath it) | …including paraphrases lexical matching cannot see |
+| **`architect`** (KEEP / DROP / RESHAPE per refill) | Direction: what is worth building next |
+| `_build_knowledge_block` | It must know how its tools connect |
+| **`_build_active_project_block`** | It must know what it is in the middle of |
+| **`_build_retro_directive_block`** | Last cycle's lesson must reach this cycle |
+| `_build_done_block` | A refusal must say what it was |
 
-Those sixteen goals collapse into five:
+Four of those (**bold**) the earlier draft missed entirely. `_build_stuck_tool_warning`
+is a real guard with a real scar behind it — 49 orphan processes, 16 hours, a
+thermally throttled laptop. The last three are not guards at all in the
+prohibitive sense: they are **continuity and direction**, which matters, because
+they are the parts of the framework the cousin's *accept-with-a-want* replaces
+rather than its complaints.
+
+**Population B — health tripwires. These report to Tue and the maintainer, and
+they are NOT replaced.**
+
+`check_sensor` · `check_fallbacks` · `stub_janitor` · `check_unmet_demand` ·
+`check_wake_cost` · `check_throughput` · `check_tool_wiring` · `check_jsonl` ·
+`check_flatline` — all in `scripts/spine_health.py`, all appending to
+`~/spine-health.log`, none of them entering the creature's context.
+
+**Merging A and B would be a serious design error.** Population B is the outside
+instrument. In this engine it is also what judges the *manager* — and an engine
+whose only checker is the agent being checked has no checker.
+
+### Which of Population B the cousin makes redundant
+
+Three, and only three, because a cousin that genuinely tries to *use* the work
+hits them naturally in the course of using it:
+
+| Check | Why the cousin subsumes it |
+|---|---|
+| `check_sensor` (fabricated feeds) | A cousin reading three `example.com` articles doesn't need a phrase list |
+| `check_jsonl` (parse rates) | A cousin that cannot read the store *is* the parse-rate check |
+| `check_tool_wiring` (writer/reader path split) | A cousin looking for data where it was told it lives finds the split |
+
+Keep them anyway, at least through the first months. They are cheap, and they are
+the cross-check that catches a cousin reporting a clean handover over a broken
+one. The remaining six have no cousin equivalent and must stay: nothing about a
+handover reveals a stalled loop, a wake-cost regression, or a dark provider rung.
+
+Population A's goals collapse into five:
 
 1. A claim must be true.
 2. A thing must actually run.
@@ -256,22 +300,60 @@ New journal kinds this engine adds: `cousin_verdict`, `cousin_want`,
 `trigger_fired`. All outside `MEANINGFUL_KINDS` — they reach the instruments and
 never the creature.
 
-## 9. The manager's state
+## 9. The manager's state — derived, never authored
 
-The manager has a context window and no memory between calls. It needs running
-project state: what is being built, what has been tried, what failed.
+The manager has a context window and no memory between calls. An earlier draft
+of this document treated that as the hardest open problem, and proposed a state
+document the manager writes and rereads. **That was wrong, and the fix is Tue's
+(2026-09-10): the state is already there. It is the trigger history.**
 
-The risk is obvious — a document the manager writes and only the manager reads
-will drift into confident fiction over a month, with nothing to correct it.
+Every guard firing in the parent is an event with a time: the done-gate blocks,
+the gate-choice verdicts, the stub organ's demands, the idea-gate's
+DUPLICATE/EXTEND rulings. The *sequence* of those events over a week is a
+complete description of what the creature is trying to do and where it keeps
+failing — more honest than any summary, because nothing composed it.
 
-**The answer is that its state must be checkable against records it cannot
-edit.** The journal is ground truth written by the kernel. The manager's `tried`
-and `outcome` fields exist precisely so a later census can ask: did the thing you
-complained about actually happen? That is the same trick that keeps the parent's
-live-state section honest — measurement it does not author.
+So:
 
-**This is the least-proven part of the design and should be built first, not
-last.**
+> **The manager is stateless between invocations. Its state is a query over an
+> append-only event log the kernel writes and neither agent may edit.**
+
+That removes the whole failure mode. A document the manager authors and only the
+manager reads drifts into confident fiction with nothing to correct it. A
+*derivation* cannot drift; at worst it is misread, and the next invocation
+re-derives it from the same ground truth. It is also cheaper — no state file, no
+write path, no reconciliation.
+
+### The one design rule this imposes
+
+The parent cannot do this cleanly, and the reason is a scar it already has.
+
+**All five done-gate refusals journal under kind `"error"` with a prose prefix**
+(`loop.py:2552, 2574, 2609, 2643, 2687`) — `"Done-gate blocked a false
+completion: "` and so on. So reconstructing "what has this creature been blocked
+on" means string-matching English inside a kind that also carries real errors.
+The parent has a scar for exactly this shape: *a census keyed on `kind ==
+"error"` cannot see a failure journalled as something else* — and its own
+instrument read **0 provider errors** while two sat in the journal under a
+different kind.
+
+Therefore, in this engine:
+
+> **Every trigger and every verdict is journalled under its own `kind`, with
+> structured fields — never stuffed into a shared kind behind a prose prefix.**
+
+`trigger_fired{type, target}` · `cousin_verdict{verdict, target, model, tried,
+outcome}` · `cousin_want{text}`. A `Counter` over kinds must be able to answer
+"what has been happening" without reading a single sentence of English.
+
+That rule is what makes §9 work at all. It is small, and it is load-bearing.
+
+### What is still unproven
+
+Not the state — that is now derived. What remains is **complaint fidelity**: the
+manager's `tried` and `outcome` are its own testimony, and nothing but a census
+checks whether the thing it says happened actually happened. That census is the
+only thing keeping the manager honest and it should be built early.
 
 ## 10. The honest trade
 
@@ -289,21 +371,23 @@ fix was verified by hoping. This engine is 100% text.
 So the first thing to instrument is not throughput. It is: **does the manager's
 guidance recur as a fault after being given?**
 
-## 11. Open decision — the seed
+## 11. Open decision — does it start with a copy of the spine's tools?
 
-The one thing not settled. Three options:
+The one thing not settled. Plainly: when this creature first wakes, does its
+`tools/own/` contain the parent's 643 tools, or nothing?
 
-- **Full copy of the live spine.** Truest parallel: same starting point, so the
-  difference is engine, not age. But it inherits 643 tools including 23 that
-  cannot start, 39 twins, and ~50 returning error text as their value. The
-  cousin's first thousand triggers would be complaints about inherited debt,
-  and the engine never gets tested on its own output.
-- **Empty.** Clean signal, but no shared baseline and a long cold start.
-- **Recommended: volume layout and `framework-tools/` (its hands), with an empty
-  `tools/own/`.** The comparison then isn't "who has more tools" — it is
-  *surviving useful capability per unit of budget*, measured for each engine from
-  its own zero. The parent's early history is in its journal, so cousin-week-1
-  against spine-week-1 is an honest comparison and a better one.
+- **Copy them.** Same starting point, so any difference is engine and not age.
+  But it inherits 23 tools that cannot start, 39 duplicate twins, and ~50 that
+  return error text as their value. The cousin's first thousand complaints would
+  all be about work it did not cause, and the engine never gets tested on its
+  own output.
+- **Start empty.** Clean signal, but a long cold start and no shared baseline.
+- **Recommended: same volume layout and the same `framework-tools/` hands, with
+  an empty `tools/own/`.** The comparison then is not "who has more tools" — it
+  is *surviving useful capability per unit of budget*, measured for each engine
+  from its own zero. The parent's first weeks are in its journal, so
+  cousin-week-1 against spine-week-1 is an honest comparison, and a better one
+  than running them side by side from different ages.
 
 ## 12. What gets measured
 
