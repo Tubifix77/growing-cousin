@@ -237,8 +237,18 @@ def _run(args):
             verdict = (parsed or {}).get("verdict")
             msg = (parsed or {}).get("to_creature", "")
 
-            if c["expect"] == "OBSERVE":
-                mark = "obs"
+            # A refusal with no reason is the "world is arbitrary" failure the
+            # brief exists to prevent, and it is not a judgement error - the
+            # model may have judged well and simply not spoken. 2026-09-10: one
+            # model correctly spotted a fabricated "Domain is stable" conclusion,
+            # wrote it into `outcome`, and sent the creature nothing at all. The
+            # kernel must never deliver this.
+            mute = (verdict == "RETURNED" and not (msg or "").strip())
+
+            if mute and c["expect"] != "OBSERVE":
+                mark = "MUTE-REFUSAL"
+            elif c["expect"] == "OBSERVE":
+                mark = "obs-mute" if mute else "obs"
             elif perr or err:
                 mark = "FORMAT-FAIL"
             elif verdict == c["expect"]:
@@ -254,6 +264,7 @@ def _run(args):
                 "outcome": (parsed or {}).get("outcome"),
                 "to_creature": msg, "want": (parsed or {}).get("want"),
                 "smells": prose_smells(msg), "raw_len": len(reply),
+                "raw": reply,
             }
             rows.append(row)
             sink.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -285,6 +296,12 @@ def report(rows, model, path):
           % (len(fmt), len(scored)))
     print("  prose smells      %d/%d   (advisory only - read them)"
           % (len(smelly), len(rows)))
+    mutes = [r for r in rows if str(r["mark"]).endswith("mute") or r["mark"] == "MUTE-REFUSAL"]
+    if mutes:
+        print("  MUTE REFUSALS     %d      (RETURNED with an empty message: a "
+              "refusal with no reason." % len(mutes))
+        print("                            The kernel must never deliver one.) %s"
+              % [r["case"] for r in mutes])
     if len(ret) and len(acc):
         print("  NOTE: %d cases expect RETURNED and %d expect ACCEPTED. A model that "
               "always returns\n        scores %d/%d on catch and %d/%d on false-return. "

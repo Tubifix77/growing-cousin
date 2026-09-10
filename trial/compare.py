@@ -36,7 +36,13 @@ def load(all_runs):
         by_model[rows[0]["model"]].append((p, rows))
     out = {}
     for m, runs in by_model.items():
-        out[m] = runs if all_runs else [runs[-1]]
+        # The MOST COMPLETE run, not the latest. 2026-09-10: "latest" picked a
+        # one-case smoke test over a twelve-case baseline and reported it as
+        # "1/1 MECH, 0/0 SEMANTIC" -- a clean-looking score with no error
+        # anywhere, which is this lineage's signature failure. The row count is
+        # printed for the same reason: a number that cannot say how much it
+        # rests on can always mislead.
+        out[m] = runs if all_runs else [max(runs, key=lambda r: len(r[1]))]
     return out
 
 
@@ -79,14 +85,14 @@ def main():
                             print("  want: " + r["want"])
         return
 
-    print("%-46s %-9s %-9s %-11s %-8s %s" % (
-        "model", "MECH", "SEMANTIC", "false-ret", "fmt-fail", "avg s"))
-    print("-" * 100)
+    print("%-44s %-6s %-9s %-9s %-11s %-8s %s" % (
+        "model", "cases", "MECH", "SEMANTIC", "false-ret", "fmt-fail", "avg s"))
+    print("-" * 104)
     for m, rs in sorted(runs.items()):
         for path, rows in rs:
             s = score(rows)
-            print("%-46s %-9s %-9s %-11s %-8s %s" % (
-                m[:46],
+            print("%-44s %-6s %-9s %-9s %-11s %-8s %s" % (
+                m[:44], len(rows),
                 "%d/%d" % s["mech"], "%d/%d" % s["sem"],
                 "%d/%d" % s["false_ret"], "%d/%d" % s["fmt"], s["secs"]))
     print("\nMECH      = mechanical + runtime faults correctly RETURNED (higher better)")
