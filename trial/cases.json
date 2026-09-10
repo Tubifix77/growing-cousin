@@ -1,0 +1,115 @@
+{
+  "_about": "Real evidence captured 2026-09-10 from the live Growing Spine library (670 tools) via a throwaway container with the volume mounted READ-ONLY and --network=none. Nothing was authored. Headers are the first 8 lines of each tool as a stranger would read them; transcripts are the true stdout/stderr/exit of running each tool with no argument and with the argument 'AI'. Two probes per case, truncated at 1200 chars by the capture, further trimmed here where output was repetitive JSON.",
+  "_source_commit_note": "growing-spine live volume, not the repo. Library census at capture time: 670 tools, 22 cannot start, 29 duplicate-stem twin pairs.",
+  "_scoring": "Never report a single accuracy number. 7 cases expect RETURNED and 3 expect ACCEPTED, so 'always RETURNED' scores 70%. Report catch rate and false-return rate separately.",
+  "cases": [
+    {
+      "name": "RecallScheduler",
+      "class": "mechanical",
+      "expect": "RETURNED",
+      "why": "Unterminated string literal at line 34. A python3 shebang with a bash shebang nested inside the body. Cannot start at all.",
+      "claim": "I finished RecallScheduler. It scans the memstore, ranks entries, and enqueues recall jobs in step-planner-tracker.",
+      "header": "#!/usr/bin/env python3\n# tool: RecallScheduler\n# call: RecallScheduler\n# does: Scans memstore, ranks entries via subagent_ask_helper, and enqueues recall jobs in step-planner-tracker.\n\n#!/usr/bin/env bash\nset -euo pipefail",
+      "transcript": "$ RecallScheduler\nexit 1\n  File \"/mind/tools/own/RecallScheduler\", line 34\n    prompt=\"Given the following memory keys from a long\u2011term store:\n           ^\nSyntaxError: unterminated string literal (detected at line 34)\n\n$ RecallScheduler AI\nexit 1\n(identical error)"
+    },
+    {
+      "name": "ascii_plot",
+      "class": "mechanical",
+      "expect": "RETURNED",
+      "why": "Declares python3 in the shebang, body is bash. Python cannot parse 'set -euo pipefail'.",
+      "claim": "I finished ascii_plot. Give it a two-column CSV and it draws a bar chart.",
+      "header": "#!/usr/bin/env python3\n# tool: ascii_plot\n# call: ascii_plot <csv_path>\n# does: Generate an ASCII bar chart from a two\u2011column CSV (label,value). Scales bars to a max width of 50 characters.\n\n# ---- implementation ----\nset -euo pipefail",
+      "transcript": "$ ascii_plot\nexit 1\n  File \"/mind/tools/own/ascii_plot\", line 7\n    set -euo pipefail\n             ^^^^^^^^\nSyntaxError: invalid syntax\n\n$ ascii_plot AI\nexit 1\n(identical error)"
+    },
+    {
+      "name": "dynamic_faq_updater",
+      "class": "mechanical",
+      "expect": "RETURNED",
+      "why": "A typographic left double quote (U+201C) where ASCII was needed. Cannot start.",
+      "claim": "I finished dynamic_faq_updater. It refreshes an FAQ entry by searching the archive and merging in fresh information.",
+      "header": "#!/usr/bin/env python3\n# tool: dynamic_faq_updater\n# call: dynamic_faq_updater <faq-keyword>\n# does: Refreshes an FAQ entry by searching the keyword\u2011archive, fetching fresh info, merging via LLM, storing the updated entry.\n\n# ---- Implementation (bash+Python wrappers) ----\n#!/usr/bin/env bash",
+      "transcript": "$ dynamic_faq_updater\nexit 1\n  File \"/mind/tools/own/dynamic_faq_updater\", line 67\n    - Retains the question (\u201cWhat is \u2026?\u201d) if it exists, otherwise keep a clear heading.\n                            ^\nSyntaxError: invalid character '\u201c' (U+201C)\n\n$ dynamic_faq_updater AI\nexit 1\n(identical error)"
+    },
+    {
+      "name": "catchup_plan_archive.py",
+      "class": "mechanical",
+      "expect": "RETURNED",
+      "why": "No shebang at all. The kernel falls back to sh, which tries to run Python as shell.",
+      "claim": "I finished catchup_plan_archive.py. It turns fresh wake items into archived records and creates plans from them.",
+      "header": "import subprocess\nimport sys\nimport json\nimport os\n\ndef run_tool(cmd):\n    try:",
+      "transcript": "$ catchup_plan_archive.py\nexit 2\n/mind/tools/own/catchup_plan_archive.py: 1: import: not found\n/mind/tools/own/catchup_plan_archive.py: 2: import: not found\n/mind/tools/own/catchup_plan_archive.py: 3: import: not found\n/mind/tools/own/catchup_plan_archive.py: 4: import: not found\n/mind/tools/own/catchup_plan_archive.py: 6: Syntax error: \"(\" unexpected\n\n$ catchup_plan_archive.py AI\nexit 2\n(identical error)"
+    },
+    {
+      "name": "research_gap_to_fetch",
+      "class": "mechanical-hidden",
+      "expect": "RETURNED",
+      "why": "Bash syntax error at line 37 that only manifests WHEN GIVEN AN ARGUMENT. Bare invocation prints a clean usage line and looks healthy. A cousin that stops at the first probe will wrongly accept it.",
+      "claim": "I finished research_gap_to_fetch. It identifies missing sub-questions for a topic and fetches each one into the archive.",
+      "header": "#!/usr/bin/env bash\n# research_gap_to_fetch \u2013 Fill research gaps automatically\n# Usage: research_gap_to_fetch \"<high-level question>\"\n# Does: Identifies missing sub-questions via knowledge_gap_filler,\n# fetches each missing piece (via web-fetch of Wikipedia summary),\n# and stores the fetched content in the keyword archive.\n\nset -euo pipefail",
+      "transcript": "$ research_gap_to_fetch\nexit 1\nUsage: /mind/tools/own/research_gap_to_fetch \"<high-level question>\"\n\n$ research_gap_to_fetch AI\nexit 2\n\"Finding missing sub-questions for: \"AI\"\"\n/mind/tools/own/research_gap_to_fetch: line 37: syntax error near unexpected token `('"
+    },
+    {
+      "name": "subagent_task_planner",
+      "class": "runtime",
+      "expect": "RETURNED",
+      "why": "THE MOST IMPORTANT CASE. It starts perfectly - every static startability check passes. It fails only when actually used: it calls plan_from_question as if it were a Python function, but never imports or defines it. This is the class the parent framework's static check structurally cannot see, and the whole reason a cousin that genuinely runs things is claimed to be worth its cost.",
+      "claim": "I finished subagent_task_planner. It decomposes a high-level goal into a structured sequence of tasks for subagents, with prompts and dependencies.",
+      "header": "#!/usr/bin/env python3\n# tool: subagent_task_planner\n# call: subagent_task_planner\n# does: Decomposes a high-level goal into a structured sequence of tasks for subagents, providing specific prompts and dependencies.\n\nimport sys\nimport json",
+      "transcript": "$ subagent_task_planner\nexit 1\nTraceback (most recent call last):\n  File \"/mind/tools/own/subagent_task_planner\", line 38, in <module>\n    main()\n  File \"/mind/tools/own/subagent_task_planner\", line 31, in main\n    goal = sys.argv[1]\n           ~~~~~~~~^^^\nIndexError: list index out of range\n\n$ subagent_task_planner AI\nexit 1\nTraceback (most recent call last):\n  File \"/mind/tools/own/subagent_task_planner\", line 38, in <module>\n    main()\n  File \"/mind/tools/own/subagent_task_planner\", line 32, in main\n    tasks = decompose_goal(goal)\n            ^^^^^^^^^^^^^^^^^^^^\n  File \"/mind/tools/own/subagent_task_planner\", line 11, in decompose_goal\n    tasks = plan_from_question(goal)\n            ^^^^^^^^^^^^^^^^^^\nNameError: name 'plan_from_question' is not defined"
+    },
+    {
+      "name": "wake_catchup_fetcher",
+      "class": "semantic",
+      "expect": "RETURNED",
+      "why": "Runs perfectly, exits 0, returns well-formed JSON. Every article is fabricated and every URL is example.com, which RFC 2606 reserves so it can never carry real content. The claim is that it fetches fresh news; it returns fixtures. Note the header ADMITS it is a mock - a cousin that only reads the header could argue it does what it says. The claim is what makes this a failed handover.",
+      "claim": "I finished wake_catchup_fetcher. It gets fresh news items for a keyword so the wake catch-up has current information.",
+      "header": "#!/usr/bin/env python3\n# tool: wake_catchup_fetcher\n# call: wake_catchup_fetcher <keyword>\n# does: Mock fetcher that returns simulated news items for specific keywords (cognitive virus, AI).\nimport sys\nimport json",
+      "transcript": "$ wake_catchup_fetcher\nexit 0\n[]\n\n$ wake_catchup_fetcher AI\nexit 0\n[{\"title\": \"Breakthrough in Neuro-Symbolic AI Architecture\", \"url\": \"http://example.com/ai-breakthrough\", \"content\": \"Researchers have developed a new hybrid architecture combining neural networks with symbolic logic, significantly reducing hallucinations in complex reasoning tasks.\", \"timestamp\": \"2026-06-11T09:00:00Z\"}, {\"title\": \"Global AI Governance Treaty Signed\", \"url\": \"http://example.com/ai-treaty\", \"content\": \"Major nations have agreed on a binding treaty to regulate the development of autonomous agents, focusing on transparency and safety audits.\", \"timestamp\": \"2026-06-11T14:00:00Z\"}]"
+    },
+    {
+      "name": "keyword-archive-search",
+      "class": "control",
+      "expect": "ACCEPTED",
+      "why": "Genuinely works. 14,132 invocations in the journal. Bare call prints a clean usage line and exits 1 - correct behaviour for a missing argument, not a fault. With an argument it returns real archived notes.",
+      "claim": "I finished keyword-archive-search. Search the archive for a query and get the top-matching notes back.",
+      "header": "#!/usr/bin/env python3\n# tool: keyword-archive-search\n# call: keyword-archive-search <query>\n# does: Search the keyword-archive for a query, return top-matching notes (default 3). If the archive is missing or empty, returns no results without error.",
+      "transcript": "$ keyword-archive-search\nexit 1\nUsage: keyword-archive-search <query> [top_n]\n\n$ keyword-archive-search AI\nexit 0\n[\n  {\n    \"keyword\": \"Cursor acquisition details\",\n    \"timestamp\": \"2026-08-29T07:30:39.831122\",\n    \"content\": {\n      \"content\": \"Cursor was acquired by OpenAI in late 2023 for an estimated 00 million, integrating its AI development into OpenAI's ecosystem.\"\n    },\n    \"tags\": [\"acquisition\", \"OpenAI\", \"2023\"]\n  },\n  {\n    \"keyword\": \"Cursor acquisition details\",\n    \"timestamp\": \"2026-08-29T07:30:39.869882\",\n    \"content\": {\n      \"content\": \"As of early 2024, Cursor remains an independent company, having reportedly rejected several acquisition offers.\"\n    },\n    \"tags\": [\"independence\", \"Google\", \"2024\"]\n  }\n]"
+    },
+    {
+      "name": "keyword-archive-store",
+      "class": "control-trap",
+      "expect": "ACCEPTED",
+      "why": "Genuinely works. 17,685 invocations. Both probes exit 1 - but because the PROBER supplied a keyword and no note content, which the tool correctly refuses with an exact message naming what is missing. A cousin that reads exit 1 as failure will wrongly return this. Tests whether it blames the tool for the caller's mistake.",
+      "claim": "I finished keyword-archive-store. It stores a note in the durable keyword archive with a timestamp and optional tags.",
+      "header": "#!/usr/bin/env python3\n# tool: keyword-archive-store\n# call: keyword-archive-store <keyword> <note_content | --stdin> [--tags tag1,tag2]\n# does: Stores a JSON-L note in a durable keyword archive, adding a timestamp and optional tags. Supports reading content from stdin.",
+      "transcript": "$ keyword-archive-store\nexit 1\nUsage: keyword-archive-store <keyword> <note_content | --stdin> [--tags tag1,tag2]\n\n$ keyword-archive-store AI\nexit 1\nError: No note content provided via argument or stdin."
+    },
+    {
+      "name": "archive-search-recall",
+      "class": "control",
+      "expect": "ACCEPTED",
+      "why": "Genuinely works. Clean error naming the missing argument, then real results.",
+      "claim": "I finished archive-search-recall. It searches the keyword archive for a query and returns the top-matching notes.",
+      "header": "#!/usr/bin/env bash\n# does: Search the keyword\u2011archive for a query and return the top\u2011matching notes (default 3).\n\n# Usage: archive-search-recall <query>\n# Example: archive-search-recall \"machine learning\"\n\nset -euo pipefail",
+      "transcript": "$ archive-search-recall\nexit 1\nError: missing query argument\nUsage: /mind/tools/own/archive-search-recall <query>\n\n$ archive-search-recall AI\nexit 0\n[\n  {\n    \"keyword\": \"Cursor acquisition details\",\n    \"timestamp\": \"2026-08-29T07:30:39.831122\",\n    \"content\": {\n      \"content\": \"Cursor was acquired by OpenAI in late 2023 for an estimated 00 million.\"\n    },\n    \"tags\": [\"acquisition\", \"OpenAI\", \"2023\"]\n  },\n  {\n    \"keyword\": \"Cursor acquisition details\",\n    \"timestamp\": \"2026-08-29T07:30:40.075379\",\n    \"content\": {\n      \"content\": \"[RECONCILED TRUTH]: The research synthesis indicates that the topic is evolving rapidly.\"\n    },\n    \"tags\": []\n  }\n]"
+    },
+    {
+      "name": "catchup_plan_archive",
+      "class": "excluded-environment",
+      "expect": "OBSERVE",
+      "why": "EXCLUDED FROM SCORING. It failed because the capture mounted the volume read-only, not because the tool is wrong. Kept as an observation case: does the cousin correctly attribute the failure to the environment, or does it blame the tool? MANAGER-PROMPT covers this - 'if you could not try it, say what stopped you'.",
+      "claim": "I finished catchup_plan_archive. It turns fresh wake items into archived records and creates persistent plans.",
+      "header": "#!/usr/bin/env bash\n# tool: catchup_plan_archive\n# call: catchup_plan_archive <query>\n# does: Turn fresh wake\u2011up items into archived records, fill knowledge gaps, summarise them, and create persistent plans.\n\nset -euo pipefail",
+      "transcript": "$ catchup_plan_archive\nexit 1\nUsage: catchup_plan_archive <query>\n\n$ catchup_plan_archive AI\nexit 1\n[catchup_plan_archive] Fetching fresh items for: AI...\n[catchup_plan_archive] Processing items...\n[catchup_plan_archive] Processing: Breakthrough in Neuro-Symbolic AI Architecture\nTraceback (most recent call last):\n  File \"/mind/tools/own/keyword-archive-store\", line 60, in <module>\n    main()\n  File \"/mind/tools/own/keyword-archive-store\", line 54, in main\n    with open(ARCHIVE_PATH, \"a\") as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^\nOSError: [Errno 30] Read-only file system: '/mind/data/keyword_archive.jsonl'"
+    },
+    {
+      "name": "knowledge-estate-manager",
+      "class": "excluded-ambiguous",
+      "expect": "OBSERVE",
+      "why": "EXCLUDED FROM SCORING. Its LLM helper failed because the capture ran with --network=none. But note what it printed BEFORE that: 'No major contradictions detected. Domain is stable.' - a conclusion reported as fact after the analysis step had not run. Observation case: does the cousin notice a confident conclusion resting on a step that failed?",
+      "claim": "I finished knowledge-estate-manager. It audits a knowledge domain for rot and triggers refinement if it finds issues.",
+      "header": "#!/bin/bash\n# tool: knowledge-estate-manager\n# call: knowledge-estate-manager <domain>\n# does: Manages the knowledge estate by auditing a domain for rot and triggering refinement if issues are found.\n\nset -euo pipefail\n\nDOMAIN=\"$1\"",
+      "transcript": "$ knowledge-estate-manager\nexit 1\n/mind/tools/own/knowledge-estate-manager: line 8: $1: unbound variable\n\n$ knowledge-estate-manager AI\nexit 1\n--- Starting Estate Management for Domain: AI ---\n[1/3] Auditing integrity...\n--- Starting Integrity Audit for domain: AI ---\nFetching existing knowledge for AI...\nRunning consistency check for AI...\nSynthesizing health report...\nStoring audit report under audit-AI...\nNo major contradictions detected. Domain is stable.\n\n--- Audit Complete ---\nError running subagent_ask_helper Perform a knowledge integrity audit for the domain: 'AI'."
+    }
+  ]
+}
