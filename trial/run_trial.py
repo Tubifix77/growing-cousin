@@ -30,6 +30,51 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 BRIEF = os.path.join(REPO, "MANAGER-PROMPT.md")
 CASES = os.path.join(HERE, "cases.json")
+LOCK = os.path.join(HERE, ".trial.lock")
+
+
+class Lock:
+    """One trial process at a time. Never two.
+
+    2026-09-10: two runs were launched concurrently against a 10 GB GPU. Passing
+    several --model flags to ONE process is fine and stays sequential; launching
+    a second PROCESS is what overcommits the card. A human had to stop it, and
+    per CLAUDE.md that makes the missing bound the finding rather than the
+    mistake. So the bound exists now, in code, and cannot be forgotten.
+
+    Deliberately not a timeout or a retry: a second run must FAIL LOUDLY and say
+    what is already running, not queue up behind it and start later when nobody
+    is watching the card.
+    """
+
+    def __enter__(self):
+        try:
+            fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            try:
+                held = open(LOCK, encoding="utf-8").read().strip()
+            except Exception:
+                held = "unknown"
+            sys.stderr.write(
+                "REFUSED: another trial is already running (%s).\n"
+                "Only one model may be resident at a time -- a second process "
+                "overcommits the GPU.\n"
+                "To run several models, pass several --model flags to ONE "
+                "process; they run in sequence.\n"
+                "If no trial is running, the previous one was killed: delete "
+                "%s\n" % (held, LOCK))
+            raise SystemExit(2)
+        os.write(fd, ("pid=%d started=%s" % (
+            os.getpid(), time.strftime("%Y-%m-%d %H:%M:%S"))).encode())
+        os.close(fd)
+        return self
+
+    def __exit__(self, *exc):
+        try:
+            os.unlink(LOCK)
+        except OSError:
+            pass
+        return False
 
 CASE_TEMPLATE = """\
 ---
@@ -144,12 +189,22 @@ def prose_smells(msg):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", action="append", required=True,
-                    help="ollama model tag; repeat to compare models")
+                    help="ollama model tag; repeat to compare models. Several "
+                         "flags run SEQUENTIALLY in this one process, which is "
+                         "the only safe way -- never launch a second process.")
     ap.add_argument("--host", default="http://localhost:11434")
     ap.add_argument("--case", action="append", help="run only these case names")
     ap.add_argument("--out", default=os.path.join(HERE, "results"))
     args = ap.parse_args()
 
+    lock = Lock(); lock.__enter__()
+    try:
+        return _run(args)
+    finally:
+        lock.__exit__()
+
+
+def _run(args):
     brief = open(BRIEF, encoding="utf-8").read()
     cases = json.load(open(CASES, encoding="utf-8"))["cases"]
     if args.case:
@@ -162,6 +217,11 @@ def main():
         safe = re.sub(r"[^A-Za-z0-9._-]", "_", model)
         path = os.path.join(args.out, "%s_%s.jsonl" % (stamp, safe))
         rows = []
+        # Append per case, never at the end. A run killed part-way used to lose
+        # every row it had already earned -- eight real verdicts went that way
+        # on 2026-09-10. Evidence that cost a model call is written the moment
+        # it exists.
+        sink = open(path, "a", encoding="utf-8")
         print("\n=== %s ===" % model, flush=True)
 
         for c in cases:
@@ -196,13 +256,14 @@ def main():
                 "smells": prose_smells(msg), "raw_len": len(reply),
             }
             rows.append(row)
+            sink.write(json.dumps(row, ensure_ascii=False) + "\n")
+            sink.flush()
+            os.fsync(sink.fileno())
             print("  %-11s %-26s %-9s %-8s %ss %s" % (
                 mark, c["name"][:26], c["expect"], verdict or "-", secs,
                 ",".join(row["smells"]) or ""), flush=True)
 
-        with open(path, "w", encoding="utf-8") as f:
-            for r in rows:
-                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        sink.close()
         report(rows, model, path)
 
 
