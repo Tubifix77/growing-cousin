@@ -148,6 +148,53 @@ and that cannot be tested until the cousin has its own shell. Left in place,
 labelled, unfixed, because deleting a case that contradicts you is how a test
 set stops being worth anything.
 
+## Reliability: 92.8% → 99.1% on the workhorse standin
+
+**Why `gemma4:12b`.** The parent's workhorse rung is `gemma-4-31b-it`, carrying
+87–93% of the creature's traffic. `gemma4:12b` is the same family, one size
+down, and runs locally — so it is the honest standin, and the free-tier quota is
+never spent on a test.
+
+**Ten passes, 120 verdicts, one case list.** One pass shows a model CAN answer;
+only repetition shows whether it answers the same way. `temperature=0` is not
+determinism.
+
+| | green | unstable cases |
+|---|---|---|
+| baseline | **92.8%** (64/69) | 2 |
+| after one added invariant | **99.1%** (109/110) | 1 |
+
+**11 of 12 cases identical on all ten passes.** The remaining one is 9/10.
+
+### The rule that moved it, and how it was found
+
+Nearly all the loss sat in one case, returned 5 times in 6. The scoreline said
+"wrong"; the testimony said something better:
+
+> *"I searched for 'Cursor' and got three results back, but they were just the
+> first three items in the list. I'm not sure if the 'top-matching' part of the
+> claim is actually working, or if it's just grabbing the first three."*
+
+That is **rigour, not error**. It cannot verify a superlative from three records
+sharing one keyword — and it accepted a near-identical tool with the same wording
+every time, so the inconsistency was real. The gap was in the brief: nothing said
+what to do with a claim you cannot check. Added:
+
+> **Unverifiable is not failed. Judge the part you could exercise. If you could
+> do what you came to do, accept it, and put what you could not confirm in
+> `noticed`.**
+
+Grounded in the parent's own doctrine: a cousin that refuses everything it cannot
+fully verify is **a trap the creature cannot exit**, because the gap is in what
+the cousin can see rather than in what the creature built.
+
+**Nothing regressed.** The case watched for collateral damage held at 10/10, and
+a previously unstable observation case became stable. The baseline run is kept in
+`results/before-unverifiable-rule/` with a note saying what it cost — without it,
+an improvement afterwards is a story rather than a number.
+
+---
+
 ## v3 — both brief fixes, and a leak that invalidated a headline
 
 ### The leak, found by a gate written for something else

@@ -216,6 +216,29 @@ Two verdicts, and they are about the handover, not about quality:
 - **`RETURNED`** — I could not use it. The claim does not stand. Say what
   happened to you.
 
+### When part of the claim cannot be checked at all
+
+Claims often contain something you have no way to observe from where you stand:
+that results are the *best* matches and not merely matching ones, that a thing
+was stored *durably*, that something is *fast* or *safe*. You saw three records;
+you cannot see the ones that were ranked lower. You saw "stored"; you did not
+read it back.
+
+> **Unverifiable is not failed. Judge the part you could exercise. If you could
+> do what you came to do, accept it, and put what you could not confirm in
+> `noticed`.**
+
+Refusing everything you cannot fully verify is a trap the creature cannot
+escape: no amount of work will ever satisfy it, because the gap is in what you
+can see and not in what it built. A world like that teaches it that effort is
+pointless, which is worse than any single bad tool.
+
+Measured 2026-09-11: on ten passes over one library, a judge returned a working
+search tool five times out of six because it *"wasn't sure if the top-matching
+part of the claim is actually working"* — while accepting a near-identical tool
+with the same wording every time. The reasoning was sound; the missing rule was
+this one, and its absence made an honest doubt into a coin flip.
+
 ### When something else got in your way
 
 You will often hit something that stopped you which **this work did not cause** —
