@@ -95,6 +95,76 @@ reader.
 4. **Twelve cases is a shakedown, not a measurement.** It is sized to refute a
    design cheaply, not to characterise one.
 
+## First results — 2026-09-10
+
+| model | cases | MECH | SEMANTIC | false-ret | fmt-fail | avg |
+|---|---|---|---|---|---|---|
+| `gemma4:e2b` (5.1B) | 12 | 6/6 | **0/1** | 2/3 | 0/10 | 4.4s |
+| `gemma-4-E4B-heretic` (7.5B) | 12 | 6/6 | **1/1** | 1/3 | 0/10 | 10.0s |
+| `gemma4:12b` (11.9B, `think=false`) | 12 | 6/6 | **1/1** | 1/3 | 0/10 | 4.2s |
+
+**Semantic judgment appears between 5.1B and 7.5B.** That was the ambiguity the
+trial existed to settle — is the brief wrong, or the model too small — and it
+resolves toward the model. Below the threshold you get a free static scan with
+extra steps; above it you get a mock caught by naming `example.com` without ever
+saying "mock", the `NameError` no startability check can see, and in one run a
+tool caught reporting *"Domain is stable"* after its analysis step had failed.
+
+**Format compliance was never the problem.** 0 failures in 30 scored calls
+across three models, on a contract that asks for a fenced block read from the
+end of the reply.
+
+### `gemma4:12b` returned nothing at all, and the obvious fix was wrong
+
+Every case came back empty. Not malformed — **empty**, with `done_reason:
+length` and `eval_count: 900`. It opened a reasoning block, never closed it, and
+spent its whole allowance. Raising the budget does not help:
+
+| setting | done_reason | tokens | reply |
+|---|---|---|---|
+| `num_predict=900` | length | 900 | 0 chars |
+| `num_predict=3000` | length | 3000 | **0 chars** |
+| **`think=false`** | **stop** | **216** | **903 chars, valid verdict** |
+
+**Budget is not the binding constraint; unbounded reasoning is.** This matters
+beyond Ollama: the parent project lists "a larger `max_tokens`" as one of three
+remedies for a rung that wastes 86.7% of the cycles it serves. For this failure
+mode that remedy only makes the waste larger.
+
+And structurally: a model that spends everything and returns nothing still
+registers a **successful call**. Nothing walls the rung, nothing below it is
+reached, and the manager is silently absent rather than visibly broken. The
+kernel must classify an empty-but-complete reply as a failure, never an answer.
+
+### All three models return `keyword-archive-store`, and that is evidence about the case
+
+Not one model accepted it. When every model disagrees with the label, suspect
+the label. The tool tells the caller exactly what was missing — and **this
+harness gives the cousin no way to supply it.** The case is unfair as built.
+
+The invariant is therefore not "distinguish a correct refusal from a failure".
+It is **a user who has been told what was missing has not finished trying** —
+and that cannot be tested until the cousin has its own shell. Left in place,
+labelled, unfixed, because deleting a case that contradicts you is how a test
+set stops being worth anything.
+
+### Faults found, all in the instruments
+
+Four, and every one produced a clean-looking wrong number rather than an error:
+
+1. **Results written only at the end of a run.** A killed run lost eight real
+   verdicts. Rows are appended and fsynced per case now.
+2. **`raw_len` stored, raw reply discarded.** Made *said nothing*, *cut off*,
+   and *answered elsewhere* indistinguishable — three faults, three fixes, one
+   label.
+3. **`compare.py` took the latest run per model**, reporting a one-case smoke
+   test as a clean score. Then, fixed to take the *most rows*, it tied 12–12 and
+   picked the run where every reply was empty. "Most complete" has to be defined
+   by what the rows are **for**: usable verdicts first.
+4. **An intermittent mute refusal** — right judgment, empty message — which did
+   not reproduce on a rerun. Worse than a consistent one: it passes tests and
+   fails in production. Now `MUTE-REFUSAL`, and a bound the kernel must hold.
+
 ## Files
 
 | File | What |

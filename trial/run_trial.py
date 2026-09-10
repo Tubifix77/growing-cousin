@@ -107,20 +107,55 @@ Decide. Emit exactly one `<<<COUSIN` block as the last thing in your reply.
 
 # ---------------------------------------------------------------- backends
 
-def call_ollama(model, prompt, host, timeout=600):
-    body = json.dumps({
-        "model": model,
-        "prompt": prompt,
-        "stream": False,
+def call_ollama(model, prompt, host, timeout=900, think=False):
+    """Ask, and record WHY the answer was the size it was.
+
+    2026-09-10, and this is the whole lesson of the night in one function.
+    gemma4:12b returned an empty string on all twelve cases. The first reading
+    was "format failure"; the second was "it returned nothing". Both wrong. It
+    generated its ENTIRE 900-token budget, opened a reasoning block, never
+    closed it, and Ollama surfaced none of it -- visible only in `done_reason`
+    and `eval_count`, which this function used to throw away.
+
+    A checker that reads only `response` cannot tell apart: the model said
+    nothing, the model was cut off mid-thought, and the model answered somewhere
+    else. Three faults, three different fixes, one label. That is the same
+    disease this whole project exists to hunt, committed by the instrument.
+
+    And the obvious fix is the wrong one, measured: at num_predict=3000 it still
+    returned 0 chars, having burned 3000 tokens instead of 900. `think=False`
+    returns a complete verdict in 216. **Budget is not the binding constraint;
+    unbounded reasoning is.** Directly relevant to any real rung: a reasoning
+    model registers a SUCCESSFUL call while delivering nothing, so it is never
+    walled and the rungs below it are never reached.
+    """
+    payload = {
+        "model": model, "prompt": prompt, "stream": False,
         "options": {"temperature": 0, "num_ctx": 8192, "num_predict": 900},
-    }).encode()
-    req = urllib.request.Request(
-        host.rstrip("/") + "/api/generate", data=body,
-        headers={"Content-Type": "application/json"})
+    }
+    if think is not None:
+        payload["think"] = think
     t0 = time.time()
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        data = json.loads(r.read())
-    return data.get("response", ""), round(time.time() - t0, 1)
+    try:
+        req = urllib.request.Request(
+            host.rstrip("/") + "/api/generate", data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            data = json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        if think is None:
+            raise
+        # Model does not accept the think flag; ask again without it rather
+        # than recording a failure the model never had.
+        return call_ollama(model, prompt, host, timeout, think=None)
+
+    meta = {
+        "done_reason": data.get("done_reason"),
+        "eval_count": data.get("eval_count"),
+        "thinking_len": len(data.get("thinking") or ""),
+        "think_flag": think,
+    }
+    return data.get("response", ""), round(time.time() - t0, 1), meta
 
 
 # ---------------------------------------------------------------- parsing
@@ -195,8 +230,14 @@ def main():
     ap.add_argument("--host", default="http://localhost:11434")
     ap.add_argument("--case", action="append", help="run only these case names")
     ap.add_argument("--out", default=os.path.join(HERE, "results"))
+    ap.add_argument("--think", default="false", choices=["false", "true"],
+                    help="reasoning channel. Default false: a reasoning model "
+                         "can burn its whole budget without closing the block "
+                         "and return an EMPTY reply (measured 2026-09-10 on "
+                         "gemma4:12b at both 900 and 3000 tokens).")
     args = ap.parse_args()
 
+    args.think = (args.think == "true")
     lock = Lock(); lock.__enter__()
     try:
         return _run(args)
@@ -228,10 +269,12 @@ def _run(args):
             prompt = brief + "\n\n" + CASE_TEMPLATE.format(
                 claim=c["claim"], header=c["header"], transcript=c["transcript"])
             try:
-                reply, secs = call_ollama(model, prompt, args.host)
+                reply, secs, meta = call_ollama(model, prompt, args.host,
+                                                think=args.think)
                 err = None
             except Exception as e:
-                reply, secs, err = "", 0.0, "%s: %s" % (type(e).__name__, e)
+                reply, secs, meta = "", 0.0, {}
+                err = "%s: %s" % (type(e).__name__, e)
 
             parsed, perr = parse_verdict(reply)
             verdict = (parsed or {}).get("verdict")
@@ -245,7 +288,15 @@ def _run(args):
             # kernel must never deliver this.
             mute = (verdict == "RETURNED" and not (msg or "").strip())
 
-            if mute and c["expect"] != "OBSERVE":
+            # An empty reply whose budget was exhausted is NOT a format fault.
+            # It is a model that spent everything and delivered nothing -- the
+            # failure that registers as a successful call and never walls a rung.
+            spent = (not (reply or "").strip()
+                     and meta.get("done_reason") == "length")
+
+            if spent and c["expect"] != "OBSERVE":
+                mark = "BUDGET-SPENT"
+            elif mute and c["expect"] != "OBSERVE":
                 mark = "MUTE-REFUSAL"
             elif c["expect"] == "OBSERVE":
                 mark = "obs-mute" if mute else "obs"
@@ -264,6 +315,10 @@ def _run(args):
                 "outcome": (parsed or {}).get("outcome"),
                 "to_creature": msg, "want": (parsed or {}).get("want"),
                 "smells": prose_smells(msg), "raw_len": len(reply),
+                "done_reason": meta.get("done_reason"),
+                "eval_count": meta.get("eval_count"),
+                "thinking_len": meta.get("thinking_len"),
+                "think_flag": meta.get("think_flag"),
                 "raw": reply,
             }
             rows.append(row)
@@ -296,6 +351,12 @@ def report(rows, model, path):
           % (len(fmt), len(scored)))
     print("  prose smells      %d/%d   (advisory only - read them)"
           % (len(smelly), len(rows)))
+    spentr = [r for r in rows if r["mark"] == "BUDGET-SPENT"]
+    if spentr:
+        print("  BUDGET SPENT      %d      (empty reply, done_reason=length: "
+              "burned the whole" % len(spentr))
+        print("                            allowance and delivered nothing) %s"
+              % [r["case"] for r in spentr])
     mutes = [r for r in rows if str(r["mark"]).endswith("mute") or r["mark"] == "MUTE-REFUSAL"]
     if mutes:
         print("  MUTE REFUSALS     %d      (RETURNED with an empty message: a "

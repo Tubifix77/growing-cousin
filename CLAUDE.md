@@ -167,9 +167,53 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    on a rung like that produces confident garbage instead of an obvious failure.
    Record the model per verdict from day one.
 
-## 7. State — 2026-09-10
+## 7. State — 2026-09-10 (evening)
 
-**Nothing running. Four documents, no code, no deployment, no creature.**
+**No engine, no creature, no deployment. But the design has been tested against
+real evidence and it survived.** See `trial/README.md` for the full results.
+
+**Semantic judgment appears between 5.1B and 7.5B.** Three local models, twelve
+real cases from the live parent library, identical fixtures. `gemma4:e2b` caught
+6/6 mechanical and **0/1 semantic** — a free static scan with extra steps.
+`gemma-4-E4B` (7.5B) and `gemma4:12b` both caught **1/1 semantic** with 1/3 false
+returns. Format compliance was never the problem: **0 failures in 30 scored
+calls**. The trial existed to settle whether a small-model manager can judge a
+handover at all, and the answer is yes, above a threshold.
+
+**Two findings that belong in the kernel, both discovered by the trial:**
+- **An empty-but-complete reply is a failure, never an answer.** `gemma4:12b`
+  returned nothing on all twelve cases: `done_reason=length`, `eval_count=900`,
+  reasoning block never closed. **Raising the budget does not fix it** — 3000
+  tokens also returned 0 chars; `think=false` returned a valid verdict in 216.
+  Budget is not the binding constraint, unbounded reasoning is. A model like
+  that registers a SUCCESSFUL call while delivering nothing, so nothing walls
+  the rung and nothing below it is reached.
+- **A `RETURNED` with an empty message must never be delivered.** Observed once,
+  did not reproduce — which is worse, not better: it passes tests and fails in
+  production. A refusal with no reason is the arbitrary world the brief exists
+  to prevent.
+
+**All three models rejected `keyword-archive-store`, which was labelled ACCEPTED.
+When every model disagrees with the label, suspect the label.** The case is
+unfair as built: the harness gives the cousin no way to act on what the tool told
+it. Left in place and labelled rather than deleted.
+
+**Four instrument faults were found, all mine, and every one produced a
+clean-looking wrong number rather than an error.** They are listed in
+`trial/README.md`. The pattern is worth stating here because it will recur:
+**I repeatedly built checkers that could not distinguish the thing they were
+measuring.** Each was caught only by storing raw evidence rather than a summary
+of it — `raw_len` alone would have left "format failure" standing as the
+finding, and `done_reason` is what turned "it returned nothing" into "it spent
+900 tokens and returned nothing", which has an entirely different fix.
+
+**Still unproven, and do not let the above imply otherwise:** none of this
+touched the free-tier ladder. Local models under controlled conditions gave 0
+format failures in 30 calls. `openrouter_super` returns clean, command-free
+replies 86.7% of the time under conditions nobody controls. The trial
+establishes a floor for the brief. It says nothing about the rung.
+
+### Documents
 
 - `MANAGER-PROMPT.md` — the cousin's brief. The novel artifact; everything else
   supports it.

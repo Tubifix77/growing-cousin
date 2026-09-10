@@ -27,6 +27,24 @@ MECHANICAL = {"mechanical", "mechanical-hidden", "runtime"}
 SEMANTIC = {"semantic"}
 
 
+def _completeness(run):
+    """Rank a run by USABLE rows, then row count, then recency.
+
+    Row count alone is not completeness. 2026-09-10: two runs of gemma4:12b both
+    had twelve rows -- one where every reply was empty because the model burned
+    its budget thinking, one where every reply was a real verdict. `max` on
+    length keeps whichever it saw first, and it picked the empty one, reporting
+    0/6 and 10/10 format failures as that model's result.
+
+    Third time in one evening that a selection rule looked right and quietly
+    chose the wrong evidence. The tie-break is the fix; the lesson is that
+    "most complete" has to be defined in terms of what the rows are FOR.
+    """
+    path, rows = run
+    usable = sum(1 for r in rows if r.get("verdict"))
+    return (usable, len(rows), path)
+
+
 def load(all_runs):
     by_model = defaultdict(list)
     for p in sorted(glob.glob(os.path.join(RESULTS, "*.jsonl"))):
@@ -42,7 +60,7 @@ def load(all_runs):
         # anywhere, which is this lineage's signature failure. The row count is
         # printed for the same reason: a number that cannot say how much it
         # rests on can always mislead.
-        out[m] = runs if all_runs else [max(runs, key=lambda r: len(r[1]))]
+        out[m] = runs if all_runs else [max(runs, key=_completeness)]
     return out
 
 
