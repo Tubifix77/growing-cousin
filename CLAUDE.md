@@ -19,10 +19,16 @@ stated.
 
 ## 0. Status — read this before anything else
 
-**Design only. No code exists. Nothing is deployed. The creature does not run.**
+**No engine, no kernel, no creature, nothing deployed.** What exists is the three
+design documents and `trial/` — a harness that puts the brief in front of a
+known-answer library and scores it. That is code, and it has produced real
+measurements, so this repository is no longer design-only.
 
-Every number in this repository is measured from **Growing Spine**, the parent.
-Not one of them was produced by this engine, because this engine has never run.
+**Two populations of number live here and must never be mixed.** Anything about
+the parent's behaviour is quoted from Growing Spine and was not re-measured.
+Anything in `trial/README.md` was produced here, locally, against fixtures
+captured read-only from the parent's live library. **No number anywhere was
+produced by a running cousin engine, because no such engine exists.**
 When the first cousin verdict lands, that changes and this section is the first
 thing to rewrite.
 
@@ -130,11 +136,46 @@ guess with authority it has not earned.
 
 ## 5. Scars
 
-*Empty by design. Nothing has run. The first entry will be earned, dated, and
-will name the instrument that found it.*
+*Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
+was measured, with what, and on what date.*
 
-Format when the time comes: signature first, so a recurrence is a lookup and not
-a re-diagnosis. Name what was measured, with what, and on what date.
+- **A checker that cannot distinguish the thing it measures reports a
+  clean-looking wrong number, never an error — and I built four in one evening
+  while writing the tools meant to catch exactly that.** 2026-09-10, all found
+  in `trial/`, all mine, none in the design. (1) Results written only at the end
+  of a run: a killed run lost eight earned verdicts. (2) `raw_len` stored and the
+  raw reply discarded, which collapsed *said nothing*, *cut off mid-thought* and
+  *answered somewhere I did not look* into one label — three faults, three
+  different fixes. (3) `compare.py` selecting the **latest** run per model,
+  reporting a one-case smoke test as a clean score; then, "fixed" to select the
+  **most rows**, it tied 12–12 and chose the run where every reply was empty.
+  (4) A prose-smell regex that flags quoting an error you saw on screen as
+  "diagnosis", when that is testimony — the guard-hunting-one-literal fault, in
+  the instrument built to police literals. **Invariant: store the raw evidence,
+  not a summary of it; a summary cannot be re-interrogated when the summary is
+  what is wrong.** Each of these was caught only because raw evidence survived.
+  And **"most complete" has to be defined by what the rows are FOR** — usable
+  verdicts, not row count.
+
+- **An empty reply that consumed its whole budget is a failure, not an answer,
+  and raising the budget is the wrong fix.** 2026-09-10, `gemma4:12b` on twelve
+  cases: `done_reason=length`, `eval_count=900`, `response` empty — a reasoning
+  block opened and never closed. At `num_predict=3000` it still returned **0
+  characters**, having burned 3,000 tokens. `think=false` returned a complete
+  valid verdict in **216**. **Budget is not the binding constraint; unbounded
+  reasoning is.** The general danger: such a call registers as a SUCCESS, so
+  nothing walls the rung and nothing below it is ever reached — the manager is
+  silently absent rather than visibly broken. Instrument: `done_reason` and
+  `eval_count`, which the harness had been discarding.
+
+- **When every model disagrees with your label, suspect the label.**
+  2026-09-10: all three models returned `keyword-archive-store`, which the case
+  set marks ACCEPTED. The tool tells the caller exactly what was missing and the
+  harness gives the cousin no way to supply it, so the case is unfair as built.
+  The invariant is not "tell a correct refusal from a failure" but **a user who
+  has been told what was missing has not finished trying** — untestable until
+  the cousin has its own shell. Left in place and labelled; deleting a case that
+  contradicts you is how a test set stops being worth anything.
 
 ## 6. Open questions the design does not answer
 
