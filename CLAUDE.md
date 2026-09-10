@@ -213,13 +213,28 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
 **No engine, no creature, no deployment. But the design has been tested against
 real evidence and it survived.** See `trial/README.md` for the full results.
 
-**Semantic judgment appears between 5.1B and 7.5B.** Three local models, twelve
-real cases from the live parent library, identical fixtures. `gemma4:e2b` caught
-6/6 mechanical and **0/1 semantic** — a free static scan with extra steps.
-`gemma-4-E4B` (7.5B) and `gemma4:12b` both caught **1/1 semantic** with 1/3 false
-returns. Format compliance was never the problem: **0 failures in 30 scored
-calls**. The trial existed to settle whether a small-model manager can judge a
-handover at all, and the answer is yes, above a threshold.
+**RETRACTED: "semantic judgment appears between 5.1B and 7.5B."** That was
+measured on v1, whose only semantic case was `wake_catchup_fetcher` — and the
+brief had been handing every judge the answer to that case since the first
+commit, naming the tool together with the exact fact that disqualified it. It was
+not a measurement. Corrected here 2026-09-11; the anatomy is in
+`trial/README.md`, and `assert_brief_names_no_case` now refuses to run a trial
+against a brief that names any tool under test.
+
+**What replaces it, from v3 (leak removed, tools called as their headers
+document).** Twelve real cases, four judges, identical fixtures:
+
+| model | MECH | SEMANTIC | false-ret | fmt-fail | avg |
+|---|---|---|---|---|---|
+| `gemma4:e2b` (5.1B) | 6/6 | 1/2 | 0/3 | 0/11 | 1.0s |
+| `gemma-4-E4B` (7.5B) | 6/6 | 1/2 | 0/3 | 0/11 | 3.0s |
+| `gemma4:12b` (`think=false`) | 6/6 | **2/2** | **0/3** | 0/11 | 15.3s |
+| `claude-haiku-4-5` | 6/6 | **2/2** | 1/3 | 0/11 | — |
+
+On the semantic case that was **never** leaked — a tool exiting 0 while reporting
+"Domain is stable" after its analysis failed — **all four catch it.** On the
+mock, now unleaked, only `gemma4:12b` and Haiku do. Format compliance was never
+the problem: **0 failures in 44 scored calls across four judges.**
 
 **Two findings that belong in the kernel, both discovered by the trial:**
 - **An empty-but-complete reply is a failure, never an answer.** `gemma4:12b`
