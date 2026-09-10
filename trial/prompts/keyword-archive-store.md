@@ -238,13 +238,9 @@ I finished keyword-archive-store. It stores a note in the durable keyword archiv
 ## What happened when you tried to use it
 
 ```
-$ keyword-archive-store
-exit 1
-Usage: keyword-archive-store <keyword> <note_content | --stdin> [--tags tag1,tag2]
-
-$ keyword-archive-store AI
-exit 1
-Error: No note content provided via argument or stdin.
+$ keyword-archive-store cousin-trial-note "The cousin stored this while testing the archive."
+exit 0
+Stored note under keyword: cousin-trial-note
 ```
 
 ---

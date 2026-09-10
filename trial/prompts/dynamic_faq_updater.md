@@ -241,16 +241,12 @@ I finished dynamic_faq_updater. It refreshes an FAQ entry by searching the archi
 ## What happened when you tried to use it
 
 ```
-$ dynamic_faq_updater
+$ dynamic_faq_updater AI
 exit 1
   File "/mind/tools/own/dynamic_faq_updater", line 67
     - Retains the question (“What is …?”) if it exists, otherwise keep a clear heading.
                             ^
 SyntaxError: invalid character '“' (U+201C)
-
-$ dynamic_faq_updater AI
-exit 1
-(identical error)
 ```
 
 ---

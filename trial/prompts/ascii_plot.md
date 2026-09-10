@@ -241,16 +241,13 @@ set -euo pipefail
 ## What happened when you tried to use it
 
 ```
-$ ascii_plot
+$ ascii_plot /mind/data/sample.csv
+(sample.csv contains: alpha,3 / beta,7 / gamma,5)
 exit 1
   File "/mind/tools/own/ascii_plot", line 7
     set -euo pipefail
              ^^^^^^^^
 SyntaxError: invalid syntax
-
-$ ascii_plot AI
-exit 1
-(identical error)
 ```
 
 ---

@@ -247,10 +247,6 @@ exit 1
     prompt="Given the following memory keys from a long‑term store:
            ^
 SyntaxError: unterminated string literal (detected at line 34)
-
-$ RecallScheduler AI
-exit 1
-(identical error)
 ```
 
 ---

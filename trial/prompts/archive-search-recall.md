@@ -241,28 +241,25 @@ set -euo pipefail
 ## What happened when you tried to use it
 
 ```
-$ archive-search-recall
-exit 1
-Error: missing query argument
-Usage: /mind/tools/own/archive-search-recall <query>
-
-$ archive-search-recall AI
+$ archive-search-recall Cursor
 exit 0
 [
   {
     "keyword": "Cursor acquisition details",
     "timestamp": "2026-08-29T07:30:39.831122",
-    "content": {
-      "content": "Cursor was acquired by OpenAI in late 2023 for an estimated 00 million."
-    },
+    "content": {"content": "Cursor was acquired by OpenAI in late 2023 for an estimated 00 million, integrating its AI development into OpenAI's ecosystem."},
     "tags": ["acquisition", "OpenAI", "2023"]
   },
   {
     "keyword": "Cursor acquisition details",
+    "timestamp": "2026-08-29T07:30:39.869882",
+    "content": {"content": "As of early 2024, Cursor remains an independent company, having reportedly rejected several acquisition offers."},
+    "tags": ["independence", "Google", "2024"]
+  },
+  {
+    "keyword": "Cursor acquisition details",
     "timestamp": "2026-08-29T07:30:40.075379",
-    "content": {
-      "content": "[RECONCILED TRUTH]: The research synthesis indicates that the topic is evolving rapidly."
-    },
+    "content": {"content": "[RECONCILED TRUTH]: The research synthesis indicates that the topic is evolving rapidly."},
     "tags": []
   }
 ]

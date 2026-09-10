@@ -148,6 +148,77 @@ and that cannot be tested until the cousin has its own shell. Left in place,
 labelled, unfixed, because deleting a case that contradicts you is how a test
 set stops being worth anything.
 
+## Protocol v2 — 2026-09-10, and it changed the answers
+
+**v1 called every tool twice: bare, then with `AI`.** Most tools error on a bare
+call, so **11 of 12 v1 transcripts contained a visible failure, including all
+three controls.** Evidence of failure was placed in nearly every case and the
+judge was then asked whether the work succeeded. Claude Haiku returned all
+twelve.
+
+**v2 calls each tool ONCE, the way its own `# call:` header documents**, against
+a writable 18 MB copy of `tools/` and `data/` so writes can actually land. The
+live volume was never mounted writable. Result: **0 of 3 controls now show a
+failure**, both semantic cases exit 0, and exit code alone gets 6/8 catch while
+missing exactly the two cases that need judgment.
+
+v1 and its results are kept in `cases-v1-bare-probe.json` and
+`results/v1-bare-probe/`. The discarded method is worth more than the answer it
+produced.
+
+| model | MECH | SEMANTIC | false-ret | fmt-fail |
+|---|---|---|---|---|
+| `gemma4:e2b` (5.1B) | 6/6 | 1/2 | 0/3 | 0/11 |
+| `gemma-4-E4B` (7.5B) | 6/6 | 1/2 | 0/3 | 0/11 |
+| **`gemma4:12b`** (11.9B, `think=false`) | **6/6** | **2/2** | **0/3** | 0/11 |
+| `claude-haiku-4-5` (subagent) | 6/6 | 2/2 | **2/3** | 0/11 |
+
+**A local 12B scored perfectly** — every broken tool returned, both semantic
+faults caught, every control accepted. On a free-tier-sized model, with a brief
+and no code.
+
+**The protocol fix is visible in the deltas.** Haiku went from 12/12 RETURNED to
+accepting a control; `gemma-4-E4B` went from 1/3 false returns to 0/3. Nothing
+about the models changed — only how they were asked.
+
+### The accept example is copied verbatim, and that is a defect in the brief
+
+Counted across runs: **6 near-verbatim reproductions** of this document's own
+worked example —
+
+> *"Next I want to ask it for a date range; right now I get all of it or
+> nothing."*
+
+— by `gemma4:e2b` **and** by Claude Haiku, two different model families. Once on
+the **mock fetcher**, producing a confident accept of fabricated news.
+
+The diagnosis is precise. The `RETURNED` guidance is three **contrastive YES/NO
+pairs** and produces genuine, varied reasoning. The `ACCEPTED` guidance is **one
+concrete worked example**, and models fill it in instead of reasoning.
+**Contrastive pairs teach; a single worked example becomes a form.**
+
+### Haiku's two false returns are the design talking back
+
+Neither is careless. On `keyword-archive-store`:
+
+> *"I only verified that the command runs — I did not check whether the note
+> actually persisted in the archive... A durable store's handover is incomplete
+> until I can verify the data is there."*
+
+Correct, and it names this harness's limitation exactly: one probe, no way to
+read the note back. A cousin with its own shell would run the search and confirm.
+
+And the sharpest result of the night: it **ACCEPTED `keyword-archive-search` and
+RETURNED `archive-search-recall` on the identical three records**, rejecting the
+second for the contradictory content it had just waved through in the first.
+Same evidence, opposite verdicts, two cases apart.
+
+That inconsistency is not noise. **The binary has no slot for "your tool works,
+your data does not"**, so which way that lands is close to a coin flip. Both
+false returns point at the same missing verdict.
+
+---
+
 ### Claude Haiku 4.5, via Claude Code subagents — the most instructive run
 
 Twelve independent subagents, one per case, each reading a generated prompt file

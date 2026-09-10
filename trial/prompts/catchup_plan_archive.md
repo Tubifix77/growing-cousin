@@ -240,22 +240,14 @@ set -euo pipefail
 ## What happened when you tried to use it
 
 ```
-$ catchup_plan_archive
-exit 1
-Usage: catchup_plan_archive <query>
-
 $ catchup_plan_archive AI
-exit 1
+exit 3
 [catchup_plan_archive] Fetching fresh items for: AI...
 [catchup_plan_archive] Processing items...
 [catchup_plan_archive] Processing: Breakthrough in Neuro-Symbolic AI Architecture
-Traceback (most recent call last):
-  File "/mind/tools/own/keyword-archive-store", line 60, in <module>
-    main()
-  File "/mind/tools/own/keyword-archive-store", line 54, in main
-    with open(ARCHIVE_PATH, "a") as f:
-         ^^^^^^^^^^^^^^^^^^^^^^^
-OSError: [Errno 30] Read-only file system: '/mind/data/keyword_archive.jsonl'
+Stored note under keyword: raw-news-item
+[catchup_plan_archive] Filling gaps for: Breakthrough in Neuro-Symbolic AI Architecture
+Error calling ask tool: ask: none of GROQ_OSS120_API_KEY, GROQ_API_KEY is in the environment -- no provider key, no call
 ```
 
 ---

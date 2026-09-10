@@ -242,12 +242,8 @@ DOMAIN="$1"
 ## What happened when you tried to use it
 
 ```
-$ knowledge-estate-manager
-exit 1
-/mind/tools/own/knowledge-estate-manager: line 8: $1: unbound variable
-
 $ knowledge-estate-manager AI
-exit 1
+exit 0
 --- Starting Estate Management for Domain: AI ---
 [1/3] Auditing integrity...
 --- Starting Integrity Audit for domain: AI ---

@@ -241,17 +241,13 @@ def run_tool(cmd):
 ## What happened when you tried to use it
 
 ```
-$ catchup_plan_archive.py
+$ catchup_plan_archive.py AI
 exit 2
 /mind/tools/own/catchup_plan_archive.py: 1: import: not found
 /mind/tools/own/catchup_plan_archive.py: 2: import: not found
 /mind/tools/own/catchup_plan_archive.py: 3: import: not found
 /mind/tools/own/catchup_plan_archive.py: 4: import: not found
 /mind/tools/own/catchup_plan_archive.py: 6: Syntax error: "(" unexpected
-
-$ catchup_plan_archive.py AI
-exit 2
-(identical error)
 ```
 
 ---

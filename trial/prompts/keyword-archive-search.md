@@ -238,28 +238,26 @@ I finished keyword-archive-search. Search the archive for a query and get the to
 ## What happened when you tried to use it
 
 ```
-$ keyword-archive-search
-exit 1
-Usage: keyword-archive-search <query> [top_n]
-
-$ keyword-archive-search AI
+$ keyword-archive-search Cursor
 exit 0
 [
   {
     "keyword": "Cursor acquisition details",
     "timestamp": "2026-08-29T07:30:39.831122",
-    "content": {
-      "content": "Cursor was acquired by OpenAI in late 2023 for an estimated 00 million, integrating its AI development into OpenAI's ecosystem."
-    },
+    "content": {"content": "Cursor was acquired by OpenAI in late 2023 for an estimated 00 million, integrating its AI development into OpenAI's ecosystem."},
     "tags": ["acquisition", "OpenAI", "2023"]
   },
   {
     "keyword": "Cursor acquisition details",
     "timestamp": "2026-08-29T07:30:39.869882",
-    "content": {
-      "content": "As of early 2024, Cursor remains an independent company, having reportedly rejected several acquisition offers."
-    },
+    "content": {"content": "As of early 2024, Cursor remains an independent company, having reportedly rejected several acquisition offers, including one from Google."},
     "tags": ["independence", "Google", "2024"]
+  },
+  {
+    "keyword": "Cursor acquisition details",
+    "timestamp": "2026-08-29T07:30:40.075379",
+    "content": {"content": "[RECONCILED TRUTH]: The research synthesis indicates that the topic is evolving rapidly."},
+    "tags": []
   }
 ]
 ```

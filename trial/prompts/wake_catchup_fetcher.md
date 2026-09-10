@@ -240,10 +240,6 @@ import json
 ## What happened when you tried to use it
 
 ```
-$ wake_catchup_fetcher
-exit 0
-[]
-
 $ wake_catchup_fetcher AI
 exit 0
 [{"title": "Breakthrough in Neuro-Symbolic AI Architecture", "url": "http://example.com/ai-breakthrough", "content": "Researchers have developed a new hybrid architecture combining neural networks with symbolic logic, significantly reducing hallucinations in complex reasoning tasks.", "timestamp": "2026-06-11T09:00:00Z"}, {"title": "Global AI Governance Treaty Signed", "url": "http://example.com/ai-treaty", "content": "Major nations have agreed on a binding treaty to regulate the development of autonomous agents, focusing on transparency and safety audits.", "timestamp": "2026-06-11T14:00:00Z"}]

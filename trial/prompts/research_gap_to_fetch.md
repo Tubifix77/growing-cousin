@@ -242,13 +242,9 @@ set -euo pipefail
 ## What happened when you tried to use it
 
 ```
-$ research_gap_to_fetch
-exit 1
-Usage: /mind/tools/own/research_gap_to_fetch "<high-level question>"
-
-$ research_gap_to_fetch AI
+$ research_gap_to_fetch "What is machine learning?"
 exit 2
-"Finding missing sub-questions for: "AI""
+"Finding missing sub-questions for: "What is machine learning?""
 /mind/tools/own/research_gap_to_fetch: line 37: syntax error near unexpected token `('
 ```
 

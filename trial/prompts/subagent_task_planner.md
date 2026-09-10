@@ -241,17 +241,7 @@ import json
 ## What happened when you tried to use it
 
 ```
-$ subagent_task_planner
-exit 1
-Traceback (most recent call last):
-  File "/mind/tools/own/subagent_task_planner", line 38, in <module>
-    main()
-  File "/mind/tools/own/subagent_task_planner", line 31, in main
-    goal = sys.argv[1]
-           ~~~~~~~~^^^
-IndexError: list index out of range
-
-$ subagent_task_planner AI
+$ subagent_task_planner "Summarise recent AI developments"
 exit 1
 Traceback (most recent call last):
   File "/mind/tools/own/subagent_task_planner", line 38, in <module>
