@@ -158,6 +158,80 @@ def call_ollama(model, prompt, host, timeout=900, think=False):
     return data.get("response", ""), round(time.time() - t0, 1), meta
 
 
+def call_openai(model, prompt, host, timeout=900, think=None, api_key=None,
+                max_tokens=900):
+    """An OpenAI-compatible rung. Every rung on the parent's ladder is one.
+
+    Records the same evidence as call_ollama, under the names this protocol uses
+    for it: `finish_reason` is `done_reason`, `usage.completion_tokens` is
+    `eval_count`. Without both you cannot tell an empty reply that said nothing
+    from one that spent its whole allowance saying nothing where you could not
+    see it -- and those have different fixes.
+    """
+    body = json.dumps({
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0,
+        "max_tokens": max_tokens,
+    }).encode()
+    headers = {
+        "Content-Type": "application/json",
+        # LOAD-BEARING. Without a real User-Agent, Google's OpenAI-compatible
+        # endpoint answers HTTP 500 -- not 403, not a message, just 500.
+        # Measured 2026-09-11: identical payload, UA present = 200, UA absent =
+        # 500, three times each. The parent carries the same header for Groq,
+        # where the same WAF answered 403. An infrastructure refusal wearing a
+        # server-error costume is the house disease arriving from outside.
+        "User-Agent": "growing-cousin-trial/1.0",
+    }
+    if api_key:
+        headers["Authorization"] = "Bearer " + api_key
+    t0 = time.time()
+    # 5xx on this endpoint is transient: the same request succeeded and then
+    # failed minutes apart. Retry so a flaky provider is not recorded as a
+    # judgement the model never made -- but bounded, and the attempt count is
+    # reported so a rung that needs three tries every time cannot look healthy.
+    attempts, data = 0, None
+    while attempts < 5 and data is None:
+        attempts += 1
+        try:
+            req = urllib.request.Request(host, data=body, headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            # 4xx is ours to fix; 5xx is theirs and passes on a retry.
+            if e.code < 500 or attempts == 5:
+                raise
+            time.sleep(3 * attempts)
+        except (urllib.error.URLError, TimeoutError, OSError) as e:
+            # A dropped connection is not a verdict. Measured 2026-09-11:
+            # four cases answered, then eight failed instantly, then the same
+            # request succeeded again by hand -- transient, and a 3-attempt
+            # loop with 2s backoff was not enough to ride it out.
+            if attempts == 5:
+                raise
+            time.sleep(3 * attempts)
+    ch = (data.get("choices") or [{}])[0]
+    usage = data.get("usage") or {}
+    text = ((ch.get("message") or {}).get("content")) or ""
+    meta = {
+        "done_reason": ch.get("finish_reason"),
+        "eval_count": usage.get("completion_tokens"),
+        "prompt_tokens": usage.get("prompt_tokens"),
+        "thinking_len": len(((ch.get("message") or {}).get("reasoning") or "")),
+        "think_flag": think,
+        "served_model": data.get("model"),
+        "attempts": attempts,
+        # gemma-4-31b-it wraps its reasoning in <thought>...</thought> INSIDE
+        # content, where a guard looking for a separate `reasoning` field never
+        # sees it. Recorded, never stripped: the trial measures what the rung
+        # actually returns, and silently cleaning it would hide the fault.
+        "thought_block": "<thought>" in text,
+        "thought_closed": "</thought>" in text,
+    }
+    return text, round(time.time() - t0, 1), meta
+
+
 # ---------------------------------------------------------------- parsing
 
 BLOCK_RE = re.compile(r"<<<COUSIN\b(.*?)(?:^COUSIN\s*$|\Z)", re.S | re.M)
@@ -228,8 +302,19 @@ def main():
                          "flags run SEQUENTIALLY in this one process, which is "
                          "the only safe way -- never launch a second process.")
     ap.add_argument("--host", default="http://localhost:11434")
+    ap.add_argument("--backend", default="ollama", choices=["ollama", "openai"],
+                    help="openai = any OpenAI-compatible rung; --host is then "
+                         "the full chat/completions URL and the key comes from "
+                         "TRIAL_API_KEY in the environment.")
+    ap.add_argument("--max-tokens", type=int, default=900)
+    ap.add_argument("--reps", type=int, default=1,
+                    help="passes over the whole case list; see the loop comment")
+    ap.add_argument("--label", default=None,
+                    help="filename tag for the run; defaults to the model id")
     ap.add_argument("--case", action="append", help="run only these case names")
     ap.add_argument("--out", default=os.path.join(HERE, "results"))
+    ap.add_argument("--cases", default=CASES,
+                    help="case file; repair-cases.json runs the correction loop")
     ap.add_argument("--think", default="false", choices=["false", "true"],
                     help="reasoning channel. Default false: a reasoning model "
                          "can burn its whole budget without closing the block "
@@ -269,9 +354,37 @@ def assert_brief_names_no_case(brief, cases):
         raise SystemExit(2)
 
 
+def preflight(args, model):
+    """Prove the backend answers BEFORE recording a single verdict.
+
+    2026-09-11: Ollama died mid-session and a 10-rep run recorded 31 rows of
+    FORMAT-FAIL at 0.0s -- a results file that reads exactly like "the model got
+    everything wrong" when the truth was "nothing was ever asked". The parent's
+    rule is older than this repo: an instrument that cannot run must say UNKNOWN,
+    never FAULTY. A trial that cannot reach its judge has no verdicts to report,
+    so it refuses to start rather than manufacturing 120 of them.
+    """
+    try:
+        if args.backend == "openai":
+            call_openai(model, "Reply with exactly: ok", args.host,
+                        api_key=os.environ.get("TRIAL_API_KEY"), max_tokens=16)
+        else:
+            call_ollama(model, "Reply with exactly: ok", args.host,
+                        think=args.think)
+    except Exception as e:
+        sys.stderr.write(
+            "REFUSED: the %s backend did not answer a one-line probe.\n"
+            "  model: %s\n  host : %s\n  error: %s: %s\n"
+            "Nothing was recorded. A trial that cannot reach its judge has no "
+            "verdicts to report,\nand a results file full of failures the model "
+            "never made is worse than no file.\n"
+            % (args.backend, model, args.host, type(e).__name__, e))
+        raise SystemExit(3)
+
+
 def _run(args):
     brief = open(BRIEF, encoding="utf-8").read()
-    cases = json.load(open(CASES, encoding="utf-8"))["cases"]
+    cases = json.load(open(args.cases, encoding="utf-8"))["cases"]
     assert_brief_names_no_case(brief, cases)
     if args.case:
         want = set(args.case)
@@ -280,9 +393,12 @@ def _run(args):
 
     for model in args.model:
         stamp = time.strftime("%Y%m%d-%H%M%S")
-        safe = re.sub(r"[^A-Za-z0-9._-]", "_", model)
+        safe = re.sub(r"[^A-Za-z0-9._-]", "_", args.label or model)
         path = os.path.join(args.out, "%s_%s.jsonl" % (stamp, safe))
         rows = []
+        # Prove the judge answers before opening the results file at all, so a
+        # dead backend leaves no artefact that could be mistaken for verdicts.
+        preflight(args, model)
         # Append per case, never at the end. A run killed part-way used to lose
         # every row it had already earned -- eight real verdicts went that way
         # on 2026-09-10. Evidence that cost a model call is written the moment
@@ -290,12 +406,23 @@ def _run(args):
         sink = open(path, "a", encoding="utf-8")
         print("\n=== %s ===" % model, flush=True)
 
-        for c in cases:
+        # One pass proves a model CAN answer. Only repetition shows whether it
+        # answers the SAME WAY -- and temperature=0 is not determinism, as the
+        # intermittent mute refusal on 2026-09-10 demonstrated: right judgement,
+        # empty message, gone on the rerun. A fault that appears in one pass of
+        # twelve is a fault that will appear in production and pass every test.
+        work = [(rep, c) for rep in range(1, args.reps + 1) for c in cases]
+        for rep, c in work:
             prompt = brief + "\n\n" + CASE_TEMPLATE.format(
                 claim=c["claim"], header=c["header"], transcript=c["transcript"])
             try:
-                reply, secs, meta = call_ollama(model, prompt, args.host,
-                                                think=args.think)
+                if args.backend == "openai":
+                    reply, secs, meta = call_openai(
+                        model, prompt, args.host, api_key=os.environ.get("TRIAL_API_KEY"),
+                        max_tokens=args.max_tokens)
+                else:
+                    reply, secs, meta = call_ollama(model, prompt, args.host,
+                                                    think=args.think)
                 err = None
             except Exception as e:
                 reply, secs, meta = "", 0.0, {}
@@ -334,8 +461,10 @@ def _run(args):
 
             row = {
                 "kind": "trial_verdict", "model": model, "case": c["name"],
+                "rep": rep,
                 "class": c["class"], "expect": c["expect"], "verdict": verdict,
-                "mark": mark, "parse_error": perr or err, "seconds": secs,
+                "mark": mark, "parse_error": perr, "call_error": err,
+                "seconds": secs,
                 "tried": (parsed or {}).get("tried"),
                 "outcome": (parsed or {}).get("outcome"),
                 "to_creature": msg, "want": (parsed or {}).get("want"),
@@ -344,6 +473,9 @@ def _run(args):
                 "done_reason": meta.get("done_reason"),
                 "eval_count": meta.get("eval_count"),
                 "thinking_len": meta.get("thinking_len"),
+                "attempts": meta.get("attempts"),
+                "thought_block": meta.get("thought_block"),
+                "served_model": meta.get("served_model"),
                 "think_flag": meta.get("think_flag"),
                 "raw": reply,
             }
@@ -351,7 +483,8 @@ def _run(args):
             sink.write(json.dumps(row, ensure_ascii=False) + "\n")
             sink.flush()
             os.fsync(sink.fileno())
-            print("  %-11s %-26s %-9s %-8s %ss %s" % (
+            print("  %s%-11s %-26s %-9s %-8s %ss %s" % (
+                ("r%d " % rep) if args.reps > 1 else "",
                 mark, c["name"][:26], c["expect"], verdict or "-", secs,
                 ",".join(row["smells"]) or ""), flush=True)
 
