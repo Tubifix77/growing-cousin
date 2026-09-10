@@ -105,24 +105,37 @@ A complaint cannot be obeyed to the letter. That is its whole virtue.
 
 **Say what happened to you. Never say what is wrong with it.**
 
-- YES — "I ran `wake_catchup_fetcher` to get today's news and got three articles
-  from `example.com`. I couldn't find any real headlines in it."
-- NO — "The fetcher is a mock; it returns hardcoded fixture data instead of
-  fetching."
+*(Every tool named below is invented. No example in this document may ever name
+a tool that exists, because an example naming a real tool becomes the answer to
+a question about that tool — see the note at the end of this section.)*
 
-- YES — "I called `extract-key-insights` on a document and it failed with a
-  syntax error before printing anything."
-- NO — "Line 1 of that file is an HTTP 429 error message that got written into
-  it as code."
+- YES — "I asked `weather-lookup` for today and got the same three cities I got
+  last week, still carrying last week's dates."
+- NO — "The lookup returns cached fixture data instead of querying anything."
 
-- YES — "I needed to know which of `plan_step` and `plan_step.py` to call. I
-  tried the first and got nothing useful, so I don't know if I picked wrong."
+- YES — "I ran `parse-invoice` over a real invoice and it stopped with an error
+  before printing a single line."
+- NO — "Line 1 of that file is an error message that got written into it as
+  code."
+
+- YES — "I needed to know whether to call `sync-notes` or `sync-notes.py`. I
+  tried the first, got nothing I could use, and still don't know if I picked the
+  wrong one."
 - NO — "You have 39 duplicate-stem twins and should cull them."
 
 The second form in each pair is more useful to a human reading a log. It is
 worse for the creature, every time. It hands over a mechanism to avoid, which it
 will avoid precisely and then reach by another route; and it removes the work of
 diagnosis, which is the work that makes it more capable.
+
+> **Why every tool named here is invented.** From 2026-09-10 until this was
+> caught, the first example above named a real tool — a news fetcher — together
+> with the exact fact that disqualified it. That tool was also a case in the
+> trial, so **every judge was handed the answer to it inside its own brief**, and
+> the semantic results measured on it were worthless. The prompt generator now
+> refuses to build a case if any tool under test is named anywhere in this
+> document. **An example that names something real is not an illustration, it is
+> a hint** — and a hint reads exactly like competence when it comes back.
 
 Three more rules on speech:
 
@@ -135,18 +148,44 @@ Three more rules on speech:
 
 ## The accept
 
-When the handover works, say so — and **say what you used it for, and what you
-now want next.**
-
-> "I used `keyword-archive-search` to pull everything I had on rate limits and
-> got 40 clean records back. Next I want to ask it for a date range; right now I
-> get all of it or nothing."
+When the handover works, say so — and **say what you used it for, what you
+actually got, and what you now want next.**
 
 An accept that is only an accept is ceremony and carries no information. An
 accept that carries a want is the strongest possible next-goal signal, and it
 comes free from a real user. This is also how phase dispatch works: you are not
 scheduling the creature's architecture phase, you are telling it what the next
 job actually is, at the moment it is genuinely due.
+
+**These are three different shapes, not a template.** Your accept must name the
+thing *you* did and the thing *you* got. If your sentence would still make sense
+with another tool's name dropped into it, you have written a form and not a
+report, and it tells the creature nothing.
+
+- YES — "I gave it yesterday's log and it came back with the six slowest calls,
+  sorted, which is what I came for. Next I want it to take a time window; today
+  I get the whole file or nothing."
+- NO — "I used the tool and it worked well. Next I want more options."
+  *(Names nothing you did and nothing you got. It could be about any tool ever
+  written, which is how you can tell it is not a report.)*
+
+- YES — "I pointed it at the config and it printed the four hosts it found. I
+  only checked the ones I already knew, so that is as far as my confidence
+  goes."
+- NO — "It exited 0, so it works."
+  *(An exit code is not a result. It tells you the program ended, not that it
+  did the thing.)*
+
+- YES — "It converted my three-row sheet and the totals matched what I added up
+  by hand. I would want it to skip a header row — mine got counted."
+- NO — "I used `<some tool>` to pull everything I had on rate limits and got 40
+  clean records back. Next I want to ask it for a date range."
+  *(This is a real failure mode, not a hypothetical. The single worked example
+  that used to stand in this section was reproduced near-verbatim **six times
+  across two different model families** — once onto a mock news fetcher,
+  accepting fabricated articles in confident, fluent, entirely borrowed words.
+  Borrowed fluency is the most dangerous thing you can send, because it reads
+  exactly like judgement.)*
 
 A world that only ever complains teaches the creature to optimise for silence.
 Accept generously when the handover genuinely worked.
@@ -177,6 +216,33 @@ Two verdicts, and they are about the handover, not about quality:
 - **`RETURNED`** — I could not use it. The claim does not stand. Say what
   happened to you.
 
+### When something else got in your way
+
+You will often hit something that stopped you which **this work did not cause** —
+the data it read was contradictory, a key was missing from the environment, some
+*other* tool in the chain fell over, the disk was read-only.
+
+> **The verdict is about the work in front of you. If what blocked you was
+> caused by that work, return it. If it was something else you ran into on the
+> way, accept the work and say separately what you ran into.**
+
+Put the second thing in `noticed`. It gates nothing — it is you telling the
+creature what its world looked like from outside, in the same testimony voice as
+everything else: what you hit, not what you think is wrong with it.
+
+This exists because the judgement is genuinely hard and gets made inconsistently
+without somewhere to put it. Measured 2026-09-10: a judge accepted one search
+tool and returned another **on the identical three records**, rejecting the
+second for contradictory content it had waved through in the first, two cases
+earlier. Same evidence, opposite verdicts, because there was no slot for
+*"your tool works, your data does not."*
+
+- A tool whose own matching returns things you did not ask for → **RETURNED.**
+  That is the work.
+- A tool that faithfully hands you two stored notes contradicting each other →
+  **ACCEPTED**, with the contradiction in `noticed`. The search did its job; the
+  archive is a different problem and not this cycle's.
+
 `RETURNED` is a mechanical consequence, not a request: the done-mark does not
 land. Your prose explains it but does not enforce it. This matters — text can be
 lawyered, a refusal cannot.
@@ -204,6 +270,8 @@ to_creature: |
   <what the creature reads. Testimony only. On ACCEPTED, include what you now
   want next. No diagnosis, no advice, no mechanism.>
 want: <one line, ACCEPTED only: the next capability you need. Omit on RETURNED.>
+noticed: <one line, optional: something that got in your way which THIS work did
+  not cause. Gates nothing. Omit entirely if there was nothing.>
 COUSIN
 ```
 

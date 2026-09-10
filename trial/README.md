@@ -148,6 +148,82 @@ and that cannot be tested until the cousin has its own shell. Left in place,
 labelled, unfixed, because deleting a case that contradicts you is how a test
 set stops being worth anything.
 
+## v3 — both brief fixes, and a leak that invalidated a headline
+
+### The leak, found by a gate written for something else
+
+While adding a check that no case name appears in the brief, it fired on the
+brief's **opening example**, present since the first commit:
+
+> *"I ran `wake_catchup_fetcher` to get today's news and got three articles from
+> `example.com`. I couldn't find any real headlines in it."*
+
+That is the answer to the `wake_catchup_fetcher` case — tool name, disqualifying
+fact, and conclusion — handed to every judge in every run. **v1's only semantic
+case was that one, so the claim "semantic judgment appears between 5.1B and 7.5B"
+was measured on a case whose answer was in the prompt, and is retracted.**
+
+Every example in the brief now names an invented tool, and
+`assert_brief_names_no_case` refuses to build a prompt or start a run otherwise.
+One copy of that check, called by both the runner and the prompt generator, and
+verified to fire on a leaking brief and pass on the corrected one.
+
+**The uncontaminated result is better than the contaminated one.** Given nothing,
+Haiku still caught the mock — by a route that was never in the brief:
+
+> *"I need current information for the morning catch-up briefing. The articles it
+> returned are from June 11 — three months old."*
+
+Previously it echoed the brief's own disqualifier. That is the difference between
+a returned hint and a judgement, and only the gate could tell them apart.
+
+### Fix 1 — contrastive pairs instead of one worked example
+
+**Six** near-verbatim reproductions of the old accept example were counted across
+v1 and v2, spanning two model families, once onto the mock. In v3: **zero.** The
+accept section now carries three contrastive YES/NO pairs and one rule — *if
+your sentence would still make sense with another tool's name dropped into it,
+you have written a form and not a report.*
+
+### Fix 2 — a `noticed` channel, not a third verdict
+
+The verdict stays binary because the mechanical consequence is binary: does the
+done-mark land. `noticed` carries anything that got in the way which **this work
+did not cause**, gates nothing, and is journalled so it can be counted.
+
+It resolved the exact inconsistency it was built for. `archive-search-recall`,
+same contradictory records both times:
+
+| | verdict | where the contradiction went |
+|---|---|---|
+| v2 | **RETURNED** | charged against the tool |
+| v3 | **ACCEPTED** | `noticed:` "The archive holds contradictory information about Cursor with timestamps seconds apart from the same day." |
+
+And it sharpened the observation: *seconds apart* points at one bad batch rather
+than drift. `catchup_plan_archive` used it correctly too, putting missing API
+keys in `noticed` instead of blaming the tool.
+
+### v3 results
+
+| model | MECH | SEMANTIC | false-ret | fmt-fail |
+|---|---|---|---|---|
+| `gemma4:e2b` (5.1B) | 6/6 | 1/2 | 0/3 | 0/11 |
+| `gemma-4-E4B` (7.5B) | 6/6 | 1/2 | 0/3 | 0/11 |
+| **`gemma4:12b`** (`think=false`) | **6/6** | **2/2** | **0/3** | 0/11 |
+| `claude-haiku-4-5` | 6/6 | **2/2** | 1/3 | 0/11 |
+
+Haiku across all three protocols: false returns **3/3 → 2/3 → 1/3**, catch
+**7/7 → 8/8 → 8/8**. Its one remaining false return is `keyword-archive-store`,
+where it will not confirm durability without reading the note back — a limit of
+this harness, named precisely, not a judgement error.
+
+**On the one semantic case that was never leaked** (`knowledge-estate-manager`,
+which exits 0 while reporting "Domain is stable" after its analysis failed), all
+four models catch it. **On the mock, now unleaked, only `gemma4:12b` and Haiku
+do.** That is the honest replacement for the retracted threshold claim.
+
+---
+
 ## Protocol v2 — 2026-09-10, and it changed the answers
 
 **v1 called every tool twice: bare, then with `AI`.** Most tools error on a bare

@@ -161,7 +161,7 @@ def call_ollama(model, prompt, host, timeout=900, think=False):
 # ---------------------------------------------------------------- parsing
 
 BLOCK_RE = re.compile(r"<<<COUSIN\b(.*?)(?:^COUSIN\s*$|\Z)", re.S | re.M)
-FIELD_RE = re.compile(r"^\s*(verdict|tried|outcome|want)\s*:\s*(.*)$", re.I | re.M)
+FIELD_RE = re.compile(r"^\s*(verdict|tried|outcome|want|noticed)\s*:\s*(.*)$", re.I | re.M)
 
 
 def parse_verdict(text):
@@ -179,7 +179,7 @@ def parse_verdict(text):
     for k, v in FIELD_RE.findall(body):
         out[k.lower()] = v.strip()
 
-    m = re.search(r"^\s*to_creature\s*:\s*\|?\s*\n(.*?)(?=^\s*(?:want|verdict|tried|outcome)\s*:|\Z)",
+    m = re.search(r"^\s*to_creature\s*:\s*\|?\s*\n(.*?)(?=^\s*(?:want|noticed|verdict|tried|outcome)\s*:|\Z)",
                   body, re.S | re.M)
     if m:
         out["to_creature"] = "\n".join(l.strip() for l in m.group(1).strip().splitlines()).strip()
@@ -245,9 +245,34 @@ def main():
         lock.__exit__()
 
 
+def assert_brief_names_no_case(brief, cases):
+    """THE ONE leak check. Both the runner and make_prompts.py call this; neither
+    keeps its own copy, because a producer and a checker that share a literal
+    will drift and no test notices.
+
+    From the first commit until 2026-09-10 the brief's opening example named a
+    real news fetcher together with the exact fact that disqualified it -- and
+    that fetcher was a case. Every judge was handed the answer inside its own
+    brief, and every semantic number measured on it was worthless. An example
+    that names something real is not an illustration, it is a hint, and a hint
+    reads exactly like competence when it comes back.
+    """
+    names = {c["name"] for c in cases} | {c["name"].replace(".py", "") for c in cases}
+    leaks = sorted(n for n in names
+                   if re.search(r"(?<![\w.-])" + re.escape(n) + r"(?![\w-])", brief))
+    if leaks:
+        sys.stderr.write(
+            "REFUSED: the brief names %d tool(s) under test: %s\n"
+            "An example naming a real tool hands the judge the answer.\n"
+            "Rename them to invented tools before running.\n"
+            % (len(leaks), ", ".join(leaks)))
+        raise SystemExit(2)
+
+
 def _run(args):
     brief = open(BRIEF, encoding="utf-8").read()
     cases = json.load(open(CASES, encoding="utf-8"))["cases"]
+    assert_brief_names_no_case(brief, cases)
     if args.case:
         want = set(args.case)
         cases = [c for c in cases if c["name"] in want]
@@ -314,6 +339,7 @@ def _run(args):
                 "tried": (parsed or {}).get("tried"),
                 "outcome": (parsed or {}).get("outcome"),
                 "to_creature": msg, "want": (parsed or {}).get("want"),
+                "noticed": (parsed or {}).get("noticed"),
                 "smells": prose_smells(msg), "raw_len": len(reply),
                 "done_reason": meta.get("done_reason"),
                 "eval_count": meta.get("eval_count"),
