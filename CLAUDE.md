@@ -208,7 +208,48 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    on a rung like that produces confident garbage instead of an obvious failure.
    Record the model per verdict from day one.
 
-## 7. State — 2026-09-10 (evening)
+## 7. State — 2026-09-11
+
+**Both halves of the trial now hold on ONE brief, on the workhorse standin.**
+`gemma4:12b` stands in for `gemma-4-31b-it`, the rung carrying 87–93% of the
+parent's traffic — same family, one size down, local, spends no quota.
+
+| | result | passes |
+|---|---|---|
+| **Detection** | **110/110 = 100.0%**, every case identical on every pass | 10 |
+| **Correction** | **10/10 = 100%** | 5 |
+
+**The correction loop is the finding, not the score.** A tool returned 10/10 for
+producing month-old items was accepted **5/5** once the timestamps moved to today
+and nothing else changed. **The mock was never detected as fabrication — it was
+detected as old dates**, and a 99.1% detection score sat on top of that. Only
+asking what happens after a complaint is answered exposes it, and that is the
+question a complaint-driven creature asks every cycle.
+
+**Four rules, each earned from what the judge SAID, each measured against the run
+before it:** unverifiable is not failed (92.8→99.1% detection); a `want` is for
+capability beyond the claim, never the claim itself (cosmetic repair 0/5→5/5);
+judge the result, not the tidiness of getting there (genuine repair 1/5→5/5);
+did the tool MAKE what is wrong or merely CARRY it (detection 90.9→100%).
+
+**Two failures are kept on disk with their causes**, and they are worth more than
+the successes. A rule correct in isolation regressed genuine repairs 5/5→1/5
+while catching nothing. And the correction fixes dropped detection to 90.9% by
+making two rules overlap with no stated precedence — **only the two search
+controls moved, both to exact 5/5 coin flips**, and that precision was the
+diagnosis.
+
+> **The brief is ONE artifact. Every rule added to it changes every verdict it
+> produces.** Detection is re-measured after every correction fix and the
+> reverse. That is the discipline, not a precaution.
+
+**Still unproven:** none of this is the live ladder. `gemma-4-31b-it` was probed
+directly (see §5 and `trial/README.md`) and answers, but the twelve-case run
+against it was never completed — it is slow (~40–90 s/call), contends with the
+live creature, and returns `<thought>` blocks inside `content`. The standin is a
+standin.
+
+### Previous state — 2026-09-10 (evening)
 
 **No engine, no creature, no deployment. But the design has been tested against
 real evidence and it survived.** See `trial/README.md` for the full results.
