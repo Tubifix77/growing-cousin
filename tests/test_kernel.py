@@ -367,21 +367,62 @@ def test_accept_does_not_block():
 
 
 def test_context_is_served_not_assembled():
-    """The load-bearing architectural claim: the manager WRITES the context, the
-    kernel SERVES it. Nothing is assembled per wake."""
-    e, j, b, d = build_engine(["no commands"], [])
+    """The curated text is the cousin's and is served UNCHANGED. Facts about
+    what just happened are the kernel's and are appended.
+
+    2026-09-11: the first version of this test asserted 'byte for byte' against
+    a FRESH engine -- no memory, no journal -- so the only case it ever
+    exercised was the one where there is nothing to append. It passed for the
+    wrong reason, and went on passing after the behaviour changed. A fixture
+    that cannot exhibit the fault is not a test.
+    """
+    e, j, b, d = build_engine(["```bash\necho first\n```", "no commands"], [])
     e.write_context("EXACTLY THIS")
-    check("e2e: the kernel serves what was written, byte for byte",
+    check("e2e: with nothing to report, only the curated text is served",
           e.serve_context() == "EXACTLY THIS", repr(e.serve_context()))
+
+    e.run_cycle()          # now there IS history
+    ctx = e.serve_context()
+    check("e2e: the curated text survives verbatim once there is history",
+          "EXACTLY THIS" in ctx, ctx[-60:])
+    check("e2e: and what just ran is served with it",
+          "echo first" in ctx, ctx[:200])
+    check("e2e: with the result, not just the command",
+          "exit 0" in ctx and "first" in ctx, ctx[:200])
+
     seen = {}
 
-    def spy(ctx):
-        seen["ctx"] = ctx
+    def spy(c):
+        seen["ctx"] = c
         return "nothing", {"done_reason": "stop"}
     e.ask_creature = spy
     e.run_cycle()
-    check("e2e: the creature receives that same context",
-          seen.get("ctx") == "EXACTLY THIS", repr(seen.get("ctx"))[:80])
+    check("e2e: the creature receives exactly what serve_context built",
+          seen.get("ctx") and "EXACTLY THIS" in seen["ctx"]
+          and "echo first" in seen["ctx"], repr(seen.get("ctx"))[:90])
+
+    # The whole point: two consecutive wakes must not look identical, or a
+    # deterministic creature repeats itself forever.
+    e.ask_creature = backends.scripted(["```bash\necho second\n```"])
+    before = e.serve_context()
+    e.run_cycle()
+    check("e2e: consecutive wakes differ once something has happened",
+          e.serve_context() != before,
+          "context was byte-identical across a cycle")
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_memory_reaches_the_context():
+    """The prompt promises memory is shown each cycle. A promise the context
+    does not keep is a contract violation, not a detail."""
+    e, j, b, d = build_engine(["```bash\nmkdir -p state && printf '%s' "
+                               "'{\"current-phase\": \"code\"}' > state/memory.json\n```"],
+                              [])
+    e.write_context("BASE")
+    e.run_cycle()
+    ctx = e.serve_context()
+    check("e2e: what was remembered is shown back",
+          "current-phase" in ctx and "code" in ctx, ctx[:160])
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
@@ -489,6 +530,7 @@ def main():
                test_cycle_no_command, test_cycle_executes_and_journals,
                test_cycle_done_claim_triggers_cousin, test_refusal_is_delivered_once,
                test_accept_does_not_block, test_context_is_served_not_assembled,
+               test_memory_reaches_the_context,
                test_dead_body_does_not_become_creature_output,
                test_mute_refusal_never_delivered, test_cousin_unusable_gates_nothing,
                test_budget_spent_is_not_silence, test_multi_cycle_stability,

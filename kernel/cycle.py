@@ -35,17 +35,76 @@ class Engine:
     # ---------------------------------------------------------------- context
 
     def serve_context(self):
-        """Read what the cousin last wrote. Assemble nothing."""
-        base = ""
-        if os.path.exists(self.context_path):
-            with open(self.context_path, encoding="utf-8") as f:
-                base = f.read()
+        """Serve what the cousin wrote, plus what just happened.
+
+        The curated part is the cousin's -- the kernel does not decide what
+        belongs in it. But WHAT JUST HAPPENED is a fact, not a judgement, and
+        gathering facts is kernel work.
+
+        2026-09-11, first live run: without this the creature ran `ls -R
+        tools/own/` on all six cycles. Nothing was broken -- the context was
+        byte-identical every wake, so at temperature 0 the same input produced
+        the same decision forever. Its own hard rule is *never run the same
+        command twice in a row*, and **a rule about what you last did is
+        unfollowable if nothing shows you what you last did.**
+        """
+        parts = []
         if self.done_blocked:
             # A refusal is delivered once, at the top, then cleared. Surfacing
             # it every cycle would be a nag it learns to skip.
-            base = ("## The person who needs this could not use it\n\n"
-                    + self.done_blocked + "\n\n---\n\n" + base)
-        return base
+            parts.append("## The person who needs this could not use it\n\n"
+                         + self.done_blocked)
+        mem = self.memory_block()
+        if mem:
+            parts.append(mem)
+        recent = self.recent_block()
+        if recent:
+            parts.append(recent)
+        if os.path.exists(self.context_path):
+            with open(self.context_path, encoding="utf-8") as f:
+                parts.append(f.read())
+        return "\n\n---\n\n".join(p for p in parts if p)
+
+    def memory_block(self):
+        """What it remembered. The prompt promises memory is shown each cycle;
+        a promise the context does not keep is a contract violation, not a
+        detail."""
+        p = os.path.join(self.body.mind, "state", "memory.json")
+        try:
+            import json
+            with open(p, encoding="utf-8") as f:
+                d = json.load(f)
+        except Exception:
+            return ""
+        if not d:
+            return ""
+        lines = ["## What you remember", ""]
+        lines += ["- **%s** = %s" % (k, str(v)[:400]) for k, v in sorted(d.items())]
+        return "\n".join(lines)
+
+    def recent_block(self, cycles=3):
+        """The last few things it ran and what came back -- already capped, with
+        the loss announced where it was cut."""
+        rows = self.j.read(kinds=["exec_start", "exec_end", "exec_skip"],
+                           limit=cycles * 6)
+        if not rows:
+            return ""
+        out = ["## What you just did", ""]
+        for r in rows:
+            if r["kind"] == "exec_start":
+                out.append("```\n$ %s\n```" % (r.get("cmd") or ""))
+            elif r["kind"] == "exec_end":
+                body = (r.get("stdout") or "").rstrip()
+                err = (r.get("stderr") or "").rstrip()
+                out.append("exit %s%s" % (r.get("exit_code"),
+                                          ("\n" + body) if body else ""))
+                if err:
+                    out.append("stderr: " + err)
+            else:
+                out.append("(nothing ran: %s)" % r.get("reason"))
+        out.append("\n**Do not run any of those again.** You already have the "
+                   "answer; act on it.")
+        return "\n".join(out)
 
     def write_context(self, text):
         d = os.path.dirname(self.context_path)
@@ -179,14 +238,38 @@ class Engine:
                     header = "".join(f.readlines()[:8])
             except OSError:
                 header = ""
+        # What the tool says it needs. The trial learned this the expensive way:
+        # calling every tool bare put a visible failure in 11 of 12 transcripts,
+        # including every control, and the judge returned work that was fine.
+        # A tool invoked wrongly has not been tested -- it has been mishandled.
+        call_line = ""
+        for line in (header or "").splitlines():
+            if line.strip().startswith("# call:"):
+                call_line = line.split(":", 1)[1].strip()
+                break
+        needs_args = bool(call_line and len(call_line.split()) > 1)
+
         claim = "I finished %s." % (target or "this work")
         if target:
-            r = self.body.run("cd /tmp 2>/dev/null || cd .; %s" %
-                              os.path.join("tools", "own", target))
+            # Invoke BY NAME, never by a path this code assembles. 2026-09-11,
+            # first live run: os.path.join produced `tools\own\fetcher.py` on
+            # Windows and the cousin reported "command not found" six times over
+            # a tool that was perfectly good. The creature was told its working
+            # work was broken, by the framework, in honest words about a false
+            # event -- the exact fault this whole design exists to prevent.
+            r = self.body.run(target)
             transcript = "$ %s\nexit %d\n%s%s" % (
                 target, r.code,
                 capped(r.stdout, EXEC_STDOUT_CHARS),
                 ("\n" + capped(r.stderr, EXEC_STDERR_CHARS)) if r.stderr else "")
+            if needs_args:
+                # Say plainly that the call was incomplete. Without this the
+                # judge reads a usage message as a fault and punishes the tool
+                # for being called wrongly -- and the creature can never pass,
+                # because the empty hands are the cousin's, not its own.
+                transcript += ("\n\n(I called it with NO ARGUMENTS, because I had "
+                               "none to give it. Its own usage line says: %s)"
+                               % call_line)
         else:
             transcript = "(nothing to run)"
         return claim, header, transcript

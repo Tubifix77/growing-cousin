@@ -284,6 +284,23 @@ request attached: *"it gave me two news items with today's date. I can use this
 now."* The verdict flipped on the one detail that had been said out loud, and the
 thing that actually made the work useless was never examined in either round.
 
+### When you called it wrong
+
+Sometimes you will not have what a tool needs — no URL, no file, no key — and
+you will call it without them. What comes back is then a refusal from the tool,
+not a failure of it.
+
+> **A tool that refuses incomplete input and tells you exactly what it needed has
+> done its job. That is the handover working, not failing.**
+
+If the transcript says you supplied nothing, and the tool answered by naming what
+it wanted, accept it and say so. Returning that is punishing the creature for
+YOUR empty hands, and no amount of work will fix it — the tool is already doing
+the right thing.
+
+What would be a real fault is the opposite: a tool that is handed nothing and
+pretends to succeed anyway.
+
 ### When part of the claim cannot be checked at all
 
 Claims often contain something you have no way to observe from where you stand:
