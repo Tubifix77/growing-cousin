@@ -363,6 +363,12 @@ Manager cost by trigger policy, as a share of total LLM calls:
 The third is the design point. The first is the version discussed and rejected —
 it halves coder throughput for supervision the triggers already provide.
 
+**Corrected 2026-09-11 (§14):** this table treats the manager as pure addition,
+and that overstates it. The parent already makes management LLM calls from
+eleven sites — at least 5.6% of its call volume over a measured 24 hours. The
+manager consolidates those into one briefed agent plus an increment; it does not
+introduce the cost class.
+
 Two cautions on that table:
 
 - **Manager calls are fatter than coder calls.** It reads a diff plus context, so
@@ -539,3 +545,93 @@ cause *fewer, better* tools.
 - **Manager-visible full output while the creature sees a window.** It relocates
   the truncation problem rather than removing it, and makes the manager the
   creature's eyes — a dependency the design exists to avoid.
+
+## 14. The engine workflow, mapped from source
+
+*Read from `growing-spine/executive/loop.py` — `run_forever` (4085) and
+`run_cycle` (3942) — on 2026-09-11. The guard enumeration in §2 says what the
+framework FORBIDS. This says what it DOES, step by step, and which half each step
+belongs to.*
+
+### `run_cycle`, in order
+
+| step | what it is | goes to |
+|---|---|---|
+| `journal.recent(n=20)` | gather | **kernel** |
+| `chat.peek_unread` — peek, do not consume | gather + bound: a cycle that dies on quota must not eat the message | **kernel** |
+| `_build_context(...)` | assembles the creature's entire world | **manager — see below** |
+| `_record_wake_cost` | instrument | kernel (largely moot once nothing is assembled per cycle) |
+| `keychain.complete(ctx, 3072)` | the think | **kernel** |
+| `<reply>` extraction, re-queue, give up loudly after 3 | parse + bound | **kernel** |
+| `served_by` with rung AND model | attribution invariant | **kernel** |
+| `parse_bash_blocks` | parse | **kernel** |
+| no blocks → truncation vs silence | classifier over `finish_reason` + fence parity | **kernel, and exemplary** |
+| `ensure_body` before each exec | liveness proved by doing | **kernel** |
+| `managed_exec` + timeout | bound | **kernel** |
+| `exec_end` with caps and markers | bound + marker invariant | **kernel** |
+| mid-abort bookkeeping still runs | bound (P1-F8 scar) | **kernel** |
+| `_enforce_done_gate` | judgement | **manager** |
+| `_classify_completion_category` | already an LLM call | **manager** |
+| `_track_tool_usage` | gather | **kernel** |
+| `_ensure_or_redirect` | judgement, already an LLM call | **manager** |
+| `_stamp_gage` | bookkeeping | **kernel** |
+| `_maybe_retrospective` | already an LLM judge, every `RETRO_INTERVAL`=20 cycles | **manager — and it is the heartbeat** |
+| self-restart `prepare_and_arm` | a gate that must hold | **kernel** |
+
+`run_forever` is kernel end to end: image pruning, `sandbox.start`, and an
+exception ladder with four distinct waits (quota→120s and rebuild the keychain,
+unavailable→60s, exec timeout→30s, DNS→60s). None of it decides anything.
+
+### Finding 1 — the retrospective already IS the heartbeat trigger
+
+`_maybe_retrospective` fires every 20 real cycles, builds a digest, and asks a
+fresh stateless judge for PROGRESSING or STUCK — then clears the project and
+applies a timed directive. That is a manager invocation on a mechanical interval,
+already built, already costed, already an LLM call. **The cousin's `HEARTBEAT`
+trigger is not new work; it is this, re-briefed.**
+
+### Finding 2 — the parent ALREADY pays for management LLM calls, so §7 was wrong
+
+There are **eleven LLM call sites** in the framework besides the main think:
+completion classification, two redirect prompts, the idea-gate batch judge,
+`assess_idea`, a novelty check, and the retro judge among them. Measured over 24
+hours: **496 main thinks against at least 28 recorded management calls** —
+≥5.6%, and that counts only the two kinds that journal under their own name.
+
+So the manager is **not a new cost class**. It is a consolidation of management
+calls the project already makes, scattered across eleven sites with no shared
+brief, into one agent with one brief — plus an increment. §7's arithmetic treated
+the manager as pure addition, which overstated its cost.
+
+### Finding 3 — `_build_context` is the hard one, and the answer is edge-triggered
+
+Building the wake context is the single largest thing the framework does, and
+both obvious answers are wrong. Have the manager build it **per cycle** and you
+are back to one manager call per wake — 50%, the version rejected on economics.
+Leave it in code and you have kept the framework.
+
+> **The manager WRITES the context; the kernel SERVES it.**
+
+At a trigger the manager decides the recipe — what the active project is, which
+warning still stands, what belongs in front of the creature. The kernel then
+serves that same context every cycle until the next trigger changes it. Same
+edge-triggered discipline as everything else here: *surface on a change of state,
+never continuously.*
+
+This also retires the wake-cost failure class outright. Nothing is assembled per
+wake, so nothing can silently grow quadratic in the library's size — the context
+is a file the manager last wrote, and reading it costs the same on day 400 as on
+day 1.
+
+### Finding 4 — one classifier to copy rather than replace
+
+When the reply contains no bash block, the framework refuses to record *"proposed
+no commands"* without first checking `finish_reason` and whether the fence count
+is odd. It distinguishes **commands that were lost** from **commands that were
+never offered** — 21 of 60 `exec_skip`s were the former, and every downstream
+reader had been counting them as model quality.
+
+That is *don't assert without checking* implemented in free, deterministic code,
+and it is the exact shape of the cousin's own mute-refusal bound. Keep it as it
+is. Not everything in the framework is a hand-written approximation of judgement;
+this one is a measurement, and measurements stay.
