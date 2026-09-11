@@ -19,10 +19,20 @@ stated.
 
 ## 0. Status — read this before anything else
 
-**No engine, no kernel, no creature, nothing deployed.** What exists is the three
-design documents and `trial/` — a harness that puts the brief in front of a
-known-answer library and scores it. That is code, and it has produced real
-measurements, so this repository is no longer design-only.
+**The kernel exists and runs end to end. No creature, nothing deployed.**
+`kernel/` is the 1% from `ARCHITECTURE.md` §14 — journal, body, think, triggers,
+cousin, cycle — and `tests/test_kernel.py` is the gate: **90/90 green, five
+consecutive runs, with the real model in the loop.** `trial/` remains the
+brief's own measurement.
+
+**The gate (§3-equivalent):**
+
+```bash
+python tests/test_kernel.py > /tmp/k.out 2>&1; echo "GATE=$?"; tail -1 /tmp/k.out
+```
+
+To a FILE, never a pipe — a pipe once swallowed `sys.exit(1)` in the parent and
+let an ungated commit ship. Check the literal string `ALL TESTS PASS`.
 
 **Two populations of number live here and must never be mixed.** Anything about
 the parent's behaviour is quoted from Growing Spine and was not re-measured.
@@ -218,6 +228,16 @@ was measured, with what, and on what date.*
   fix, and the reverse.** The precision of the damage was the diagnosis; an
   aggregate would only have said "something is off".
 
+- **A trigger that does not reset its own counter fires forever.** 2026-09-11,
+  caught by the kernel gate on its first run: a `STALL` fired, the cousin
+  visited, and `cycles_since_change` was never cleared — so it re-fired on every
+  subsequent cycle, **11 visits in 22 cycles**. That is precisely the nag the
+  parent's *surface on a change of state, never continuously* rule exists to
+  prevent, and a creature learns to skip a voice that speaks every time.
+  **Invariant: a visit is the ANSWER to whatever summoned it, so it clears the
+  counters that summoned it.** Only a multi-cycle test could see this — every
+  single-cycle assertion passed. **Test the loop, not just the step.**
+
 ## 6. Open questions the design does not answer
 
 Carried forward from `ARCHITECTURE.md` so they are not lost:
@@ -249,7 +269,27 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    on a rung like that produces confident garbage instead of an obvious failure.
    Record the model per verdict from day one.
 
-## 7. State — 2026-09-11
+## 7. State — 2026-09-11 (kernel green)
+
+**The engine runs.** `kernel/` implements the §14 split and the gate is
+**90/90 green across five consecutive runs**, three of those assertions driving
+`gemma4:12b` live rather than a stub.
+
+What the kernel holds, all bounds rather than judgement: one journal kind per
+event with structured fields; the marker invariant (a later cut may only
+increase the total withheld); a body INTERFACE with liveness proved by doing and
+infrastructure failure that never reaches the creature shaped like its own
+output; the five-way classifier keeping *lost* commands distinct from *absent*
+ones; mechanical triggers; a verdict read from the end, with mute refusals
+undeliverable and unreadable replies UNKNOWN; and the context rule — **the
+manager writes it, the kernel serves it**, so nothing is assembled per wake.
+
+**Not built yet, and none of it is hidden by the green:** no provider ladder
+(one backend), no `run_forever` scheduling, no savegames, no chat channel,
+`DockerBody` written but never exercised, and no creature has ever run a real
+cycle. The gate proves the workflow is correct, not that it has lived.
+
+### Previous state — 2026-09-11 (trial)
 
 **Both halves of the trial now hold on ONE brief, on the workhorse standin.**
 `gemma4:12b` stands in for `gemma-4-31b-it`, the rung carrying 87–93% of the

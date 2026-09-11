@@ -274,5 +274,10 @@ when probed directly, but the full run against it is not finished — it is slow
 contends with the running creature, and wraps replies in `<thought>` blocks. The
 standin is a standin.
 
-Next: the smallest kernel that runs end to end — body, journal, one trigger, one
-verdict.
+**The kernel now runs end to end** — `kernel/` is the 1% that stays code, and
+`tests/test_kernel.py` is **90/90 green across five consecutive runs** with the
+real model in the loop. It found a real fault on its first pass: a stall trigger
+that never reset its own counter and so fired on every cycle afterwards.
+
+Still missing, and the green hides none of it: no provider ladder, no scheduling
+loop, no savegames, no chat channel, and no creature has ever run a real cycle.

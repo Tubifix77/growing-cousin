@@ -1,6 +1,7 @@
 # Growing Cousin — architecture
 
-**Status: no engine — no container, no loop, no creature.** The design below is
+**Status: the kernel runs — `kernel/` plus a gate at 90/90 green over five
+consecutive runs. No creature, nothing deployed.** The design below is
 validated: `trial/` put this brief in front of the parent's real library and
 scored **detection 110/110 and correction 10/10** on a stand-in for the workhorse
 model. Dated 2026-09-10, results 2026-09-11.
