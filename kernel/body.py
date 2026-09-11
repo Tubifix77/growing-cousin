@@ -76,10 +76,39 @@ class LocalBody:
     def run(self, cmd, timeout=EXEC_TIMEOUT_SECS):
         if not self._alive:
             return ExecResult("", "body is down", 128, setup_failed=True)
+        # Write the command to a script in the mind and run it by a RELATIVE
+        # name. Never as an argv string, never as an absolute path.
+        #
+        # 2026-09-11, measured twice. First: `bash -c "<cmd>"` lost `$MIND` out
+        # of a QUOTED heredoc -- `<< 'EOF'`, which by definition does not expand
+        # -- so the creature's tool reached disk as `os.path.expandvars("")`
+        # with a hole in its own comment, died on every run, and the cousin
+        # reported that honestly six times. **The framework damaged the work and
+        # the creature was blamed for it.** Then the fix -- writing a script and
+        # running it by path -- moved the problem instead of removing it: the
+        # path was spelled for the wrong shell and every command returned 127.
+        #
+        # A relative script has neither failure: nothing to mangle, nothing to
+        # spell. (stdin via `bash -s` was tried in between and hung.)
+        name = ".cmd-%d.sh" % os.getpid()
+        # $MIND is derived by the SHELL from its own working directory, not
+        # handed in from outside. Passing it through `env=` sets a host variable
+        # that the shell may never inherit -- measured 2026-09-11: it arrived
+        # empty, so every tool the creature wrote to "$MIND/data/..." would have
+        # written to "/data" and died on permissions. `pwd` is always right and
+        # needs no translation, because the working directory IS the mind.
+        preamble = 'export MIND="$(pwd)"\n'
+        with open(os.path.join(self.mind, name), "w", encoding="utf-8",
+                  newline="\n") as f:
+            f.write(preamble + (cmd if cmd.endswith("\n") else cmd + "\n"))
         try:
+            # RELATIVE, because cwd is already the mind. An absolute path would
+            # have to be spelled the way this particular shell spells host
+            # paths, and getting that wrong is what produced 127 on every
+            # command a moment ago. A relative name needs no translation at all.
             p = subprocess.run(
-                ["bash", "-c", cmd], cwd=self.mind, capture_output=True,
-                text=True, timeout=timeout,
+                ["bash", name], cwd=self.mind, capture_output=True, text=True,
+                timeout=timeout,
                 env=dict(os.environ, MIND=self.mind, HOME=self.root))
             out, err, code = p.stdout, p.stderr, p.returncode
         except subprocess.TimeoutExpired:
@@ -104,7 +133,14 @@ class LocalBody:
         self._alive = True
         return self.responds()
 
+    def _cleanup(self):
+        try:
+            os.unlink(os.path.join(self.mind, ".cmd-%d.sh" % os.getpid()))
+        except OSError:
+            pass
+
     def destroy(self):
+        self._cleanup()
         shutil.rmtree(self.root, ignore_errors=True)
 
 

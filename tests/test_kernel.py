@@ -121,6 +121,52 @@ def test_body():
     b.destroy()
 
 
+def test_command_reaches_disk_intact():
+    """What the creature writes is what must land on disk.
+
+    2026-09-11, the most expensive fault of the build: `bash -c "<cmd>"` lost
+    `$MIND` out of a QUOTED heredoc -- `<< 'EOF'`, which by definition does not
+    expand. The creature's tool was written with `os.path.expandvars("")` and a
+    hole in its own comment, died on every run, and the cousin reported that
+    honestly six times. **The framework damaged the work and then the creature
+    was blamed for it** -- the one failure this whole design exists to prevent.
+
+    Fixed by writing the command to a script instead of passing it as argv.
+    This test is the only thing standing between that fix and a silent return.
+    """
+    b = bodymod.LocalBody()
+    cmd = "\n".join([
+        "cat << 'EOF' > tools/own/probe",
+        "#!/usr/bin/env python3",
+        "# does: keeps $MIND/data/plan.txt",
+        'P = os.path.expandvars("$MIND")',
+        "EOF"])
+    b.run(cmd)
+    got = open(os.path.join(b.mind, "tools", "own", "probe"),
+               encoding="utf-8").read()
+    check("body: a QUOTED heredoc is not expanded on the way to disk",
+          got.count("$MIND") == 2, "found %d of 2" % got.count("$MIND"))
+    check("body: the creature's text arrives byte-for-byte",
+          'os.path.expandvars("$MIND")' in got, got[:120])
+
+    r = b.run('echo "[$MIND]"')
+    check("body: and $MIND actually resolves at runtime",
+          r.code == 0 and "[" in r.stdout and r.stdout.strip() != "[]",
+          repr(r.stdout)[:80])
+
+    # Special characters the creature will certainly use one day.
+    tricky = "\n".join([
+        "cat << 'EOF' > tools/own/chars",
+        "$HOME `date` \"q\" 'a' $(id)",
+        "EOF"])
+    b.run(tricky)
+    got2 = open(os.path.join(b.mind, "tools", "own", "chars"),
+                encoding="utf-8").read()
+    check("body: backticks and $(...) survive a quoted heredoc too",
+          "`date`" in got2 and "$(id)" in got2, repr(got2)[:110])
+    b.destroy()
+
+
 def test_setup_classifier():
     """ONE classifier, shared by producer and checker. The parent's rule: a
     producer and a checker that share a literal will drift."""
@@ -525,7 +571,7 @@ def test_live_model():
 def main():
     t0 = time.time()
     for fn in (test_journal, test_marker_invariant, test_body,
-               test_setup_classifier, test_parse_blocks, test_no_block_classifier,
+               test_command_reaches_disk_intact, test_setup_classifier, test_parse_blocks, test_no_block_classifier,
                test_triggers, test_cousin_parse, test_cousin_visit_journals,
                test_cycle_no_command, test_cycle_executes_and_journals,
                test_cycle_done_claim_triggers_cousin, test_refusal_is_delivered_once,

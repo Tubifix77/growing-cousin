@@ -105,6 +105,8 @@ class PathBody(bodymod.LocalBody):
         bodymod.LocalBody.__init__(self, root=root)
         self.bin = None
 
+    _as_shell_path = staticmethod(bash_path)
+
     def run(self, cmd, timeout=bodymod.EXEC_TIMEOUT_SECS):
         if self.bin:
             # The creature's own tools go on PATH too. The prompt tells it its
