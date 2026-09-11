@@ -11,6 +11,7 @@ retires the wake-cost failure class outright -- reading a file costs the same on
 day 400 as on day 1, however large the library grows.
 """
 import os
+import re
 
 from . import body as bodymod
 from . import cousin as cousinmod
@@ -19,15 +20,19 @@ from . import triggers as trigmod
 from .journal import EXEC_CMD_CHARS, EXEC_STDERR_CHARS, EXEC_STDOUT_CHARS, capped
 
 
+WANTS_KEPT = 3
+
+
 class Engine:
     def __init__(self, journal, body, brief, ask_creature, ask_cousin,
-                 context_path):
+                 context_path, creature_brief=""):
         self.j = journal
         self.body = body
-        self.brief = brief
+        self.brief = brief                  # the cousin's brief
+        self.creature_brief = creature_brief  # identity: served, never written
         self.ask_creature = ask_creature
         self.ask_cousin = ask_cousin
-        self.context_path = context_path
+        self.context_path = context_path    # the part the COUSIN owns
         self.cycles_since_visit = 0
         self.cycles_since_change = 0
         self.done_blocked = None       # testimony the creature must see next wake
@@ -62,8 +67,53 @@ class Engine:
             parts.append(recent)
         if os.path.exists(self.context_path):
             with open(self.context_path, encoding="utf-8") as f:
-                parts.append(f.read())
+                managed = f.read().strip()
+            if managed:
+                parts.append(managed)
+        if self.creature_brief:
+            parts.append(self.creature_brief)
         return "\n\n---\n\n".join(p for p in parts if p)
+
+    def record_want(self, want):
+        """The cousin asking for the next capability IS the direction mechanism.
+
+        2026-09-12: wants were journalled and went nowhere. `write_context` was
+        called once, at seed, and never again -- so "the manager writes the
+        context" was aspirational, and the three parent guards that AIM rather
+        than refuse (architect ruling, retro directive, active-project block)
+        had no replacement at all. The creature was told what it got wrong and
+        never what was wanted next.
+
+        BOUNDED, and newest-first. A managed context that only grows is the
+        wake-cost failure class returning by another door: the cost of every
+        wake would climb with the age of the project, forever.
+        """
+        want = (want or "").strip()
+        if not want:
+            return
+        kept = [w for w in self.wants() if w != want]
+        kept.insert(0, want)
+        kept = kept[:WANTS_KEPT]
+        body = ["## What the person who uses your work asked for next", ""]
+        body += ["%d. %s" % (i + 1, w) for i, w in enumerate(kept)]
+        body.append("")
+        body.append("The first is the most recent. These are wants, not orders "
+                    "-- but they are the only thing anyone has actually asked "
+                    "you for.")
+        self.write_context("\n".join(body))
+        self.j.append("context_written", wants=len(kept), chars=len(body))
+
+    def wants(self):
+        """Read back the wants the managed context currently holds."""
+        if not os.path.exists(self.context_path):
+            return []
+        out = []
+        with open(self.context_path, encoding="utf-8") as f:
+            for line in f:
+                m = re.match(r"^\d+\.\s+(.*\S)", line)
+                if m:
+                    out.append(m.group(1))
+        return out
 
     def memory_block(self):
         """What it remembered. The prompt promises memory is shown each cycle;
@@ -211,6 +261,11 @@ class Engine:
             # Gates nothing. An instrument that cannot run says UNKNOWN.
             self.j.append("cousin_unusable", error=v.error)
             return v
+        if v.verdict == cousinmod.ACCEPTED and v.want:
+            # DIRECTION. Without this the cousin can only ever say no, and the
+            # three parent guards that aim rather than refuse have no
+            # replacement at all.
+            self.record_want(v.want)
         if v.blocks_done:
             self.done_blocked = v.to_creature
         return v
@@ -258,6 +313,13 @@ class Engine:
             # work was broken, by the framework, in honest words about a false
             # event -- the exact fault this whole design exists to prevent.
             r = self.body.run(target)
+            # The cousin's OWN attempt, recorded as fact. Nothing else can check
+            # whether its testimony describes an event that actually happened --
+            # and a fabricated complaint is the exact fault this design exists
+            # to prevent, committed by the agent meant to catch it.
+            self.j.append("cousin_probe", tool=target, exit_code=r.code,
+                          stdout=capped(r.stdout, EXEC_STDOUT_CHARS),
+                          stderr=capped(r.stderr, EXEC_STDERR_CHARS))
             transcript = "$ %s\nexit %d\n%s%s" % (
                 target, r.code,
                 capped(r.stdout, EXEC_STDOUT_CHARS),

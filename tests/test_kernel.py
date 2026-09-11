@@ -472,6 +472,98 @@ def test_memory_reaches_the_context():
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
+def test_want_reaches_the_creature():
+    """DIRECTION. The cousin asking for the next capability is what replaces the
+    three parent guards that AIM rather than refuse.
+
+    2026-09-12: wants were journalled and went nowhere -- `write_context` was
+    called once at seed and never again, so "the manager writes the context" was
+    aspirational and the creature was only ever told what it got wrong. No test
+    asserted it, so a green gate sat over a dead channel.
+    """
+    def acc(w):
+        return "\n".join([
+            "<<<COUSIN", "verdict: ACCEPTED", "tried: ran it",
+            "outcome: fine", "to_creature: I used it and it worked.",
+            "want: %s" % w, "COUSIN"])
+    done = "\n".join(["```bash", "remember current-phase done", "```"])
+    e, j, b, d = build_engine([done] * 4,
+                              [acc("a date filter"), acc("a tag filter"),
+                               acc("a size limit"), acc("a date filter")])
+    e.creature_brief = "WHO YOU ARE"
+
+    e.run_cycle()
+    check("want: an accepted want reaches the served context",
+          "a date filter" in e.serve_context(), e.serve_context()[:120])
+    check("want: and is journalled under its own kind",
+          dict(j.kinds()).get("context_written") == 1)
+
+    e.run_cycle(); e.run_cycle(); e.run_cycle()
+    w = e.wants()
+    check("want: the newest is first", w and w[0] == "a date filter", str(w))
+    check("want: the managed context is BOUNDED, not an append-only log",
+          len(w) <= 3, "%d kept" % len(w))
+    check("want: a repeated want is not duplicated", len(set(w)) == len(w), str(w))
+    check("want: the creature's identity is still served alongside it",
+          "WHO YOU ARE" in e.serve_context())
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_cousin_probe_is_recorded():
+    """What the cousin actually ran, as fact. Without it nothing can check
+    whether its testimony describes an event that happened."""
+    writes_a_tool = "\n".join([
+        "```bash",
+        "cat << 'SH' > tools/own/t",
+        "#!/bin/sh",
+        "echo hi",
+        "SH",
+        "chmod +x tools/own/t",
+        "```"])
+    e, j, b, d = build_engine([writes_a_tool], [ACCEPT_REPLY])
+    e.run_cycle()
+    probes = j.read(kinds=["cousin_probe"])
+    check("probe: the cousin's own attempt is journalled", len(probes) == 1,
+          str(dict(j.kinds())))
+    if probes:
+        check("probe: it records WHICH tool and the real exit code",
+              probes[0].get("tool") == "t" and probes[0].get("exit_code") is not None,
+              str(probes[0]))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_census_catches_a_fabricated_verdict():
+    """The census must fire on testimony that contradicts the record, and must
+    NOT fire on testimony that matches it."""
+    import census
+    honest = {"kind": "cousin_verdict", "verdict": "RETURNED",
+              "tried": "ran t", "outcome": "exit 1",
+              "to_creature": "I ran t and it exited with an error."}
+    probe = {"kind": "cousin_probe", "tool": "t", "exit_code": 1,
+             "stdout": "", "stderr": "boom"}
+    check("census: honest testimony produces no finding",
+          not census.check(probe, honest), str(census.check(probe, honest)))
+
+    lying = dict(honest, outcome="exit 0", to_creature="I ran t, exit 0, fine.")
+    f = census.check(probe, lying)
+    check("census: a claimed exit code that never happened is HIGH",
+          any(s == "HIGH" for s, _ in f), str(f))
+
+    crash = dict(honest, to_creature="I ran t and it crashed with a traceback.")
+    f2 = census.check({"kind": "cousin_probe", "tool": "t", "exit_code": 0,
+                       "stdout": "all good", "stderr": ""}, crash)
+    check("census: describing a crash over a clean exit is HIGH",
+          any(s == "HIGH" for s, _ in f2), str(f2))
+
+    f3 = census.check(None, honest)
+    check("census: a verdict with NO probe is HIGH, never silently clean",
+          any(s == "HIGH" for s, _ in f3), str(f3))
+
+    mute = {"kind": "cousin_verdict", "verdict": "RETURNED", "to_creature": ""}
+    check("census: a refusal with no reason is caught",
+          any(s == "HIGH" for s, _ in census.check(probe, mute)))
+
+
 def test_dead_body_does_not_become_creature_output():
     e, j, b, d = build_engine(["```bash\necho hi\n```"], [])
     # Not merely dead -- UNREVIVABLE. A body that only died is recoverable and
@@ -577,6 +669,8 @@ def main():
                test_cycle_done_claim_triggers_cousin, test_refusal_is_delivered_once,
                test_accept_does_not_block, test_context_is_served_not_assembled,
                test_memory_reaches_the_context,
+               test_want_reaches_the_creature, test_cousin_probe_is_recorded,
+               test_census_catches_a_fabricated_verdict,
                test_dead_body_does_not_become_creature_output,
                test_mute_refusal_never_delivered, test_cousin_unusable_gates_nothing,
                test_budget_spent_is_not_silence, test_multi_cycle_stability,

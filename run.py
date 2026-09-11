@@ -160,10 +160,12 @@ def main():
         sys.stderr.write("REFUSED: the body does not answer a probe.\n")
         return 3
 
+    # The creature's identity is SERVED, never written into the managed file.
+    # Conflating them meant the cousin could not write direction without
+    # overwriting who the creature is.
     e = Engine(j, body, cousin_brief, ask_creature, ask_cousin,
-               os.path.join(args.root, "context.md"))
-    if not os.path.exists(e.context_path):
-        e.write_context(creature_brief)
+               os.path.join(args.root, "context.md"),
+               creature_brief=creature_brief)
 
     print("creature + cousin on %s, %d cycles, root=%s\n"
           % (args.model, args.cycles, args.root))

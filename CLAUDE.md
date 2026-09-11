@@ -19,11 +19,12 @@ stated.
 
 ## 0. Status — read this before anything else
 
-**The kernel exists and runs end to end. No creature, nothing deployed.**
+**A creature and its cousin run together. Nothing is deployed.**
 `kernel/` is the 1% from `ARCHITECTURE.md` §14 — journal, body, think, triggers,
-cousin, cycle — and `tests/test_kernel.py` is the gate: **90/90 green, five
-consecutive runs, with the real model in the loop.** `trial/` remains the
-brief's own measurement.
+cousin, cycle — `run.py` drives a real creature through it, `census.py` is the
+only thing that checks the manager, and `tests/test_kernel.py` is the gate:
+**112/112 green with the real model in the loop.** `trial/` remains the brief's
+own measurement.
 
 **The gate (§3-equivalent):**
 
@@ -243,6 +244,18 @@ was measured, with what, and on what date.*
   counters that summoned it.** Only a multi-cycle test could see this — every
   single-cycle assertion passed. **Test the loop, not just the step.**
 
+- **A channel nothing asserts is a channel that can be dead while everything is
+  green.** 2026-09-12: the cousin's `want` — the entire direction mechanism,
+  replacing the three parent guards that aim rather than refuse — was journalled
+  and then discarded. `write_context` was called once at seed and never again,
+  so *"the manager writes the context"* was aspirational for the whole life of
+  the kernel. The gate was **99/99 green** across that period and every live run
+  produced good wants that no creature ever saw. **A test suite proves what it
+  asserts, and nothing more; the absence of an assertion is not evidence of
+  absence of a fault.** Found by asking *who ever calls `write_context`* rather
+  than by any test failing. When you add a channel, add the test that it carries
+  something — not just that its ends exist.
+
 ## 6. Open questions the design does not answer
 
 Carried forward from `ARCHITECTURE.md` so they are not lost:
@@ -274,7 +287,42 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    on a rung like that produces confident garbage instead of an obvious failure.
    Record the model per verdict from day one.
 
-## 7. State — 2026-09-11 (kernel green)
+## 7. State — 2026-09-12 (creature running, direction wired)
+
+**The loop is complete end to end.** A creature builds tools through its hands,
+marks work done, the cousin genuinely runs what was built, and its verdict
+returns — a refusal as testimony the creature reads once, an accept as a WANT
+that becomes the standing direction for what to build next.
+
+**Gate: 112/112 green.** Three of those assertions drive `gemma4:12b` live.
+
+**The direction channel was dead until today, and no test saw it.**
+`write_context` was called once at seed and never again — so *"the manager writes
+the context"* was aspirational, wants were journalled and thrown away, and the
+three parent guards that AIM rather than refuse (architect ruling, retro
+directive, active-project block) had no replacement at all. The creature was
+told only what it got wrong, never what was wanted next. **A green gate sat over
+a dead channel because nothing asserted the channel existed.**
+
+Now: an accepted `want` is written into a managed context the cousin owns,
+**bounded to the newest 3 and superseding rather than appending** — an
+append-only context is the wake-cost failure class returning by another door.
+The creature's identity (`CREATURE-PROMPT.md`) is SERVED and never written, so
+direction cannot overwrite who it is.
+
+**Complaint fidelity exists** (`census.py`, §6.1's oldest open item). The kernel
+journals `cousin_probe` — the tool, the real exit code, the real output — and
+the census compares the verdict's testimony against it: a claimed exit code that
+never happened, a crash described over a clean exit, a verdict with no probe at
+all, a refusal with no reason. **It reports and never gates**, because a census
+that can block a cycle is a second judge with no judge of its own. And with no
+probes recorded it says so, rather than reporting a clean bill.
+
+**Not built, and the green hides none of it:** no provider ladder (one backend),
+no `run_forever` scheduling, no savegames, no chat channel, `DockerBody` written
+but never exercised, and nothing has ever run on the real free-tier ladder.
+
+### Previous state — 2026-09-11 (kernel green)
 
 **The engine runs.** `kernel/` implements the §14 split and the gate is
 **90/90 green across five consecutive runs**, three of those assertions driving
