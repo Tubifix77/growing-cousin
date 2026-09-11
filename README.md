@@ -4,8 +4,13 @@
 replace the deterministic framework with a second agent, and make that agent the
 person the work is *for*.**
 
-> Design only. No code yet. Every number here is measured from the parent
-> project, which has run continuously since June 2026.
+> No engine yet — no container, no loop, no creature. What exists is the design
+> and a trial that put it in front of the parent's real library and scored it:
+> **detection 110/110, correction 10/10** on a stand-in for the workhorse model.
+>
+> Numbers about the *parent* are quoted from Growing Spine. Numbers about the
+> *cousin* were produced here, against fixtures captured read-only from the live
+> creature. They are never mixed.
 
 ---
 
@@ -152,7 +157,10 @@ The manager's output is testimony, not instruction.
         ▼
   cousin (manager)  ──actually tries to use it──▶  ACCEPTED / RETURNED
         │
-        └─▶ testimony back to the creature; on ACCEPTED, what it wants next
+        ├─▶ testimony back to the creature: what happened to ME, never a diagnosis
+        ├─▶ on ACCEPTED, a `want` — but ONLY for capability beyond the claim
+        └─▶ `noticed` — anything in the way that this work did not cause.
+            Gates nothing. Without it the judge blames the messenger.
 ```
 
 The kernel keeps only what must be true when **both** agents are wrong: body
@@ -197,12 +205,74 @@ is whether the manager's guidance recurs as a fault after being given.
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Engine design: the kernel, triggers, economics, compatibility, metrics, what is deliberately not built |
 | [`CLAUDE.md`](CLAUDE.md) | Maintainer doctrine. Starts with almost no scars, and says so |
 
+## Does it work?
+
+The design was put in front of the parent's real library before any engine was
+built — no container, no loop, no journal. Just the brief, a model, twelve cases
+of genuine evidence captured read-only from the live creature, and a score.
+
+Judge: `gemma4:12b`, standing in for **`gemma-4-31b-it`**, the rung that carries
+87–93% of the parent's traffic. Same family, one size down, runs locally, spends
+none of the free-tier allowance.
+
+| | result | passes | verdicts |
+|---|---|---|---|
+| **Detection** — can it tell good work from bad? | **110/110 = 100%**, every case identical on every pass | 10 | 120 |
+| **Correction** — can it tell a real repair from one that only looks like one? | **10/10 = 100%** | 5 | 20 |
+
+### The correction loop found what 120 detection verdicts could not
+
+A mock fetcher was correctly returned **10 times out of 10** for serving
+month-old articles. Then the "repair": move the timestamps to today, change
+nothing else — same invented stories, same `example.com`. It was **accepted 5/5**,
+with a cheerful feature request attached:
+
+> *"it gave me two news items with today's date. I can use this for the wake
+> catch-up now. Next, I want it to fetch real news content."*
+
+It had **seen** that the content was fabricated. It filed that as a wish and
+accepted anyway.
+
+**The mock was never being detected as fabrication. It was being detected as old
+dates** — and a 99.1% detection score was sitting on top of that the whole time.
+Only asking *what happens after a complaint is answered* exposes it, and that is
+the question a complaint-driven creature asks every single cycle.
+
+### Four rules closed it, each earned from what the judge said
+
+| rule | what it moved |
+|---|---|
+| Unverifiable is not failed | detection 92.8% → 99.1% |
+| A `want` is for capability **beyond** the claim, never the claim itself | cosmetic repair 0/5 → 5/5 |
+| Judge the result, not the tidiness of getting there | genuine repair 1/5 → 5/5 |
+| Did the tool **make** what is wrong, or merely **carry** it? | detection 90.9% → 100% |
+
+None came from the scoreline, which only ever says "wrong". Each came from
+reading the testimony and finding the rule that was missing.
+
+Two failures are kept on disk with their causes, and they teach more than the
+successes: a rule that was **correct in isolation and harmful in company**
+(regressed genuine repairs 5/5 → 1/5 while catching nothing), and a fix for one
+half that **broke the other** (the correction rules dropped detection to 90.9%,
+with only two cases moving — both to exact 5/5 coin flips, which was itself the
+diagnosis).
+
+> **The brief is one artifact. Every rule added to it changes every verdict it
+> produces.** Detection is re-measured after every correction fix, and the
+> reverse.
+
+Full method, fixtures and per-case results: [`trial/`](trial/).
+
 ## Status
 
-Design settled 2026-09-10. It starts with a copy of the parent's library — a
-known-answer test set, so the design can be refuted in a week rather than
-months (`ARCHITECTURE.md` §11).
+Design settled 2026-09-10; validated against real evidence 2026-09-11. It starts
+with a copy of the parent's library — a known-answer test set, so the design can
+be refuted in a week rather than a season (`ARCHITECTURE.md` §11).
 
-Next: prove the cousin against that known-answer library before building any
-engine — no container, no loop, just the brief, a provider call and a verdict
-parser. Then the smallest kernel that runs end to end.
+**Still unproven:** none of this is the live ladder. `gemma-4-31b-it` answers
+when probed directly, but the full run against it is not finished — it is slow,
+contends with the running creature, and wraps replies in `<thought>` blocks. The
+standin is a standin.
+
+Next: the smallest kernel that runs end to end — body, journal, one trigger, one
+verdict.

@@ -177,6 +177,47 @@ was measured, with what, and on what date.*
   the cousin has its own shell. Left in place and labelled; deleting a case that
   contradicts you is how a test set stops being worth anything.
 
+- **A high detection score can sit on top of a total failure at correction, and
+  only the loop can tell you.** 2026-09-11. A mock fetcher was correctly RETURNED
+  **10/10** across ten passes. Then the timestamps were moved to today and
+  nothing else changed — same invented articles, same reserved domain — and it
+  was **ACCEPTED 5/5**, with *"I can use this now. Next, I want it to fetch real
+  news content."* **It was never being detected as fabrication. It was being
+  detected as old dates**, and a 99.1% detection score sat on that the whole
+  time. Detection asks *can you tell good work from bad*; correction asks *can
+  you tell a real repair from one that only looks like one*. They are different
+  capabilities and the second is the one a complaint-driven creature exercises
+  every cycle. **Never report a detection number without a correction number
+  beside it.**
+
+- **Any field that gives a shortfall a comfortable home will be used to avoid
+  refusing.** 2026-09-11: the `want` channel, built to make an accept carry
+  information, became an escape hatch — the judge SAW fabricated content, filed
+  it as a feature request, and accepted. Nothing was wrong with its eyes; the
+  contract had handed it somewhere to put the problem that was not a refusal.
+  Fixed by an invariant with a self-check: **a `want` is for capability BEYOND
+  the claim, never the claim itself — strike it out, and ask whether the claim
+  would still be true of what you actually got.** Generalises: every optional
+  field you add to a verdict is a place a hard judgement can be softened into,
+  so state what each one is NOT for.
+
+- **A rule can be right in isolation and harmful in company, and the brief is ONE
+  artifact.** 2026-09-11, twice in one session. (1) *"Work that answers your words
+  precisely deserves more scrutiny"* is defensible on its own; it regressed
+  genuine repairs **5/5 → 1/5** while catching nothing, and was reverted rather
+  than layered over. (2) The three correction rules dropped detection **99.1% →
+  90.9%**, and **only the two search controls moved, both to exact 5/5 coin
+  flips** — because `noticed` (tool worked, data was bad → accept) and the `want`
+  rule (what you ask for is what you were promised → refuse) overlapped with no
+  stated precedence. The resolving invariant: **did the tool MAKE the thing that
+  is wrong, or merely CARRY it?** A fetcher that invents results owns them; a
+  reader that faithfully returns what is written in a store does not — get it
+  backwards and you punish the messenger, and the creature's fix will be a tool
+  that tidies its inputs before showing you. **Every rule added to the brief
+  changes every verdict it produces: re-measure detection after every correction
+  fix, and the reverse.** The precision of the damage was the diagnosis; an
+  aggregate would only have said "something is off".
+
 ## 6. Open questions the design does not answer
 
 Carried forward from `ARCHITECTURE.md` so they are not lost:
@@ -195,15 +236,15 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    tagging every inherited tool at t=0 and splitting every metric on it, for the
    life of the project. `ARCHITECTURE.md` §11. **Still open: does it also inherit
    the journal and memory?** Tue's call.
-3. **When does the cousin earn the right to audit?** It may look at the whole
+4. **When does the cousin earn the right to audit?** It may look at the whole
    library from day one (`ARCHITECTURE.md` §2, the audit rules), but an audit is
    where a manager most easily produces confident garbage, and nothing checks it
    but the complaint-fidelity census. Consider proving it on the
    touched-this-cycle path first. No named trigger yet — this needs one.
-3. **Repo visibility.** Private while it is documents only (Tue, 2026-09-10).
+5. **Repo visibility.** Private while it is documents only (Tue, 2026-09-10).
    Revisit when code lands — the parent is public, so the default is public, but
    confirm rather than assume.
-4. **Which rung serves the manager.** In the parent, one pool rung wasted 86.7%
+6. **Which rung serves the manager.** In the parent, one pool rung wasted 86.7%
    of the cycles it served with clean, complete, command-free replies. A manager
    on a rung like that produces confident garbage instead of an obvious failure.
    Record the model per verdict from day one.

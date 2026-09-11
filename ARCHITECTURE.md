@@ -1,6 +1,9 @@
 # Growing Cousin — architecture
 
-**Status: design only. No code exists yet.** Dated 2026-09-10.
+**Status: no engine — no container, no loop, no creature.** The design below is
+validated: `trial/` put this brief in front of the parent's real library and
+scored **detection 110/110 and correction 10/10** on a stand-in for the workhorse
+model. Dated 2026-09-10, results 2026-09-11.
 
 A mutation of [Growing Spine](https://github.com/Tubifix77/growing-spine). Same
 creature, same volume, same instruments — a different engine.
@@ -49,9 +52,11 @@ hold when both agents are wrong.
 
 ## 2. The inversion
 
-Every guard in Growing Spine's framework is a **negative**. All fifteen are
-refusals. The framework has no vocabulary for *yes*: it can prevent a bad tool,
-it cannot promote a good one.
+Almost every guard in Growing Spine's framework is a **negative**: of the
+seventeen enumerated below, **fourteen are refusals**. The framework can prevent
+a bad tool; it has almost no vocabulary for promoting a good one. (The three that
+*do* aim are named under the table — and they are the ones the cousin replaces
+with *accept-with-a-want* rather than with complaints.)
 
 ### The enumeration, from the source
 
@@ -284,6 +289,17 @@ intervene was a missing bound. The fix is always a limiter, never a judgment.
 That is the whole kernel: small and boring, which is the point. Note what is
 **not** in it — no scans, no censuses, no warning composition, no catalogue
 assembly, no context building.
+
+### Three bounds the trial added, each found by running it
+
+| bound | why |
+|---|---|
+| **An empty-but-complete reply is a failure, never an answer** | A reasoning model burned its entire allowance without closing its block and returned nothing, with `finish_reason=length`. Raising the budget does not fix it — measured at 900 and 3,000 tokens, both empty; disabling reasoning returned a full verdict in 216. Such a call registers as a SUCCESS, so nothing walls the rung and nothing below it is reached. **The manager is then silently absent rather than visibly broken.** |
+| **A `RETURNED` carrying no message is never delivered** | Observed once and gone on the rerun, which is worse than consistent: it passes tests and fails in production. A refusal with no reason is the arbitrary world the brief exists to prevent. |
+| **A judge that cannot be reached produces no verdicts** | A dead backend once wrote 31 rows that read exactly like the model failing everything. *An instrument that cannot run must say UNKNOWN, never FAULTY* — so the kernel proves the judge answers before recording anything. |
+
+All three are limiters, not judgements. They belong in code precisely because
+they must hold when the manager is wrong.
 
 ### Beside the kernel, not inside it: the cousin's instruments
 
