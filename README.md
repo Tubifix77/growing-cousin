@@ -158,10 +158,27 @@ The manager's output is testimony, not instruction.
   cousin (manager)  ──actually tries to use it──▶  ACCEPTED / RETURNED
         │
         ├─▶ testimony back to the creature: what happened to ME, never a diagnosis
-        ├─▶ on ACCEPTED, a `want` — but ONLY for capability beyond the claim
+        ├─▶ testimony back to the creature: what happened to ME, never a diagnosis
+        ├─▶ on ACCEPTED, a `want` — but ONLY for capability beyond the claim.
+        │   It reaches the creature's next context, newest three kept. A channel
+        │   nothing asserts is a channel that can be dead while everything is
+        │   green — this one was, for a while, and only a test caught it.
         └─▶ `noticed` — anything in the way that this work did not cause.
             Gates nothing. Without it the judge blames the messenger.
 ```
+
+The cousin is shown **the library the tool is joining**, not just the tool. Its
+third test asks whether this is genuinely new or the fifth variant of something
+already there — and for a while it was being asked that while shown one side of
+the comparison. Over 40 live cycles the creature built four greps and two
+readers, including two duplicate-stem twins, and every one was accepted.
+
+**Nothing checks the manager but the manager, so one thing does.** `census.py`
+pairs every verdict against the probe that preceded it and asks whether the
+`tried`/`outcome` it testifies to corresponds to an event that actually happened.
+A fabricated complaint is the exact fault this design exists to prevent,
+committed by the agent meant to catch it. The census **reports and never gates** —
+an instrument that can wall the thing it measures stops being an instrument.
 
 The kernel keeps only what must be true when **both** agents are wrong: body
 lifecycle and PID reaping, liveness proved by doing rather than by status,
@@ -274,10 +291,25 @@ when probed directly, but the full run against it is not finished — it is slow
 contends with the running creature, and wraps replies in `<thought>` blocks. The
 standin is a standin.
 
-**The kernel now runs end to end** — `kernel/` is the 1% that stays code, and
-`tests/test_kernel.py` is **90/90 green across five consecutive runs** with the
-real model in the loop. It found a real fault on its first pass: a stall trigger
-that never reset its own counter and so fired on every cycle afterwards.
+**The kernel runs end to end, and a creature has now lived in it** —
+`kernel/` is the 1% that stays code, `tests/test_kernel.py` is **115/115 green**
+with the real model in the loop, and a creature has run **40+ real cycles**
+building its own tools while the cousin judged them.
 
-Still missing, and the green hides none of it: no provider ladder, no scheduling
-loop, no savegames, no chat channel, and no creature has ever run a real cycle.
+Four faults were found by running it that no amount of reading would have found,
+and each one is in `CLAUDE.md` §5 with the instrument that caught it:
+
+- a stall trigger that never reset its own counter, so it fired on **every**
+  cycle afterwards — 11 visits in 22;
+- a **dead direction channel**: `want` was written once at seed and never again,
+  and the gate was 99/99 green straight over it;
+- **static context**, so the creature ran the identical `ls -R` every cycle;
+- six separate ways the body layer **damaged what the creature wrote** on its way
+  to disk — and in each one the cousin honestly reported the framework's own
+  damage as the creature's failure. That is the single outcome this design exists
+  to prevent, and only a byte-for-byte test closed it.
+
+Still missing, and the green hides none of it: no provider ladder (one backend),
+no scheduling loop, no savegames, no chat channel, `DockerBody` written but never
+exercised, and **nothing here has touched the live free-tier ladder.** The
+standin is a standin.

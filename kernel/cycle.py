@@ -252,10 +252,11 @@ class Engine:
     def visit_cousin(self, fired, executed, tools_after, tools_before):
         trigger, _fields = fired
         target = self.pick_target(executed, tools_after, tools_before)
-        claim, header, transcript = self.evidence(target, executed)
+        claim, header, transcript, library = self.evidence(target, executed)
 
         v = cousinmod.visit(self.ask_cousin, self.brief, claim, header,
-                            transcript, journal=self.j, trigger=trigger)
+                            transcript, journal=self.j, trigger=trigger,
+                            library=library)
 
         if v.verdict == cousinmod.UNKNOWN:
             # Gates nothing. An instrument that cannot run says UNKNOWN.
@@ -304,6 +305,36 @@ class Engine:
                 break
         needs_args = bool(call_line and len(call_line.split()) > 1)
 
+        # WHAT ELSE IS ALREADY THERE. Without this the cousin judges every tool
+        # in isolation and cannot answer its own third test -- "is this new, or
+        # the fifth variant of something it has?" -- which the brief calls a
+        # judgment no checker can make and one of the main reasons it exists.
+        #
+        # Measured 2026-09-12 over 40 cycles: the creature built four greps and
+        # two readers, including two duplicate-stem twins, and the cousin
+        # accepted every one. It was never shown the library, so the comparison
+        # it is asked to make was not available to it. That is a structural gap,
+        # not a prompt weakness: no rewording helps a judge that cannot see what
+        # it is comparing against.
+        siblings = [t for t in trigmod.list_tools(
+            os.path.join(self.body.mind, "tools", "own")) if t != target]
+        library = ""
+        if siblings:
+            lines = []
+            for name in siblings[:40]:
+                does = ""
+                try:
+                    with open(os.path.join(self.body.mind, "tools", "own", name),
+                              encoding="utf-8", errors="replace") as f:
+                        for line in f.readlines()[:8]:
+                            if line.strip().startswith("# does:"):
+                                does = line.split(":", 1)[1].strip()
+                                break
+                except OSError:
+                    pass
+                lines.append("- %s%s" % (name, (" - " + does) if does else ""))
+            library = "\n".join(lines)
+
         claim = "I finished %s." % (target or "this work")
         if target:
             # Invoke BY NAME, never by a path this code assembles. 2026-09-11,
@@ -334,4 +365,4 @@ class Engine:
                                % call_line)
         else:
             transcript = "(nothing to run)"
-        return claim, header, transcript
+        return claim, header, transcript, library

@@ -23,7 +23,7 @@ stated.
 `kernel/` is the 1% from `ARCHITECTURE.md` §14 — journal, body, think, triggers,
 cousin, cycle — `run.py` drives a real creature through it, `census.py` is the
 only thing that checks the manager, and `tests/test_kernel.py` is the gate:
-**112/112 green with the real model in the loop.** `trial/` remains the brief's
+**115/115 green with the real model in the loop.** `trial/` remains the brief's
 own measurement.
 
 **The gate (§3-equivalent):**
@@ -233,6 +233,24 @@ was measured, with what, and on what date.*
   changes every verdict it produces: re-measure detection after every correction
   fix, and the reverse.** The precision of the damage was the diagnosis; an
   aggregate would only have said "something is off".
+
+- **A judgement that requires a comparison will be made anyway when you show
+  only one side — confidently, and every time.** 2026-09-12, found by reading a
+  40-cycle live run rather than by any test. The brief's third test asks whether
+  a tool is *genuinely new or the fifth variant of something already here*, and
+  the cousin was answering it while shown **one tool and never the library**. It
+  accepted `grep_glob`, `grep_glob.py`, `grep_line.py`, `grep_tool`, `read_file`
+  and `read_local.py` — four greps, two readers, two duplicate-stem twin pairs —
+  and not one verdict wavered. **Nothing was wrong with the brief; the rule was
+  already there and already correct.** The design document even said the cousin
+  *may look at the whole library from day one*. It simply was not being shown it.
+  **Invariant: before adding a rule, check whether the evidence that rule needs
+  is actually on the page** — a brief cannot reason about what the harness never
+  put in the prompt, and it will not tell you that it is guessing. Generalises
+  past prompts: this is the parent's *a docstring is a claim, not an instrument*
+  aimed at a design document. Fixed by listing siblings with their `# does:`
+  lines, and by `test_cousin_sees_the_library`, which asserts the evidence
+  ARRIVES — the lesson from the dead `want` channel, one section down.
 
 - **A trigger that does not reset its own counter fires forever.** 2026-09-11,
   caught by the kernel gate on its first run: a `STALL` fired, the cousin

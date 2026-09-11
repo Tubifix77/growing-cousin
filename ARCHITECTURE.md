@@ -448,12 +448,35 @@ outcome}` · `cousin_want{text}`. A `Counter` over kinds must be able to answer
 
 That rule is what makes §9 work at all. It is small, and it is load-bearing.
 
+### Complaint fidelity — built 2026-09-12, in `census.py`
+
+Not the state — that is now derived. What remained was **complaint fidelity**:
+the manager's `tried` and `outcome` are its own testimony, and nothing but a
+census checks whether the thing it says happened actually happened.
+
+`census.py` pairs each `cousin_verdict` with the `cousin_probe` immediately
+preceding it and grades the correspondence by severity. It is possible only
+because of the one-kind-per-event rule above — a census over prose prefixes is
+the parent's scar *a census keyed on `kind ==` counted nothing*, repeated.
+
+**It reports; it never gates.** Two reasons, and the second is the real one.
+An instrument that can wall the thing it measures stops being an instrument. And
+this census will be wrong sometimes — the highest-severity finding it emits
+today, *a verdict with no recorded probe*, fires on honest verdicts where the
+cousin reasoned from the header without running anything, which the brief
+permits. A gate on that would punish exactly the behaviour *unverifiable is not
+failed* was earned to protect.
+
 ### What is still unproven
 
-Not the state — that is now derived. What remains is **complaint fidelity**: the
-manager's `tried` and `outcome` are its own testimony, and nothing but a census
-checks whether the thing it says happened actually happened. That census is the
-only thing keeping the manager honest and it should be built early.
+**The cousin's right to audit** (§6.4 in `CLAUDE.md`). It is now shown the
+library a tool joins — names with each sibling's own `# does:` line — because
+without that its third test asks for a comparison with one side missing: over 40
+live cycles the creature built four greps and two readers, two of them
+duplicate-stem twins, and every one was accepted. That is evidence the omission
+was real. It is **not** evidence the fix works; no long run has yet been measured
+against it. An audit remains where a manager most easily produces confident
+garbage, and the census is still the only thing checking.
 
 ## 10. The honest trade
 

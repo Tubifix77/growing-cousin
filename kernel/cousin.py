@@ -93,9 +93,24 @@ def parse(reply):
     return out
 
 
-def build_prompt(brief, claim, header, transcript):
-    return brief + CASE_TEMPLATE.format(
+LIBRARY_TEMPLATE = """
+
+## What it already had before this
+
+{library}
+
+Look before you accept. Its third test is whether this is genuinely new or the
+fifth variant of something already here -- and a near-duplicate is a cost it
+pays forever, in a library it must later hand to you whole.
+"""
+
+
+def build_prompt(brief, claim, header, transcript, library=""):
+    out = brief + CASE_TEMPLATE.format(
         claim=claim, header=header, transcript=transcript)
+    if library:
+        out += LIBRARY_TEMPLATE.format(library=library)
+    return out
 
 
 CASE_TEMPLATE = """
@@ -128,9 +143,10 @@ Decide. Emit exactly one `<<<COUSIN` block as the last thing in your reply.
 """
 
 
-def visit(ask, brief, claim, header, transcript, journal=None, trigger=None):
+def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
+          library=""):
     """One manager invocation, end to end. `ask(prompt) -> (text, meta)`."""
-    prompt = build_prompt(brief, claim, header, transcript)
+    prompt = build_prompt(brief, claim, header, transcript, library)
     try:
         reply, meta = ask(prompt)
     except Exception as e:

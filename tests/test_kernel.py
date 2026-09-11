@@ -509,6 +509,47 @@ def test_want_reaches_the_creature():
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
+def test_cousin_sees_the_library():
+    """The cousin's third test is "is this new, or the fifth variant?" -- and
+    for the whole life of the kernel it was asked that while being shown ONE
+    tool and never the library.
+
+    2026-09-12, measured over 40 live cycles: four greps and two readers,
+    including two duplicate-stem twins, every one accepted. A comparison is not
+    a judgement you can prompt your way to when neither side is on the page.
+    """
+    writes = """```bash
+cat << 'SH' > tools/own/newthing
+#!/bin/sh
+echo hi
+SH
+chmod +x tools/own/newthing
+```"""
+    e, j, b, d = build_engine([writes], [ACCEPT_REPLY])
+    own = os.path.join(b.mind, "tools", "own")
+    with open(os.path.join(own, "older"), "w", encoding="utf-8") as f:
+        f.write("""#!/bin/sh
+# does: searches a file for a term
+echo old
+""")
+
+    seen = {}
+
+    def spy(prompt):
+        seen["p"] = prompt
+        return ACCEPT_REPLY, {"model": "spy", "done_reason": "stop"}
+    e.ask_cousin = spy
+    e.run_cycle()
+
+    p = seen.get("p", "")
+    check("library: the cousin is shown what already existed",
+          "older" in p, p[-400:] if p else "(no prompt captured)")
+    check("library: with each tool's own stated purpose, not just its name",
+          "searches a file for a term" in p, p[-400:] if p else "")
+    check("library: the tool under judgement is not listed as its own sibling",
+          p.count("newthing") >= 1 and "- newthing" not in p, "listed itself")
+
+
 def test_cousin_probe_is_recorded():
     """What the cousin actually ran, as fact. Without it nothing can check
     whether its testimony describes an event that happened."""
@@ -669,7 +710,8 @@ def main():
                test_cycle_done_claim_triggers_cousin, test_refusal_is_delivered_once,
                test_accept_does_not_block, test_context_is_served_not_assembled,
                test_memory_reaches_the_context,
-               test_want_reaches_the_creature, test_cousin_probe_is_recorded,
+               test_want_reaches_the_creature, test_cousin_sees_the_library,
+               test_cousin_probe_is_recorded,
                test_census_catches_a_fabricated_verdict,
                test_dead_body_does_not_become_creature_output,
                test_mute_refusal_never_delivered, test_cousin_unusable_gates_nothing,
