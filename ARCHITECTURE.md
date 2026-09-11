@@ -473,10 +473,24 @@ failed* was earned to protect.
 library a tool joins — names with each sibling's own `# does:` line — because
 without that its third test asks for a comparison with one side missing: over 40
 live cycles the creature built four greps and two readers, two of them
-duplicate-stem twins, and every one was accepted. That is evidence the omission
-was real. It is **not** evidence the fix works; no long run has yet been measured
-against it. An audit remains where a manager most easily produces confident
-garbage, and the census is still the only thing checking.
+duplicate-stem twins, and every one was accepted.
+
+A/B on the standin, same tool and same transcript, five passes each:
+
+| | verdict |
+|---|---|
+| a fourth grep, library **not** shown | ACCEPTED 5/5 |
+| a fourth grep, library shown | **RETURNED 5/5** |
+| a genuinely new tool, library shown | ACCEPTED 5/5 |
+
+The third row is the one that matters: a judge taught to refuse would score
+perfectly on the second row and be worthless. Detection and correction from §12
+are unaffected — `build_prompt` with an empty library is byte-identical to the
+prompt before this change, and the trial passes none.
+
+**Still unproven:** that is one case on one rung over ten calls, not a long run.
+An audit remains where a manager most easily produces confident garbage, and the
+census is still the only thing checking.
 
 ## 10. The honest trade
 

@@ -251,6 +251,13 @@ was measured, with what, and on what date.*
   aimed at a design document. Fixed by listing siblings with their `# does:`
   lines, and by `test_cousin_sees_the_library`, which asserts the evidence
   ARRIVES — the lesson from the dead `want` channel, one section down.
+  **A/B on `gemma4:12b`, same tool, same transcript, five passes each: without
+  the library ACCEPTED 5/5; with it RETURNED 5/5.** The control matters more
+  than that number and was run second: a genuinely new tool, same library shown,
+  **ACCEPTED 5/5** — so this discriminates rather than having taught it to
+  refuse. The trial's detection and correction figures are untouched, and that
+  is checked rather than assumed: `build_prompt` with an empty library is
+  byte-identical to the old prompt, and the trial passes no library.
 
 - **A trigger that does not reset its own counter fires forever.** 2026-09-11,
   caught by the kernel gate on its first run: a `STALL` fired, the cousin
