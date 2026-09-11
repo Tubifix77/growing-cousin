@@ -34,13 +34,18 @@ python tests/test_kernel.py > /tmp/k.out 2>&1; echo "GATE=$?"; tail -1 /tmp/k.ou
 To a FILE, never a pipe — a pipe once swallowed `sys.exit(1)` in the parent and
 let an ungated commit ship. Check the literal string `ALL TESTS PASS`.
 
-**Two populations of number live here and must never be mixed.** Anything about
-the parent's behaviour is quoted from Growing Spine and was not re-measured.
-Anything in `trial/README.md` was produced here, locally, against fixtures
-captured read-only from the parent's live library. **No number anywhere was
-produced by a running cousin engine, because no such engine exists.**
-When the first cousin verdict lands, that changes and this section is the first
-thing to rewrite.
+**Three populations of number live here and must never be mixed.**
+
+1. **The parent's behaviour** — quoted from Growing Spine, not re-measured here.
+2. **The brief's own measurement** (`trial/`) — produced locally against fixtures
+   captured read-only from the parent's live library.
+3. **The engine's behaviour** (`tests/`) — produced by the kernel actually
+   running, against a `LocalBody` and a local model.
+
+**None of the three is evidence for another.** A green gate says the workflow is
+correct; it says nothing about whether a creature can live in it. And **no number
+here yet comes from a creature that has run a real cycle on the real ladder** —
+when one does, this section is the first thing to rewrite.
 
 Do not let a borrowed number turn into a claim about this system. The parent
 project's most expensive errors were numbers nobody could source.
