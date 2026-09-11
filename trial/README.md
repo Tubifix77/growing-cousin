@@ -148,6 +148,66 @@ and that cannot be tested until the cousin has its own shell. Left in place,
 labelled, unfixed, because deleting a case that contradicts you is how a test
 set stops being worth anything.
 
+## Both halves, one brief — 2026-09-11
+
+`gemma4:12b` standing in for `gemma-4-31b-it`, the rung carrying 87–93% of the
+parent's traffic. Same family, one size down, runs locally, spends no quota.
+
+| | result | passes | verdicts |
+|---|---|---|---|
+| **Detection** | **110/110 = 100.0%**, every case identical on every pass | 10 | 120 |
+| **Correction** | **10/10 = 100%** | 5 | 20 |
+
+Detection asks *can it tell good work from bad*. Correction asks the harder
+question: *when the creature comes back saying it fixed the thing, can it tell a
+real repair from one that only looks like one*. Both now hold on the **same**
+brief, which is the part that took the work — they held one at a time for hours.
+
+### What the correction loop found that 120 detection verdicts could not
+
+A tool was returned **10/10** for producing month-old items. The "repair" moved
+the timestamps to today and changed nothing else — same invented articles, same
+reserved domain. It was accepted **5/5**, with a feature request attached:
+
+> *"it gave me two news items with today's date. I can use this for the wake
+> catch-up now."*
+
+**The mock was never being detected as fabrication. It was being detected as old
+dates.** A 99.1% detection score was sitting on top of that the whole time. Only
+asking what happens after a complaint is answered could expose it — and that is
+the question a complaint-driven creature asks every single cycle.
+
+### The four rules, each earned from testimony and measured against the run before
+
+| rule | moved |
+|---|---|
+| Unverifiable is not failed | detection 92.8% → 99.1% |
+| A `want` is for capability BEYOND the claim, never the claim itself | cosmetic repair 0/5 → 5/5 |
+| Judge the result, not the tidiness of getting there | genuine repair 1/5 → 5/5 |
+| Did the tool MAKE what is wrong, or merely CARRY it | detection 90.9% → 100% |
+
+Every one came from reading what the judge **said**, not from its score. The
+scoreline said "wrong"; the testimony said which rule was missing.
+
+### Two failures worth more than the successes
+
+**A rule that was right in isolation and harmful in company.** Adding *"work that
+answers your words precisely deserves more scrutiny"* regressed genuine repairs
+5/5 → 1/5 and caught nothing. Reverted, not layered over, and kept in
+`results/repair-after-need-rule/`.
+
+**A fix for one half that broke the other.** The three correction rules dropped
+detection 99.1% → 90.9%, and **only the two search controls moved** — both to
+exact 5/5 coin flips. That precision *was* the diagnosis: two rules overlapped on
+"I got something, but it has a problem", and nothing said which won. An aggregate
+would have said "something is off". Kept in `results/detection-regressed-90/`.
+
+**The brief is ONE artifact. Every rule added to it changes every verdict it
+produces.** Detection must be re-measured after every correction fix, and the
+reverse. That is the discipline, not a precaution.
+
+---
+
 ## Reliability: 92.8% → 99.1% on the workhorse standin
 
 **Why `gemma4:12b`.** The parent's workhorse rung is `gemma-4-31b-it`, carrying

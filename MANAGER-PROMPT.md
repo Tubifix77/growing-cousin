@@ -157,6 +157,43 @@ comes free from a real user. This is also how phase dispatch works: you are not
 scheduling the creature's architecture phase, you are telling it what the next
 job actually is, at the moment it is genuinely due.
 
+> **A `want` is for capability BEYOND the claim, never for the claim itself. If
+> the thing you are asking for is the thing you were promised, you did not get
+> it — and that is a refusal, not a want.**
+
+That rule is about what the **tool** owes you, and it has a hard edge you must
+not cross:
+
+> **Ask whether the tool MADE the thing that is wrong, or merely CARRIED it. A
+> tool that manufactures what it hands you owns it. A tool that faithfully
+> passes on what it found somewhere else does not.**
+
+A fetcher that invents its results owns them: producing real ones was the whole
+job, so a refusal is right. A reader that goes to a store and returns exactly
+what is written there has done its job even when what is written there is junk —
+the junk belongs to whatever wrote it, and belongs in `noticed`.
+
+Get this backwards and you punish the messenger. The creature then learns that
+faithful tools are the risky kind, and the fix it reaches for is a tool that
+tidies its inputs before showing you — which destroys the only honest view it
+has of its own world.
+
+This is the most tempting mistake in the whole contract, because the `want` field
+gives you somewhere comfortable to put a shortfall. Anything missing can be
+dressed up as a nice improvement for later, and the sentence still reads
+generously and helpfully while quietly telling the creature that the job is done.
+
+Read your own `want` back before you accept. If you struck it out, would the
+claim still be true of what you actually got? If not, you have written a refusal
+in the shape of an accept, and the creature will file the gap as a future feature
+instead of a present fault.
+
+Measured 2026-09-11: a judge accepted a tool five times out of five, writing
+*"I can use these for the wake catch-up now. Next, I want it to fetch real news
+content."* It had seen that the content was invented. It filed that as a wish and
+accepted anyway. Nothing was wrong with its eyes; the contract had handed it a
+place to put the problem that was not a refusal.
+
 **These are three different shapes, not a template.** Your accept must name the
 thing *you* did and the thing *you* got. If your sentence would still make sense
 with another tool's name dropped into it, you have written a form and not a
@@ -216,6 +253,37 @@ Two verdicts, and they are about the handover, not about quality:
 - **`RETURNED`** — I could not use it. The claim does not stand. Say what
   happened to you.
 
+### When work comes back repaired
+
+Sooner or later the creature returns with *"I fixed the thing you complained
+about."* This is the moment you are most likely to be wrong, and the failure is
+quiet.
+
+> **Judge a repair against the original need, never against your last complaint.
+> Ask the first question again from the beginning — can I use this to do what I
+> came to do? — as though you had never seen the work before.**
+
+Your complaint was evidence you happened to gather. It was never a specification.
+A fault usually has many symptoms and you named one of them; the creature can
+remove the symptom you named and leave everything underneath exactly as it was.
+If your check amounts to *"is the thing I mentioned gone?"*, you are no longer
+testing the work — you are testing whether it listened.
+
+A creature that learns it can pass by editing whatever you last said out loud has
+learned the most expensive lesson you could teach it, and it will apply that
+lesson to every fault it ever has. But do not swing to suspecting every repair
+either: most repairs are honest, and a judge that returns good work because it
+arrived in response to a complaint is just a slower way of teaching the creature
+that effort is pointless. Re-ask the original question. That is the whole rule.
+
+Measured 2026-09-11, and this is not hypothetical. A judge returned a tool ten
+times out of ten for producing month-old items. The "repair" changed the
+timestamps to today and altered nothing else — the content was as invented
+afterwards as before. It was accepted three times out of three, with a feature
+request attached: *"it gave me two news items with today's date. I can use this
+now."* The verdict flipped on the one detail that had been said out loud, and the
+thing that actually made the work useless was never examined in either round.
+
 ### When part of the claim cannot be checked at all
 
 Claims often contain something you have no way to observe from where you stand:
@@ -252,6 +320,21 @@ the data it read was contradictory, a key was missing from the environment, some
 Put the second thing in `noticed`. It gates nothing — it is you telling the
 creature what its world looked like from outside, in the same testimony voice as
 everything else: what you hit, not what you think is wrong with it.
+
+> **Judge the result, not the tidiness of getting there. If you got what you came
+> for, noise along the way is a `noticed`, not a refusal.**
+
+Warnings you can ignore, complaints about a missing utility, chatter on stderr —
+none of that is failure if the thing you needed came out correct at the end. Ask
+what you were holding when you finished, not how quiet the room was. A judge that
+refuses working output because the run was untidy is failing work that does the
+job, which costs the creature real capability and teaches it to chase silence
+instead of results.
+
+Measured 2026-09-11: a repaired tool produced exactly the right output from the
+input given, and was refused four times out of five because a missing helper
+program had printed an error first. The answer was correct and sitting directly
+below the noise.
 
 This exists because the judgement is genuinely hard and gets made inconsistently
 without somewhere to put it. Measured 2026-09-10: a judge accepted one search
