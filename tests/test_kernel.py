@@ -382,6 +382,59 @@ def test_forever_does_not_spin_on_failure():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_an_exhausted_ladder_reaches_the_supervisor():
+    """END TO END: ladder -> run_cycle -> Supervisor. Assert the ROUTE.
+
+    2026-09-12, caught on the laptop minutes before the first overnight run.
+    run_cycle caught the think exception and returned `think_failed`, so the
+    supervisor saw a SUCCESSFUL cycle and started the next one two seconds
+    later -- measured at 174s then 2s. Every bound built for this case (the
+    wait, the backoff, the failure ceiling) was unreachable, and a night of it
+    would have hammered rungs the spine also depends on.
+
+    Each piece was individually green. The ROUTE between them was dead -- the
+    `want` channel scar exactly, so this asserts the route and not the pieces.
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    b = bodymod.LocalBody(root=os.path.join(d, "body"))
+
+    def exhausted(_prompt):
+        raise backends.LadderExhausted("no rung answered", all_walled=False)
+
+    e = Engine(j, b, "brief", exhausted, exhausted,
+               os.path.join(d, "context.md"))
+
+    raised = None
+    try:
+        e.run_cycle()
+    except Exception as ex:
+        raised = ex
+    check("route: run_cycle does not swallow an exhausted ladder",
+          isinstance(raised, backends.LadderExhausted),
+          "run_cycle returned %r instead of raising" % (raised,))
+    check("route: and it still journals the failure before re-raising",
+          len(j.read(kinds=["error"])) == 1, str(dict(j.kinds())))
+
+    # Now the whole route: the supervisor must WAIT, not spin.
+    slept = []
+    sup = forever.Supervisor(e.run_cycle, os.path.join(d, "STOP"), journal=j,
+                             pause=5, wait_base=60, wait_cap=3600,
+                             max_consecutive_waits=4,
+                             sleep=slept.append, exists=lambda p: False)
+    ran, reason = sup.loop(max_cycles=10)
+    check("route: a dead ladder makes the loop WAIT rather than spin",
+          slept and min(slept) >= 60,
+          "waits were %s -- the pacing never applied" % slept[:5])
+    check("route: it is recorded as waiting, not as a cycle that ran",
+          ran == 0 and len(j.read(kinds=["loop_waiting"])) >= 2,
+          "ran=%d waits=%d" % (ran, len(j.read(kinds=["loop_waiting"]))))
+    check("route: and it gives up eventually instead of waiting forever",
+          "waits" in reason, reason)
+
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_preflight_is_advisory_for_an_unattended_run():
     """Refusing to start is right when someone is watching, and wrong overnight.
 
@@ -1461,6 +1514,7 @@ def main():
                test_observer_vitals_are_derived,
                test_forever_stops_when_asked,
                test_forever_does_not_spin_on_failure,
+               test_an_exhausted_ladder_reaches_the_supervisor,
                test_preflight_is_advisory_for_an_unattended_run,
                test_a_quota_wall_is_not_a_fault,
                test_ladder_reports_why_it_was_exhausted,

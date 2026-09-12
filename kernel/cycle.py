@@ -228,7 +228,21 @@ class Engine:
         except Exception as e:
             self.j.append("error", where="think",
                           detail="%s: %s" % (type(e).__name__, e))
-            return {"substantive": False, "reason": "think_failed"}
+            # RE-RAISED, not swallowed. Deciding what a failure MEANS is the
+            # supervisor's job -- it is the thing that knows the difference
+            # between "come back later" and "broken", and it owns the pacing.
+            #
+            # 2026-09-12, caught on the laptop before the first overnight run:
+            # swallowing this turned an exhausted ladder into a quiet
+            # `think_failed`, so the loop saw a successful cycle and started the
+            # next one TWO SECONDS later. Measured: 174s, then 2s. Every bound
+            # built for exactly this case -- the wait, the backoff, the failure
+            # ceiling -- was unreachable, and a night of it would have hammered
+            # rungs the spine also depends on.
+            #
+            # The dead `want` channel in a new costume: a channel nothing routes
+            # to is dead however carefully it was built.
+            raise
 
         meta = meta or {}
         self.j.append("think", chars=len(reply or ""),
