@@ -23,7 +23,7 @@ stated.
 spine, under systemd.** `kernel/` is the 1% from `ARCHITECTURE.md` §14 —
 journal, body, think, triggers, cousin, cycle, backends, forever — `run.py`
 drives it, `observer.py` is the window, `census.py` is the only thing that
-checks the manager, and `tests/test_kernel.py` is the gate: **216/216 green.**
+checks the manager, and `tests/test_kernel.py` is the gate: **242/242 green.**
 
 **The gate's authority moved to the laptop (2026-09-12).** The Windows box
 fails the liveness assertion intermittently under the suite's process churn —
@@ -33,13 +33,7 @@ it there before committing; the pattern that works without pushing first is a
 scratch `git clone ~/growing-cousin /tmp/gate-check` with the changed files
 uploaded over it.
 
-**The design closed its loop in production on 2026-09-12** — creature builds,
-cousin uses and accepts, cousin asks for the next capability, the want reaches
-the creature, the creature builds exactly that and it works (§7). That had
-never happened outside a test. It has happened **once**, on a rung the brief
-was never measured against, and the seven hours before it produced one usable
-verdict in 95 cycles. Green gates and a running service are still not the same
-thing as a working system.
+**The design closes its loop in production, repeatedly.** Creature builds, cousin uses and accepts, cousin asks for the next capability, the want reaches the creature, it builds that (§7). Measured 2026-09-12/13 over an evening: **6 accepts, 4 wants, 33 verdicts**, on two different rungs. It is no longer one swallow. It is also not yet a system that produces much -- most of those hours were spent waiting out a shared quota, and the wants have begun repeating themselves.
 
 **The ladder is configuration, not code**: `rungs.local.json` and
 `rungs.cousin.local.json`, both gitignored, both naming a `key_file` outside the
@@ -66,10 +60,12 @@ let an ungated commit ship. Check the literal string `ALL TESTS PASS`.
 
 **None of the three is evidence for another.** A green gate says the workflow is
 correct; it says nothing about whether a creature can live in it. **Numbers from
-a creature on the real ladder now exist (§7) and are a FOURTH population** — one
-accept, served by `groq/gpt-oss-120b`, a rung the brief was never measured
-against. They are not comparable to `trial/` and must never be quoted as if they
-were, which is why `rung` is journalled beside `model`.
+a creature on the real ladder now exist (§7) and are a FOURTH population** —
+6 accepts across `gemini/gemma-4-31b-it` and `groq/gpt-oss-120b`, and the brief
+was measured on neither of those exact deployments. They are not comparable to
+`trial/` and must never be quoted as if they were, which is why `rung` is
+journalled beside `model`. **Split every rate by rung before reading it**: the
+ladder is heterogeneous now, so an aggregate accept rate mixes instruments.
 
 Do not let a borrowed number turn into a claim about this system. The parent
 project's most expensive errors were numbers nobody could source.

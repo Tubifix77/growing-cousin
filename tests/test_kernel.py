@@ -1605,6 +1605,7 @@ chmod +x tools/own/newthing
     with open(os.path.join(own, "older"), "w", encoding="utf-8") as f:
         f.write("""#!/bin/sh
 # does: searches a file for a term
+# call: older <term> <file>
 echo old
 """)
 
@@ -1621,6 +1622,15 @@ echo old
           "older" in p, p[-400:] if p else "(no prompt captured)")
     check("library: with each tool's own stated purpose, not just its name",
           "searches a file for a term" in p, p[-400:] if p else "")
+    # And HOW it is called. The does-line says what a tool is for; the
+    # call-line says what it can be ASKED to do. Without the second, a tool
+    # with sub-commands is indistinguishable from one without -- 2026-09-13 the
+    # cousin asked three times, in three wordings, for a capability `plan
+    # add-step` already had, and all three restatements stood in the creature's
+    # direction at once.
+    check("library: and HOW each one is called, so an existing capability is "
+          "visible rather than requested again",
+          "used as: older <term> <file>" in p, p[-400:] if p else "")
     check("library: the tool under judgement is not listed as its own sibling",
           p.count("newthing") >= 1 and "- newthing" not in p, "listed itself")
 

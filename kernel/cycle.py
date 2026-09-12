@@ -472,17 +472,33 @@ class Engine:
         if siblings:
             lines = []
             for name in siblings[:40]:
-                does = ""
+                # BOTH `# does:` and `# call:`. The does-line says what a tool
+                # is for; the call-line says what it can be ASKED to do, and
+                # without the second the cousin cannot tell a tool with
+                # sub-commands from one without.
+                #
+                # 2026-09-13, measured over an evening: it accepted work and
+                # asked for "Ability to add and update steps in the plan" three
+                # times in different words, while `plan add-step` already
+                # worked. All three restatements stood in the creature's
+                # direction at once -- one idea filling a channel bounded to
+                # three. It was not being shown that the capability existed.
+                does = call = ""
                 try:
                     with open(os.path.join(self.body.mind, "tools", "own", name),
                               encoding="utf-8", errors="replace") as f:
                         for line in f.readlines()[:8]:
-                            if line.strip().startswith("# does:"):
-                                does = line.split(":", 1)[1].strip()
-                                break
+                            t = line.strip()
+                            if t.startswith("# does:") and not does:
+                                does = t.split(":", 1)[1].strip()
+                            elif t.startswith("# call:") and not call:
+                                call = t.split(":", 1)[1].strip()
                 except OSError:
                     pass
-                lines.append("- %s%s" % (name, (" - " + does) if does else ""))
+                entry = "- %s%s" % (name, (" - " + does) if does else "")
+                if call:
+                    entry += "\n    used as: %s" % call
+                lines.append(entry)
             library = "\n".join(lines)
 
         claim = "I finished %s." % (target or "this work")
