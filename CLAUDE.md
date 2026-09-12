@@ -67,9 +67,9 @@ let an ungated commit ship. Check the literal string `ALL TESTS PASS`.
 **None of the three is evidence for another.** A green gate says the workflow is
 correct; it says nothing about whether a creature can live in it. **Numbers from
 a creature on the real ladder now exist (§7) and are a FOURTH population** — one
-accept, on , a rung the brief was never measured against. They
-are not comparable to  and must never be quoted as if they were, which is
-why  is journalled beside .
+accept, served by `groq/gpt-oss-120b`, a rung the brief was never measured
+against. They are not comparable to `trial/` and must never be quoted as if they
+were, which is why `rung` is journalled beside `model`.
 
 Do not let a borrowed number turn into a claim about this system. The parent
 project's most expensive errors were numbers nobody could source.
