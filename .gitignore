@@ -17,3 +17,4 @@ trial/.trial.lock
 rungs*.local.json
 live-run.log
 live-local/
+live-local.log

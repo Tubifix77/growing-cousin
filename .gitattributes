@@ -1,0 +1,20 @@
+# This repo is authored on Windows and DEPLOYED on Linux. Anything the Linux box
+# executes or parses must arrive with LF endings, or it fails in ways that read
+# as anything but a line ending:
+#
+#   - a systemd unit with CRLF takes the \r as part of the value
+#   - a script with `#!/usr/bin/env python3\r` reports "no such file or
+#     directory" naming an interpreter that plainly exists
+#
+# The creature's hands are the sharp case: a broken shebang there would make
+# every tool call fail while the tool itself was perfectly good -- the framework
+# breaking the work and the creature being billed for it, which this project has
+# already paid for three times.
+* text=auto eol=lf
+
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.service text eol=lf
+*.sh text eol=lf
+hands/* text eol=lf
