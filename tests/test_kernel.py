@@ -1128,7 +1128,12 @@ def test_classify_error_never_raises():
     for code in (401, 403, 429, 402, 500, 503, 404, 418):
         got[code] = backends.classify_error(H(code))[0]
     check("ladder: a rejected credential walls that rung",
-          got[401] == backends.WALL and got[403] == backends.WALL, str(got))
+          got[401] == backends.WALL, str(got))
+    # 403 must NOT wall: Cloudflare-fronted rungs answer 403 to a request their
+    # WAF dislikes, which has nothing to do with the credential. Walling on it
+    # permanently lost a working rung, 2026-09-12.
+    check("ladder: a 403 steps to the next rung, it does not condemn the rung",
+          got[403] == backends.NEXT, str(got))
     check("ladder: quota steps to the next rung, it does not wall",
           got[429] == backends.NEXT and got[402] == backends.NEXT, str(got))
     check("ladder: a transient upstream is retried",

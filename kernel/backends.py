@@ -14,6 +14,10 @@ import urllib.request
 
 OLLAMA = "http://localhost:11434"
 
+# Sent on every remote call. See the note in `openai_chat`: a missing
+# User-Agent is read as bot traffic by Cloudflare-fronted providers.
+USER_AGENT = "growing-cousin/1.0 (+https://github.com/Tubifix77/growing-cousin)"
+
 
 # ------------------------------------------------------- reasoning blocks
 
@@ -141,7 +145,15 @@ def openai_chat(model, base_url, key_env=None, key_file=None, num_predict=900,
                 "max_tokens": num_predict,
                 "messages": [{"role": "user", "content": prompt}]}
         headers = {"Content-Type": "application/json",
-                   "Authorization": "Bearer " + key}
+                   "Authorization": "Bearer " + key,
+                   # Several free rungs sit behind Cloudflare's WAF, which
+                   # blocks clients by signature. urllib's default
+                   # `Python-urllib/3.x` is on the list: 2026-09-12, Groq
+                   # returned HTTP 403 "error code: 1010" -- a CLOUDFLARE code,
+                   # not Groq's -- on every call, and the same request with any
+                   # ordinary User-Agent succeeded. The key was never bad.
+                   # Without this the ladder condemns working rungs.
+                   "User-Agent": USER_AGENT}
         headers.update(extra_headers or {})
         req = urllib.request.Request(
             base_url.rstrip("/") + "/chat/completions",
@@ -176,8 +188,19 @@ def classify_error(e):
     unknown becomes known instead of staying a mystery that recurs.
     """
     code = getattr(e, "code", None)
-    if code in (401, 403):
-        return WALL, "credential rejected (HTTP %s)" % code
+    if code == 401:
+        return WALL, "credential rejected (HTTP 401)"
+    if code == 403:
+        # 403 used to WALL alongside 401, and that was a wrong diagnosis with
+        # an expensive consequence. 2026-09-12: Groq sits behind Cloudflare,
+        # whose WAF answered 403 "error code: 1010" to a request with no
+        # User-Agent -- nothing to do with the credential. Walling on that
+        # permanently disabled a rung that worked perfectly the moment a header
+        # was added. A bad key reliably says 401; 403 is ambiguous, so it steps
+        # to the next rung for this call rather than condemning the rung for
+        # the session. Retrying a genuinely forbidden rung is cheap; silently
+        # losing a working one is not.
+        return NEXT, "forbidden (HTTP 403) -- credential, or a WAF blocking us"
     if code in (429, 402):
         return NEXT, "quota or rate limit (HTTP %s)" % code
     if code in (408, 500, 502, 503, 504, 529):
