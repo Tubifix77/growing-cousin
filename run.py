@@ -19,7 +19,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from kernel import backends, body as bodymod
+from kernel import backends, body as bodymod, forever, triggers as trigmod
 from kernel.cycle import Engine
 from kernel.journal import Journal
 
@@ -124,6 +124,15 @@ def main():
     ap.add_argument("--model", default="gemma4:12b")
     ap.add_argument("--root", default=os.path.join(HERE, "live"))
     ap.add_argument("--fresh", action="store_true", help="wipe --root first")
+    ap.add_argument("--forever", action="store_true",
+                    help="run until the stop file appears (--cycles becomes a "
+                         "ceiling, 0 for no ceiling)")
+    ap.add_argument("--stop-file", default=None,
+                    help="touch this to stop after the current cycle "
+                         "(default: <root>/STOP)")
+    ap.add_argument("--pause", type=float, default=forever.PAUSE_SECS,
+                    help="seconds between cycles; the free tier is rate-limited "
+                         "and shared with the spine")
     ap.add_argument("--rungs", default=os.path.join(HERE, "rungs.local.json"),
                     help="ladder spec; falls back to --model when absent")
     ap.add_argument("--cousin-rungs", default=None,
@@ -197,29 +206,45 @@ def main():
                  ", carrying a refusal the creature has not read yet"
                  if e.done_blocked else ""))
 
-    print("creature + cousin on %s, %d cycles, root=%s\n"
-          % (served, args.cycles, args.root))
+    stop_file = args.stop_file or os.path.join(args.root, "STOP")
+    print("creature + cousin on %s, root=%s" % (served, args.root))
+    print("%s\nstop with:  touch %s\n"
+          % ("running until stopped" if args.forever
+             else "%d cycles" % args.cycles, stop_file))
+
     t0 = time.time()
-    for i in range(1, args.cycles + 1):
-        c0 = time.time()
-        try:
-            r = e.run_cycle()
-        except Exception as ex:
-            import traceback
-            j.append("error", where="cycle",
-                     detail="%s: %s" % (type(ex).__name__, ex))
-            print("  %2d  CYCLE RAISED %s: %s" % (i, type(ex).__name__, ex))
-            traceback.print_exc()
-            continue
-        tools = len(os.listdir(os.path.join(body.mind, "tools", "own")))
-        print("  %2d  %-13s exec=%-2s trig=%-11s verdict=%-8s tools=%-3s %4.0fs"
+    shown = {"i": 0}
+
+    def one_cycle():
+        """Raises on failure -- the supervisor decides what a failure means.
+
+        Swallowing the exception here would hide a persistent fault from the
+        one thing bounding it, and the loop would spin on a dead rung burning
+        quota the spine also pays for.
+        """
+        shown["i"] += 1
+        i, c0 = shown["i"], time.time()
+        r = e.run_cycle()
+        tools = len(trigmod.list_tools(os.path.join(body.mind, "tools", "own")))
+        print("  %3d  %-13s exec=%-2s trig=%-11s verdict=%-8s tools=%-3s %4.0fs"
               % (i,
                  "substantive" if r.get("substantive") else (r.get("reason") or "-"),
                  r.get("executed", 0),
                  ",".join(r.get("triggers") or []) or "-",
-                 r.get("verdict") or "-", tools, time.time() - c0))
+                 r.get("verdict") or "-", tools, time.time() - c0),
+              flush=True)     # unbuffered: a detached run must be readable live
+        return r
 
-    print("\n%d cycles in %.0fs" % (args.cycles, time.time() - t0))
+    ceiling = None if (args.forever and args.cycles <= 0) else args.cycles
+    sup = forever.Supervisor(one_cycle, stop_file, journal=j,
+                             pause=args.pause if args.forever else 0.0)
+    try:
+        ran, why = sup.loop(max_cycles=ceiling)
+    except forever.StopRequested as e2:
+        sys.stderr.write("REFUSED: %s\n" % e2)
+        return 4
+
+    print("\n%d cycles in %.0fs -- %s" % (ran, time.time() - t0, why))
     print("journal kinds: %s" % dict(j.kinds()))
     print("tools built  : %s" % sorted(
         os.listdir(os.path.join(body.mind, "tools", "own"))))

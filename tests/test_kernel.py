@@ -20,7 +20,8 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from kernel import backends, body as bodymod, cousin, think, triggers
+from kernel import (backends, body as bodymod, cousin, forever, think,
+                    triggers)
 from kernel.cycle import Engine
 from kernel.journal import (EXEC_STDOUT_CHARS, Journal, capped, marker_total)
 
@@ -165,6 +166,113 @@ def test_command_reaches_disk_intact():
     check("body: backticks and $(...) survive a quoted heredoc too",
           "`date`" in got2 and "$(id)" in got2, repr(got2)[:110])
     b.destroy()
+
+
+def test_forever_stops_when_asked():
+    """A loop that can only be stopped with `kill` is not deployable.
+
+    Killing mid-cycle throws away the cycle in flight, and on a box shared with
+    the spine it is the blunt instrument that hits the wrong process.
+    """
+    d = tmpdir()
+    stop = os.path.join(d, "STOP")
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    seen = {"n": 0}
+    present = {"stop": False}
+
+    def one():
+        seen["n"] += 1
+        if seen["n"] == 3:
+            present["stop"] = True     # someone touches the file mid-run
+
+    sup = forever.Supervisor(one, stop, journal=j, pause=0,
+                             sleep=lambda _s: None,
+                             exists=lambda p: present["stop"])
+    ran, reason = sup.loop(max_cycles=50)
+    check("forever: the stop file ends the loop", ran == 3, "ran %d" % ran)
+    check("forever: and it finishes the cycle it is in, never mid-cycle",
+          reason == "asked to stop", reason)
+    check("forever: the loop's start and end are journalled",
+          len(j.read(kinds=["loop_start"])) == 1
+          and len(j.read(kinds=["loop_end"])) == 1)
+
+    # A stop request must survive a restart, or systemd quietly undoes it.
+    sup2 = forever.Supervisor(one, stop, journal=j, pause=0,
+                              sleep=lambda _s: None, exists=lambda p: True)
+    refused = False
+    try:
+        sup2.loop(max_cycles=1)
+    except forever.StopRequested:
+        refused = True
+    check("forever: a loop refuses to start while a stop request stands",
+          refused, "it started anyway")
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_forever_does_not_spin_on_failure():
+    """A crash loop here is billed to the SPINE -- it shares these accounts.
+
+    So failures back off geometrically and a run of them ends the loop, rather
+    than hammering a rate limit forever with nobody watching.
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    slept = []
+
+    def always_fails():
+        raise RuntimeError("upstream is down")
+
+    sup = forever.Supervisor(always_fails, os.path.join(d, "STOP"), journal=j,
+                             pause=10, max_consecutive_failures=4,
+                             sleep=slept.append, exists=lambda p: False)
+    ran, reason = sup.loop(max_cycles=100)
+    check("forever: a persistent fault ends the loop instead of spinning",
+          "consecutive failures" in reason, reason)
+    check("forever: it gives up quickly, not after a hundred attempts",
+          ran <= 4, "ran %d" % ran)
+    check("forever: each failure is journalled with its cause",
+          len(j.read(kinds=["loop_error"])) >= 3)
+    check("forever: the wait GROWS between failures, it does not stay flat",
+          len(slept) >= 2 and slept[-1] > slept[0], str(slept))
+    check("forever: and the wait is capped, not doubled to infinity",
+          all(x <= forever.BACKOFF_CAP_SECS for x in slept), str(slept))
+
+    # A cycle that fails once and then works must not poison the count.
+    state = {"n": 0}
+
+    def flaky():
+        state["n"] += 1
+        if state["n"] == 1:
+            raise RuntimeError("one bad call")
+
+    sup2 = forever.Supervisor(flaky, os.path.join(d, "STOP"), journal=j,
+                              pause=0, max_consecutive_failures=3,
+                              sleep=lambda _s: None, exists=lambda p: False)
+    ran2, reason2 = sup2.loop(max_cycles=6)
+    check("forever: a single failure does not end the loop",
+          "consecutive" not in reason2, reason2)
+    check("forever: recovery resets the failure count",
+          state["n"] >= 5, "only %d attempts" % state["n"])
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_forever_paces_its_cycles():
+    """The free tier is rate-limited and the ladder answers a 429 by stepping
+    DOWN, not by waiting. Without a pause a fast local fallback would drive the
+    remote rungs straight back into their limits."""
+    d = tmpdir()
+    slept = []
+    sup = forever.Supervisor(lambda: None, os.path.join(d, "STOP"),
+                             pause=30, sleep=slept.append,
+                             exists=lambda p: False)
+    ran, reason = sup.loop(max_cycles=3)
+    check("forever: it waits between cycles", slept and slept[0] == 30, str(slept))
+    check("forever: it does not wait after the last cycle",
+          len(slept) == ran - 1, "ran %d, slept %d" % (ran, len(slept)))
+    check("forever: a bounded run reports why it ended",
+          reason == "reached 3 cycles", reason)
+    shutil.rmtree(d, ignore_errors=True)
 
 
 def test_a_relative_root_still_runs_the_creatures_tools():
@@ -1087,6 +1195,9 @@ def main():
     t0 = time.time()
     for fn in (test_journal, test_marker_invariant, test_body,
                test_command_reaches_disk_intact,
+               test_forever_stops_when_asked,
+               test_forever_does_not_spin_on_failure,
+               test_forever_paces_its_cycles,
                test_a_relative_root_still_runs_the_creatures_tools,
                test_a_tool_name_is_never_shell_source,
                test_a_backup_is_not_a_tool,
