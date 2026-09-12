@@ -156,6 +156,21 @@ def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
         return v
 
     v = parse(reply)
+    if v.verdict == UNKNOWN and v.error == "no-block":
+        # Stripping may have eaten the answer. `gemma-4-31b-it` opens a
+        # <thought> and, on a long brief, never closes it -- 7,386 characters
+        # produced and every one removed, four verdicts in a row (2026-09-12).
+        # If the block it never closed CONTAINED the verdict, the honest reply
+        # is there and only our cleaning hid it.
+        #
+        # This can only ever find a block that was really emitted; it cannot
+        # manufacture one. A reply with no verdict stays UNKNOWN.
+        raw_text = (meta or {}).get("raw_text") or ""
+        if raw_text:
+            recovered = parse(raw_text)
+            if recovered.verdict != UNKNOWN:
+                recovered.recovered_from_reasoning = True
+                v = recovered
     if journal:
         # The rung is recorded beside the model because the ladder is
         # heterogeneous: the brief was measured on gemma-4-31b-it, and a

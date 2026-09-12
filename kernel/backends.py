@@ -189,6 +189,13 @@ def openai_chat(model, base_url, key_env=None, key_file=None, num_predict=900,
             # AFTER stripping, so the evidence it existed for was already gone.
             "chars_before_strip": len(text),
             "chars_stripped": len(text) - len(clean),
+            # The text BEFORE stripping, capped. Stripping an unclosed
+            # reasoning block is correct in general and catastrophic in one
+            # case: when the answer was inside the block the model never
+            # closed. Keeping the original lets a consumer recover a verdict
+            # that stripping would otherwise have destroyed -- it can only
+            # find answers that are there, never invent one.
+            "raw_text": text[:8000],
             "seconds": round(time.time() - t0, 1),
         }
     return ask

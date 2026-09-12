@@ -1674,6 +1674,33 @@ def test_an_unreadable_verdict_keeps_its_evidence():
     check("raw: and the amount stripped is recorded, not inferred",
           r3.get("chars_stripped") == 8000, r3.get("chars_stripped"))
 
+    # RECOVERY. Stripping an unclosed reasoning block is right in general and
+    # catastrophic in one case: when the answer was INSIDE the block the model
+    # never closed. Cleaning must never destroy the thing it exists to uncover.
+    buried = ("<thought>I should check whether it runs. It did. "
+              + ACCEPT_REPLY + " and I never closed this thought")
+    j4 = Journal(os.path.join(d, "recover.jsonl"))
+    v4 = cousin.visit(lambda _p: ("", {"model": "m", "rung": "r",
+                                       "done_reason": "length",
+                                       "chars_before_strip": len(buried),
+                                       "chars_stripped": len(buried),
+                                       "raw_text": buried}),
+                      "brief", "c", "h", "t", journal=j4)
+    check("recover: a verdict buried in an unclosed thought is NOT lost",
+          v4.verdict == cousin.ACCEPTED, "%s / %s" % (v4.verdict, v4.error))
+    check("recover: and it is marked as recovered, not passed off as clean",
+          getattr(v4, "recovered_from_reasoning", False) is True)
+
+    # It must never INVENT one. A reply with no verdict stays UNKNOWN however
+    # much reasoning it contains.
+    j5 = Journal(os.path.join(d, "norecover.jsonl"))
+    v5 = cousin.visit(lambda _p: ("", {"model": "m", "rung": "r",
+                                       "done_reason": "length",
+                                       "raw_text": "<thought>" + "musing " * 400}),
+                      "brief", "c", "h", "t", journal=j5)
+    check("recover: reasoning with no verdict in it stays UNKNOWN",
+          v5.verdict == cousin.UNKNOWN, v5.verdict)
+
     # A readable verdict carries no raw copy: the evidence is the verdict.
     j2 = Journal(os.path.join(d, "ok.jsonl"))
     cousin.visit(lambda _p: (ACCEPT_REPLY, {"model": "m", "done_reason": "stop"}),
