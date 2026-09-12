@@ -242,8 +242,14 @@ class Engine:
         if len(block) > self.HISTORY_TOTAL_CHARS:
             keep = block[-self.HISTORY_TOTAL_CHARS:]
             nl = keep.find("\n")
-            block = ("## What you just did\n\n(Older lines dropped; this is the "
-                     "most recent part of the transcript.)\n"
+            # The HEADER IS KEPT, not replaced. It carries the warning that
+            # output is not a command, and dropping it here would remove that
+            # warning precisely when the transcript is longest and busiest --
+            # which is exactly when the creature started re-running its own
+            # output. A safety note that vanishes under load is not one.
+            block = (out[0] + "\n\n" + out[2]
+                     + "\n\n(Older lines dropped; this is the most recent part "
+                       "of the transcript.)\n"
                      + (keep[nl:] if nl > 0 else keep))
         return block
 

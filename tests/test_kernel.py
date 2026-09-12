@@ -1589,7 +1589,16 @@ def test_history_can_never_parse_as_a_command():
     j2.append("exec_end", exit_code=0, stdout="x" * 40000, stderr="")
     big = e2.recent_block()
     check("history: a huge output is capped again for the CONTEXT",
-          len(big) < 4000, "history was %d chars" % len(big))
+          len(big) < 8000, "history was %d chars" % len(big))
+    # The warning must SURVIVE the truncation. It was being replaced by the
+    # "older lines dropped" header, so it vanished exactly when the transcript
+    # was longest -- which is when the creature started re-running its own
+    # output. A safety note that disappears under load is not one.
+    check("history: the output-is-not-a-command warning survives truncation",
+          "not commands" in big or "are OUTPUT" in big, big[:300])
+    check("history: and the truncation still announces itself",
+          "Older lines dropped" in big or "withheld by the log" in big,
+          big[:300])
     check("history: and the cut announces itself",
           "withheld by the log" in big, big[-120:])
     shutil.rmtree(d, ignore_errors=True)
