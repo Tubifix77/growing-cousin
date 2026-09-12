@@ -11,8 +11,14 @@ lessons already paid for there:
     tick.
   - The display is CAPPED by block count, so an all-night run cannot grow the
     widget tree until the box swaps.
-  - Read-only, always. The observer never writes to the journal, the context,
-    or `tools/own`. It is a window, not a hand.
+  - It never writes the engine's DATA. Not the journal, not the context, not
+    `tools/own`. Nothing here can alter what the engine did or what it will
+    read; closing this window cannot affect the engine at all.
+
+    **One exception, and it is a control rather than data:** the stop button
+    writes the STOP file, which is the documented operator interface the engine
+    polls. Without it, stopping requires a terminal -- a control that exists
+    only where the operator is not, which is the same as not having it.
 
 What was NOT taken: spine's kinds, its provider strip keyed on `config.yaml`,
 its chat panel, its `/proc` scan. This engine has different events, no config
@@ -32,6 +38,7 @@ Only the Qt shell is untested, and it is deliberately thin.
 """
 import json
 import os
+import subprocess
 import sys
 import time
 
@@ -126,6 +133,39 @@ def make_icon(QtGui, QtCore, size=64):
 
     p.end()
     return QtGui.QIcon(pm)
+
+
+RUNNING, STOPPING, STOPPED = "running", "stopping", "stopped"
+
+
+def engine_state(stop_file_present, unit_active):
+    """What the engine is doing, from two facts a window can see.
+
+    A stop REQUEST and a stopped engine are different states and the button
+    must not conflate them: the request is honoured at the end of the current
+    cycle, which on a slow rung can be minutes. Telling someone it has stopped
+    while it is still working is how they reach for `kill`.
+    """
+    if stop_file_present and unit_active:
+        return STOPPING
+    if unit_active:
+        return RUNNING
+    return STOPPED
+
+
+def engine_button(state):
+    """(label, enabled, tooltip) for the one control this window offers."""
+    if state == RUNNING:
+        return ("Stop the engine", True,
+                "Writes the STOP file. The engine finishes the cycle it is in "
+                "and then exits -- it does not abandon work in progress.")
+    if state == STOPPING:
+        return ("Stopping after this cycle...", False,
+                "The stop is requested. The current cycle may take minutes on "
+                "a slow rung; killing it now would throw that work away.")
+    return ("Start the engine", True,
+            "Clears the STOP file and starts the service. A stop request "
+            "survives restarts on purpose, so it has to be cleared here.")
 
 
 def esc(s):
@@ -273,8 +313,9 @@ def main(root=None, selftest=False):
     try:
         from PyQt6 import QtCore as _QtCore, QtGui as _QtGui
         from PyQt6.QtWidgets import (QApplication, QLabel, QMainWindow,
-                                     QSplitter, QTextEdit, QVBoxLayout,
-                                     QHBoxLayout, QWidget)
+                                     QMessageBox, QPushButton, QSplitter,
+                                     QTextEdit, QVBoxLayout, QHBoxLayout,
+                                     QWidget)
         from PyQt6.QtCore import Qt, QTimer
         from PyQt6.QtGui import QFont
     except ImportError:
@@ -316,6 +357,16 @@ def main(root=None, selftest=False):
                 lab.setWordWrap(True)
                 self.labels[key] = lab
                 strip.addWidget(lab, 1)
+
+            # The ONE control this window offers. Everything else here reads.
+            self.btn = QPushButton("...")
+            self.btn.setFixedWidth(210)
+            self.btn.setFont(QFont("sans-serif", FONT_SIZE - 2))
+            self.btn.setStyleSheet(
+                "color:%s; background:%s; border:1px solid %s;"
+                "border-radius:4px; padding:5px 8px;" % (TEXT, PANEL, ACCENT))
+            self.btn.clicked.connect(self.on_button)
+            strip.addWidget(self.btn)
             outer.addLayout(strip)
 
             split = QSplitter(Qt.Orientation.Horizontal)
@@ -341,9 +392,61 @@ def main(root=None, selftest=False):
             self._timer.start(TICK_MS)
             self.tick()
 
+        def unit_active(self):
+            """Ask systemd, and only every few ticks -- a subprocess every 2s
+            for a value that changes rarely is the per-wake cost this project
+            keeps deleting elsewhere."""
+            self._unit_n = getattr(self, "_unit_n", 0) + 1
+            if self._unit_n % 5 != 1 and hasattr(self, "_unit_cached"):
+                return self._unit_cached
+            try:
+                r = subprocess.run(
+                    ["systemctl", "--user", "is-active", "cousin-engine"],
+                    capture_output=True, text=True, timeout=5)
+                self._unit_cached = r.stdout.strip() == "active"
+            except Exception:
+                # Not under systemd, or systemd is unreachable. Say RUNNING
+                # rather than guessing STOPPED: claiming an engine has stopped
+                # when it has not is the error that gets someone reaching for
+                # kill.
+                self._unit_cached = True
+            return self._unit_cached
+
+        def on_button(self):
+            state = engine_state(os.path.exists(stop_file), self.unit_active())
+            if state == RUNNING:
+                ok = QMessageBox.question(
+                    self, "Stop the engine?",
+                    "The engine will finish the cycle it is in and then exit.\n\n"
+                    "On a slow rung that can take a few minutes. Nothing in "
+                    "flight is lost.",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                if ok != QMessageBox.StandardButton.Yes:
+                    return
+                try:
+                    with open(stop_file, "w", encoding="utf-8") as f:
+                        f.write("stop requested from the observer\n")
+                except OSError as e:
+                    QMessageBox.warning(self, "Could not stop",
+                                        "Writing %s failed: %s" % (stop_file, e))
+            elif state == STOPPED:
+                try:
+                    if os.path.exists(stop_file):
+                        os.unlink(stop_file)
+                    subprocess.run(["systemctl", "--user", "start",
+                                    "cousin-engine"], timeout=15)
+                except Exception as e:
+                    QMessageBox.warning(self, "Could not start", str(e))
+            self.tick()
+
         def tick(self):
             self.pump_journal()
             self.refresh_side()
+            state = engine_state(os.path.exists(stop_file), self.unit_active())
+            label, enabled, tip = engine_button(state)
+            self.btn.setText(label)
+            self.btn.setEnabled(enabled)
+            self.btn.setToolTip(tip)
 
         def pump_journal(self):
             """Tail. Never re-read -- see the module docstring."""

@@ -275,6 +275,40 @@ def test_observer_shell_assembles():
           rc == 0, "rc=%s" % rc)
 
 
+def test_observer_stop_button_states():
+    """A stop REQUEST and a stopped engine are different, and the one control
+    this window offers must not conflate them.
+
+    The request is honoured at the END of the current cycle, which on a slow
+    rung is minutes. A button that says "stopped" while the engine is still
+    working is how someone reaches for kill -- and killing mid-cycle throws
+    away the work the graceful stop exists to protect.
+    """
+    import observer as obs
+
+    check("stopbtn: running when the unit is up and no stop is pending",
+          obs.engine_state(False, True) == obs.RUNNING)
+    check("stopbtn: STOPPING is its own state, not 'stopped'",
+          obs.engine_state(True, True) == obs.STOPPING)
+    check("stopbtn: stopped once the unit is gone",
+          obs.engine_state(False, False) == obs.STOPPED
+          and obs.engine_state(True, False) == obs.STOPPED)
+
+    label, enabled, tip = obs.engine_button(obs.RUNNING)
+    check("stopbtn: offers to stop while running", "Stop" in label and enabled)
+
+    label, enabled, tip = obs.engine_button(obs.STOPPING)
+    check("stopbtn: while stopping it is DISABLED, so no second click",
+          not enabled, label)
+    check("stopbtn: and it says the wait is the cycle finishing",
+          "cycle" in label.lower() or "cycle" in tip.lower(), label + " / " + tip)
+
+    label, enabled, tip = obs.engine_button(obs.STOPPED)
+    check("stopbtn: offers to start once stopped", "Start" in label and enabled)
+    check("stopbtn: and says the stop file must be cleared, which it does",
+          "STOP" in tip, tip)
+
+
 def test_observer_vitals_are_derived():
     import observer
 
@@ -1536,6 +1570,7 @@ def main():
                test_command_reaches_disk_intact,
                test_observer_describes_every_kind_it_can_see,
                test_observer_shell_assembles,
+               test_observer_stop_button_states,
                test_observer_vitals_are_derived,
                test_forever_stops_when_asked,
                test_forever_does_not_spin_on_failure,
