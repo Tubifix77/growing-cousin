@@ -193,7 +193,22 @@ def classify_error(e):
 
 class LadderExhausted(Exception):
     """Every rung refused. Callers must treat this as UNKNOWN, never as a
-    verdict -- an instrument that cannot run says UNKNOWN, never FAULTY."""
+    verdict -- an instrument that cannot run says UNKNOWN, never FAULTY.
+
+    `all_walled` separates the two cases, and they need opposite responses:
+
+    - **False** -- the rungs are rate-limited or down. That is the WORLD saying
+      come back later, not a fault. Waiting is the correct behaviour and an
+      overnight run must survive it: free-tier quota resets on a clock, and on
+      the deployed box there is no local rung to fall to.
+    - **True** -- every rung rejected our credential. Waiting cannot fix that;
+      only a human can. Ending the loop is correct, because a loop that waits
+      politely forever on a broken key looks identical to one that is working.
+    """
+
+    def __init__(self, message, all_walled=False):
+        Exception.__init__(self, message)
+        self.all_walled = all_walled
 
 
 def ladder(rungs, journal=None, retries=1):
@@ -242,8 +257,9 @@ def ladder(rungs, journal=None, retries=1):
                     if verdict == NEXT or attempt == retries:
                         tried.append("%s(%s)" % (name, verdict))
                         break
-        raise LadderExhausted("no rung answered; tried %s"
-                              % (", ".join(tried) or "nothing"))
+        raise LadderExhausted(
+            "no rung answered; tried %s" % (", ".join(tried) or "nothing"),
+            all_walled=bool(tried) and all("(walled)" in t for t in tried))
     return ask
 
 

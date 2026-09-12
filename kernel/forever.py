@@ -35,15 +35,42 @@ PAUSE_SECS = 30.0
 BACKOFF_CAP_SECS = 900.0
 MAX_CONSECUTIVE_FAILURES = 5
 
+# Waiting out a quota is measured in hours, not minutes: free-tier windows reset
+# on a clock and there is no local rung on the deployed box to fall to.
+WAIT_BASE_SECS = 60.0
+WAIT_CAP_SECS = 3600.0
+# A wait is not progress, so without a ceiling a permanently rate-limited run
+# can never reach its cycle limit and hangs forever -- found by the test for
+# this very feature hanging, which is the test doing its job. At the hour cap
+# this is roughly a day of patience before it gives up and says so.
+MAX_CONSECUTIVE_WAITS = 24
+
 
 class StopRequested(Exception):
     """The stop file was already present at start-up."""
+
+
+def default_is_wait(e):
+    """Is this the world saying `come back later`, or is something broken?
+
+    The distinction is the difference between an overnight run that survives a
+    rate limit and one that is dead before midnight. Only the ladder can tell
+    us, and only it knows whether the rungs refused us (quota) or rejected us
+    (credentials) -- a rejected credential is not a wait, because waiting
+    cannot fix it and a loop that waits politely forever on a broken key looks
+    exactly like one that is working.
+    """
+    from . import backends
+    return isinstance(e, backends.LadderExhausted) and not e.all_walled
 
 
 class Supervisor:
     def __init__(self, run_one, stop_file, journal=None, pause=PAUSE_SECS,
                  backoff_cap=BACKOFF_CAP_SECS,
                  max_consecutive_failures=MAX_CONSECUTIVE_FAILURES,
+                 wait_base=WAIT_BASE_SECS, wait_cap=WAIT_CAP_SECS,
+                 max_consecutive_waits=MAX_CONSECUTIVE_WAITS,
+                 is_wait=None,
                  sleep=time.sleep, now=time.time, exists=None):
         self.run_one = run_one
         self.stop_file = stop_file
@@ -51,6 +78,10 @@ class Supervisor:
         self.pause = pause
         self.backoff_cap = backoff_cap
         self.max_consecutive_failures = max_consecutive_failures
+        self.wait_base = wait_base
+        self.wait_cap = wait_cap
+        self.max_consecutive_waits = max_consecutive_waits
+        self._is_wait = is_wait or default_is_wait
         self._sleep = sleep
         self._now = now
         if exists is None:
@@ -77,7 +108,7 @@ class Supervisor:
                 "undo a deliberate stop." % self.stop_file)
 
         self._log("loop_start", pause=self.pause, max_cycles=max_cycles)
-        ran = failures = 0
+        ran = failures = waits = 0
         reason = "asked to stop"
         started = self._now()
 
@@ -86,8 +117,25 @@ class Supervisor:
                 break
             try:
                 self.run_one()
-                failures = 0
+                failures = waits = 0
             except Exception as e:
+                if self._is_wait(e):
+                    # Every rung is rate-limited. That is the WORLD saying come
+                    # back later, not a fault, and it must not spend the
+                    # failure budget -- on the deployed box there is no local
+                    # rung to fall to, so an overnight run would otherwise be
+                    # over within the hour and the night wasted. Free-tier
+                    # quota resets on a clock; waiting is the correct move.
+                    waits += 1
+                    if waits >= self.max_consecutive_waits:
+                        reason = "no rung available after %d waits" % waits
+                        break
+                    delay = min(self.wait_base * (2 ** min(waits, 6)),
+                                self.wait_cap)
+                    self._log("loop_waiting", consecutive=waits,
+                              seconds=round(delay), detail=str(e)[:200])
+                    self._sleep(delay)
+                    continue          # not a cycle: nothing ran
                 failures += 1
                 self._log("loop_error", consecutive=failures,
                           detail="%s: %s" % (type(e).__name__, e))

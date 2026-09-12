@@ -381,6 +381,100 @@ def test_forever_does_not_spin_on_failure():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_quota_wall_is_not_a_fault():
+    """An overnight run must survive a rate limit, and die on a bad key.
+
+    On the deployed laptop there is NO local rung to fall to, so when both
+    remote rungs are quota'd the ladder raises. Counting that as a failure
+    would end the loop after ~15 minutes of backoff and waste the night --
+    free-tier windows reset on a clock, so waiting is the correct move.
+
+    The opposite case must still end it: waiting cannot fix a rejected
+    credential, and a loop that waits politely forever on a broken key looks
+    exactly like one that is working.
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    slept = []
+
+    def quota_walled():
+        raise backends.LadderExhausted("all rungs 429", all_walled=False)
+
+    sup = forever.Supervisor(quota_walled, os.path.join(d, "STOP"), journal=j,
+                             pause=0, max_consecutive_failures=3,
+                             wait_base=60, wait_cap=3600, max_consecutive_waits=5,
+                             sleep=slept.append, exists=lambda p: False)
+    ran, reason = sup.loop(max_cycles=6)
+    check("wait: a quota wall does NOT spend the failure budget",
+          "consecutive failures" not in reason, reason)
+    check("wait: waiting is journalled distinctly from failing",
+          len(j.read(kinds=["loop_waiting"])) >= 3
+          and not j.read(kinds=["loop_error"]),
+          str(dict(j.kinds())))
+    check("wait: a permanently unavailable rung eventually gives up and says so",
+          "after" in reason and "waits" in reason, reason)
+    check("wait: it waits in MINUTES not seconds, and grows",
+          slept and slept[0] >= 60 and slept[-1] > slept[0], str(slept[:6]))
+    check("wait: the wait is capped at an hour, not doubled forever",
+          all(x <= 3600 for x in slept), str(slept[:6]))
+    check("wait: a wait is not counted as a cycle that ran",
+          ran == 0, "counted %d cycles in which nothing happened" % ran)
+
+    # A rejected credential is the opposite case and must END the loop.
+    def creds_rejected():
+        raise backends.LadderExhausted("every rung walled", all_walled=True)
+
+    j2 = Journal(os.path.join(d, "j2.jsonl"))
+    sup2 = forever.Supervisor(creds_rejected, os.path.join(d, "STOP"),
+                              journal=j2, pause=0, max_consecutive_failures=3,
+                              sleep=lambda _s: None, exists=lambda p: False)
+    ran2, reason2 = sup2.loop(max_cycles=50)
+    check("wait: every rung REJECTING us ends the loop instead of waiting",
+          "consecutive failures" in reason2, reason2)
+    check("wait: and that is recorded as an error, not as waiting",
+          j2.read(kinds=["loop_error"]) and not j2.read(kinds=["loop_waiting"]),
+          str(dict(j2.kinds())))
+
+    # The classifier itself, directly: an ordinary bug is never a wait.
+    check("wait: an ordinary exception is a fault, never a wait",
+          not forever.default_is_wait(RuntimeError("a real bug")))
+    check("wait: a quota exhaustion IS a wait",
+          forever.default_is_wait(
+              backends.LadderExhausted("429", all_walled=False)))
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_ladder_reports_why_it_was_exhausted():
+    """The supervisor can only tell waiting from failing if the ladder says
+    which happened."""
+    class H(Exception):
+        def __init__(self, code): self.code = code
+
+    def quota(_p):
+        raise H(429)
+
+    def badkey(_p):
+        raise H(401)
+
+    try:
+        backends.ladder([("a", quota), ("b", quota)])("x")
+    except backends.LadderExhausted as e:
+        check("ladder: rungs that were merely rate-limited are not 'walled'",
+              e.all_walled is False, str(e))
+
+    try:
+        backends.ladder([("a", badkey), ("b", badkey)])("x")
+    except backends.LadderExhausted as e:
+        check("ladder: every rung rejecting the credential IS walled",
+              e.all_walled is True, str(e))
+
+    try:
+        backends.ladder([("a", badkey), ("b", quota)])("x")
+    except backends.LadderExhausted as e:
+        check("ladder: one good rung merely rate-limited means WAIT, not die",
+              e.all_walled is False, str(e))
+
+
 def test_forever_paces_its_cycles():
     """The free tier is rate-limited and the ladder answers a 429 by stepping
     DOWN, not by waiting. Without a pause a fast local fallback would drive the
@@ -1291,6 +1385,11 @@ def test_multi_cycle_stability():
 def test_live_model():
     """Optional: the real judge. Skipped, never failed, when Ollama is absent --
     an instrument that cannot run must say UNKNOWN, never FAULTY."""
+    if os.environ.get("COUSIN_NO_LOCAL_MODEL"):
+        # Probing loads a 12B model into VRAM. Set this when the GPU is wanted
+        # for something else -- the gate should never be a reason not to run it.
+        print("SKIP live model (COUSIN_NO_LOCAL_MODEL is set; VRAM left alone)")
+        return
     model = os.environ.get("COUSIN_MODEL", "gemma4:12b")
     ask = backends.ollama(model, num_predict=700)
     ok, why = backends.preflight(ask, "ollama/%s" % model)
@@ -1324,6 +1423,8 @@ def main():
                test_observer_vitals_are_derived,
                test_forever_stops_when_asked,
                test_forever_does_not_spin_on_failure,
+               test_a_quota_wall_is_not_a_fault,
+               test_ladder_reports_why_it_was_exhausted,
                test_forever_paces_its_cycles,
                test_a_relative_root_still_runs_the_creatures_tools,
                test_a_tool_name_is_never_shell_source,
