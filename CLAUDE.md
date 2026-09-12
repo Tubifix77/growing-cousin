@@ -234,6 +234,23 @@ was measured, with what, and on what date.*
   fix, and the reverse.** The precision of the damage was the diagnosis; an
   aggregate would only have said "something is off".
 
+- **Naming a problem is not handling one, and reporting a defect felt like
+  discharging it.** 2026-09-12, caught by Tue, not by me. I had already run the
+  40-cycle trial, already read it, and already *told him* the twins were there —
+  then moved to the next item with a clear conscience. The instruction that
+  broke it was not technical: *"make what you expect to be a finished project —
+  test it properly too."* A stated scope has an edge I can stop at; a standard
+  does not. **Invariant: a defect named in a turn is dispositioned in that turn
+  — fixed with evidence, or deferred out loud.** Note what the fix is NOT: a
+  rule forbidding a turn to end with a known bug bans the *report*, not the bug,
+  because it makes knowing expensive and the adjectives go soft — the `want`
+  channel scar, three entries down, in a new costume. Deferral is therefore
+  always available and costs one line. Enforcement is `.claude/hooks/
+  defect_ledger.py` (a Stop hook, 10/10 on its own gate, fails open) rather than
+  prose, for the same reason `census.py` exists: **self-policing prose has
+  exactly the weakness of a manager judging its own testimony.** Evidence of a
+  fix is the edit, never the claim.
+
 - **A judgement that requires a comparison will be made anyway when you show
   only one side — confidently, and every time.** 2026-09-12, found by reading a
   40-cycle live run rather than by any test. The brief's third test asks whether
