@@ -36,6 +36,23 @@ the repo is public.
 
 Drop the local standin rung from both files: there is no ollama on that box.
 
+### Credentials, and the one coupling this creates
+
+Done 2026-09-12: the two credentials this engine uses were copied out of the
+spine's `config.yaml` into `~/keys/*.key`, mode 600. The spine's config was
+read and never modified, and the values were never printed — the parent's rule
+is *grep that file for the one field you need; never dump it*.
+
+They are **copies on purpose.** Pointing this engine at the spine's config would
+make the two share a file, which §2.6 forbids for good reason: they are supposed
+to be independent systems that happen to share a box.
+
+> **The cost, and it is real: rotate a key in the spine's `config.yaml` and the
+> copy in `~/keys/` goes stale.** This engine will then wall that rung and say
+> so in the journal (`rung_error … credential rejected`), but nothing will
+> connect the two events for you. If a rung starts refusing for no reason, check
+> whether the spine's key changed.
+
 ```bash
 mkdir -p ~/.config/systemd/user
 cp deploy/*.service ~/.config/systemd/user/
