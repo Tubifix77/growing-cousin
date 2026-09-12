@@ -12,6 +12,7 @@ Every test asserts a CONTRACT, never a mechanism. A mechanism test goes red when
 you improve the mechanism, and -- worse -- defends the fault: the parent had a
 test asserting a trap phrase AS A REQUIREMENT.
 """
+import io
 import os
 import shutil
 import sys
@@ -379,6 +380,43 @@ def test_forever_does_not_spin_on_failure():
     check("forever: recovery resets the failure count",
           state["n"] >= 5, "only %d attempts" % state["n"])
     shutil.rmtree(d, ignore_errors=True)
+
+
+def test_preflight_is_advisory_for_an_unattended_run():
+    """Refusing to start is right when someone is watching, and wrong overnight.
+
+    2026-09-12, the first start on the laptop: gemini hung, the timeout fired,
+    openrouter was at its quota, and the run refused before writing a single
+    record. For a bounded run that is correct -- a journal full of failures the
+    model never produced is worse than no journal. For an unattended one it
+    means a transient hiccup at 22:00 costs the entire night, and the free tier
+    is unreliable BY DEFINITION: that is the condition this engine lives in,
+    not an exception to it.
+    """
+    import run as runmod
+
+    check("preflight: a bounded run still REFUSES when no rung answers",
+          "return 3" in io.open("run.py", encoding="utf-8").read(),
+          "the refusal path is gone entirely")
+
+    # The behavioural contract, without reaching a model: the supervisor must
+    # treat an unreachable ladder as a WAIT, which is what lets --forever
+    # survive the start that just failed.
+    dead = backends.ladder([("only", lambda _p: (_ for _ in ()).throw(
+        backends.LadderExhausted("nothing answered", all_walled=False)))])
+    raised = None
+    try:
+        dead("hello")
+    except Exception as e:
+        raised = e
+    check("preflight: an unreachable ladder surfaces as LadderExhausted",
+          isinstance(raised, backends.LadderExhausted), repr(raised))
+    check("preflight: and the supervisor calls that a wait, not a fault",
+          forever.default_is_wait(raised), repr(raised))
+
+    ok, why = backends.preflight(dead, "creature")
+    check("preflight: it reports the failure rather than raising through",
+          ok is False and "creature" in why, repr(why))
 
 
 def test_a_quota_wall_is_not_a_fault():
@@ -1423,6 +1461,7 @@ def main():
                test_observer_vitals_are_derived,
                test_forever_stops_when_asked,
                test_forever_does_not_spin_on_failure,
+               test_preflight_is_advisory_for_an_unattended_run,
                test_a_quota_wall_is_not_a_fault,
                test_ladder_reports_why_it_was_exhausted,
                test_forever_paces_its_cycles,

@@ -179,11 +179,28 @@ def main():
     # Prove both backends answer before a single record is written. A run that
     # cannot reach its models has nothing to report, and a journal full of
     # failures they never produced is worse than no journal.
+    #
+    # **But that is a rule for a run someone is WATCHING.** 2026-09-12, first
+    # start on the laptop: gemini hung, the timeout fired, openrouter was at its
+    # quota, and preflight refused -- correct for a bounded run, and exactly
+    # wrong for an unattended one, where a transient hiccup at 22:00 costs the
+    # whole night. The free tier is unreliable BY DEFINITION; that is the
+    # condition this engine lives in, not an exception to it.
+    #
+    # So in `--forever` a failed preflight is a WARNING and the supervisor's
+    # wait/backoff handles it -- that logic exists for precisely this, and it
+    # already knows the difference between "come back later" and "broken".
     for ask, what in ((ask_creature, "creature"), (ask_cousin, "cousin")):
         ok, why = backends.preflight(ask, "%s via %s" % (what, served))
-        if not ok:
+        if ok:
+            continue
+        if not args.forever:
             sys.stderr.write("REFUSED: %s\nNothing was recorded.\n" % why)
             return 3
+        sys.stderr.write("WARNING: %s\nStarting anyway: --forever waits rungs "
+                         "out rather than giving up on them.\n" % why)
+        j.append("preflight_failed", who=what, detail=str(why)[:300])
+        break
     if not body.responds():
         sys.stderr.write("REFUSED: the body does not answer a probe.\n")
         return 3

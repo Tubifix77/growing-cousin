@@ -11,7 +11,10 @@ WorkingDirectory=%h/growing-cousin
 # --cycles 0 means no ceiling. Stop it with `touch %h/growing-cousin/live/STOP`,
 # which lets the current cycle finish; `systemctl stop` kills mid-cycle and
 # throws that cycle away.
-ExecStart=/usr/bin/python3 %h/growing-cousin/run.py \
+# -u is not optional: without it Python buffers stdout when it is a file, and
+# an unattended run's log stays EMPTY for hours while the engine works fine.
+# The first thing anyone does when a night looks wrong is read that log.
+ExecStart=/usr/bin/python3 -u %h/growing-cousin/run.py \
     --forever --cycles 0 --pause 30 \
     --root %h/growing-cousin/live \
     --rungs %h/growing-cousin/rungs.local.json \
