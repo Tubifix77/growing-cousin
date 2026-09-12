@@ -509,6 +509,131 @@ def test_want_reaches_the_creature():
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
+def test_strip_reasoning():
+    """gemma-4-31b-it -- the rung carrying 87-93% of the parent's traffic --
+    puts <thought> inside `content`. Unstripped it reaches parse_bash_blocks
+    and the verdict parser alike."""
+    t = backends.strip_reasoning
+    check("reasoning: a closed block is removed",
+          t("<thought>hmm</thought>ANSWER").strip() == "ANSWER",
+          repr(t("<thought>hmm</thought>ANSWER")))
+    check("reasoning: <think> and <reasoning> too",
+          t("<think>a</think>X<reasoning>b</reasoning>Y").strip() == "XY",
+          repr(t("<think>a</think>X<reasoning>b</reasoning>Y")))
+    check("reasoning: an UNCLOSED block swallows the rest -- it is not an answer",
+          t("<thought>never closed and on and on").strip() == "",
+          repr(t("<thought>never closed and on and on")))
+    check("reasoning: text with no block is byte-for-byte untouched",
+          t("plain reply") == "plain reply")
+    check("reasoning: empty in, empty out", t("") == "")
+
+    # The one that matters. A creature writing a tool that HANDLES these tags
+    # must get its bytes to disk intact -- the framework damaging the work and
+    # the creature being blamed is the failure this project exists to prevent.
+    fenced = """Here it is.
+```bash
+cat << 'SH' > tools/own/detag
+#!/usr/bin/env python3
+# does: strips <thought> blocks from a reply
+MARK = '<thought>'
+SH
+```
+Done."""
+    got = t(fenced)
+    check("reasoning: a fenced block is NEVER stripped, even naming the tags",
+          got == fenced, repr(got[:150]))
+
+    mixed = """<thought>plan</thought>
+```bash
+echo '<think>'
+```
+tail"""
+    got2 = t(mixed)
+    check("reasoning: strips prose but spares the fence in the same reply",
+          "plan" not in got2 and "<think>" in got2 and "tail" in got2,
+          repr(got2))
+
+
+def test_classify_error_never_raises():
+    """The parent's classify_error had a default branch that RAISED, so one
+    unrecognised error took down the ladder instead of stepping past a rung."""
+    class H(Exception):
+        def __init__(self, code): self.code = code
+
+    got = {}
+    for code in (401, 403, 429, 402, 500, 503, 404, 418):
+        got[code] = backends.classify_error(H(code))[0]
+    check("ladder: a rejected credential walls that rung",
+          got[401] == backends.WALL and got[403] == backends.WALL, str(got))
+    check("ladder: quota steps to the next rung, it does not wall",
+          got[429] == backends.NEXT and got[402] == backends.NEXT, str(got))
+    check("ladder: a transient upstream is retried",
+          got[500] == backends.RETRY and got[503] == backends.RETRY, str(got))
+    check("ladder: an UNRECOGNISED error steps to the next rung, never raises",
+          got[418] == backends.NEXT and got[404] == backends.NEXT, str(got))
+
+    disp, reason = backends.classify_error(ValueError("something new"))
+    check("ladder: an unknown exception type still classifies",
+          disp == backends.NEXT, disp)
+    check("ladder: and it announces itself WITH ITS TEXT",
+          "something new" in reason, reason)
+
+
+def test_ladder_routes_and_records():
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    class H(Exception):
+        def __init__(self, code): self.code = code
+
+    calls = []
+
+    def dead(_p):
+        calls.append("dead")
+        raise H(429)
+
+    def alive(_p):
+        calls.append("alive")
+        return "hello", {"model": "m2", "done_reason": "stop"}
+
+    ask = backends.ladder([("top", dead), ("second", alive)], journal=j)
+    text, meta = ask("x")
+    check("ladder: a refusing rung falls through to the next", text == "hello")
+    check("ladder: the reply records WHICH rung served it",
+          meta.get("rung") == "second", str(meta))
+    check("ladder: falling through is journalled, not silent",
+          len(j.read(kinds=["rung_fell_through"])) == 1)
+    check("ladder: the rung error is journalled with its reason",
+          len(j.read(kinds=["rung_error"])) == 1)
+
+    # A walled rung is not retried for the rest of the session.
+    def badkey(_p):
+        calls.append("badkey")
+        raise H(401)
+
+    ask2 = backends.ladder([("bad", badkey), ("second", alive)], journal=j)
+    ask2("x"); before = calls.count("badkey")
+    ask2("x")
+    check("ladder: a walled rung is never tried again this session",
+          calls.count("badkey") == before, "tried %d times" % calls.count("badkey"))
+
+    def always(_p):
+        raise H(429)
+
+    try:
+        backends.ladder([("a", always)])("x")
+        exhausted = False
+    except backends.LadderExhausted:
+        exhausted = True
+    check("ladder: every rung refusing raises LadderExhausted, not a fake reply",
+          exhausted)
+
+    v = cousin.visit(backends.ladder([("a", always)]), "brief", "c", "h", "t")
+    check("ladder: an exhausted ladder reaches the cousin as UNKNOWN, never a verdict",
+          v.verdict == cousin.UNKNOWN and not v.deliverable, v.verdict)
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_cousin_sees_the_library():
     """The cousin's third test is "is this new, or the fifth variant?" -- and
     for the whole life of the kernel it was asked that while being shown ONE
@@ -710,7 +835,9 @@ def main():
                test_cycle_done_claim_triggers_cousin, test_refusal_is_delivered_once,
                test_accept_does_not_block, test_context_is_served_not_assembled,
                test_memory_reaches_the_context,
-               test_want_reaches_the_creature, test_cousin_sees_the_library,
+               test_want_reaches_the_creature, test_strip_reasoning,
+               test_classify_error_never_raises, test_ladder_routes_and_records,
+               test_cousin_sees_the_library,
                test_cousin_probe_is_recorded,
                test_census_catches_a_fabricated_verdict,
                test_dead_body_does_not_become_creature_output,

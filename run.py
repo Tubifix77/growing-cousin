@@ -124,6 +124,14 @@ def main():
     ap.add_argument("--model", default="gemma4:12b")
     ap.add_argument("--root", default=os.path.join(HERE, "live"))
     ap.add_argument("--fresh", action="store_true", help="wipe --root first")
+    ap.add_argument("--rungs", default=os.path.join(HERE, "rungs.local.json"),
+                    help="ladder spec; falls back to --model when absent")
+    ap.add_argument("--cousin-rungs", default=None,
+                    help="separate ladder for the cousin (default: same as the "
+                         "creature's). The manager is 13%% of calls; serving it "
+                         "from a rung that answers cleanly but uselessly "
+                         "produces confident garbage instead of a visible "
+                         "failure.")
     args = ap.parse_args()
 
     if args.fresh and os.path.isdir(args.root):
@@ -145,14 +153,25 @@ def main():
     # raised its own ceiling for exactly this reason. max_tokens is a cap, not
     # an allocation: the extra is only spent on replies that were being cut off.
     # The cousin emits a short verdict block and needs far less.
-    ask_creature = backends.ollama(args.model, num_predict=3072)
-    ask_cousin = backends.ollama(args.model, num_predict=700)
+    spec = backends.load_spec(args.rungs)
+    cousin_spec = backends.load_spec(args.cousin_rungs) or spec
+    if spec:
+        ask_creature = backends.from_spec(spec, journal=j)
+        ask_cousin = backends.from_spec(cousin_spec, journal=j)
+        served = " -> ".join(r.get("name", r.get("model", "?")) for r in spec)
+    else:
+        # No ladder configured. The local standin, and SAY SO -- a run that
+        # silently falls back to a standin is a run whose numbers get quoted
+        # later as if they came from the real rung.
+        ask_creature = backends.ollama(args.model, num_predict=3072)
+        ask_cousin = backends.ollama(args.model, num_predict=700)
+        served = "%s (local standin -- no ladder configured)" % args.model
 
     # Prove both backends answer before a single record is written. A run that
     # cannot reach its models has nothing to report, and a journal full of
     # failures they never produced is worse than no journal.
     for ask, what in ((ask_creature, "creature"), (ask_cousin, "cousin")):
-        ok, why = backends.preflight(ask, "%s/%s" % (what, args.model))
+        ok, why = backends.preflight(ask, "%s via %s" % (what, served))
         if not ok:
             sys.stderr.write("REFUSED: %s\nNothing was recorded.\n" % why)
             return 3
@@ -168,7 +187,7 @@ def main():
                creature_brief=creature_brief)
 
     print("creature + cousin on %s, %d cycles, root=%s\n"
-          % (args.model, args.cycles, args.root))
+          % (served, args.cycles, args.root))
     t0 = time.time()
     for i in range(1, args.cycles + 1):
         c0 = time.time()

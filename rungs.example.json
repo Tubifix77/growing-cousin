@@ -1,0 +1,19 @@
+[
+  {
+    "_comment": "Copy to rungs.local.json (gitignored) and fill in. Order IS the ladder: first rung is tried first. `key_env` names an environment variable -- never put a key in this file, and never in the copy either. This repo is public.",
+    "name": "example-free-rung",
+    "kind": "openai_chat",
+    "model": "provider/some-model:free",
+    "base_url": "https://example-provider/api/v1",
+    "key_env": "SOME_PROVIDER_API_KEY",
+    "num_predict": 900,
+    "timeout": 180
+  },
+  {
+    "_comment": "The local standin, last, so it catches everything the free tier refuses. Costs no quota and always answers.",
+    "name": "local-standin",
+    "kind": "ollama",
+    "model": "gemma4:12b",
+    "num_predict": 700
+  }
+]

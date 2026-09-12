@@ -14,3 +14,4 @@ __pycache__/
 trial/.trial.lock
 .claude/hooks/defect-ledger.log
 .claude/settings.local.json
+rungs.local.json
