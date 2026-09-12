@@ -157,8 +157,13 @@ def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
 
     v = parse(reply)
     if journal:
+        # The rung is recorded beside the model because the ladder is
+        # heterogeneous: the brief was measured on gemma-4-31b-it, and a
+        # verdict served by some other rung is a different instrument. Without
+        # this, an accept/refuse rate read later silently mixes them.
         journal.append("cousin_verdict", trigger=trigger,
                        model=(meta or {}).get("model"),
+                       rung=(meta or {}).get("rung"),
                        finish=(meta or {}).get("done_reason"),
                        **v.as_fields())
         if v.noticed:

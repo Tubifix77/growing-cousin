@@ -245,8 +245,14 @@ class Engine:
             raise
 
         meta = meta or {}
+        # `rung` as well as `model`: with a heterogeneous ladder these answer
+        # different questions -- which PROVIDER served us, and which MODEL
+        # actually produced the text. The brief was measured on
+        # gemma-4-31b-it, so any later reading of accept/refuse rates has to be
+        # able to separate verdicts by both.
         self.j.append("think", chars=len(reply or ""),
-                      model=meta.get("model"), finish=meta.get("done_reason"))
+                      model=meta.get("model"), rung=meta.get("rung"),
+                      finish=meta.get("done_reason"))
 
         blocks = thinkmod.parse_blocks(reply)
         if not blocks:

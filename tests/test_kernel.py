@@ -104,7 +104,16 @@ def test_marker_invariant():
 
 def test_body():
     b = bodymod.LocalBody()
-    check("body: liveness is proved by DOING", b.responds())
+    # Carry the EVIDENCE, not just the boolean. This assertion failed three
+    # times in Windows gate runs (2026-09-12) and reported nothing but its own
+    # name, so three diagnoses started from zero. An assertion that cannot say
+    # what it saw is the top scar in miniature.
+    probe = b.run("echo alive", timeout=15)
+    check("body: liveness is proved by DOING",
+          (not probe.setup_failed) and probe.code == 0 and "alive" in probe.stdout,
+          "code=%r setup_failed=%r stdout=%r stderr=%r root=%r"
+          % (probe.code, probe.setup_failed, probe.stdout[:80],
+             probe.stderr[:160], b.root))
     r = b.run("echo hello")
     check("body: a command's stdout comes back", "hello" in r.stdout)
     r = b.run("exit 3")
@@ -1170,6 +1179,17 @@ def test_ladder_routes_and_records():
     check("ladder: a refusing rung falls through to the next", text == "hello")
     check("ladder: the reply records WHICH rung served it",
           meta.get("rung") == "second", str(meta))
+    # And the rung must survive into the JOURNAL, not just the meta dict. With
+    # a heterogeneous ladder, a verdict served by a rung the brief was never
+    # measured on is a different instrument, and an accept rate read later
+    # would silently mix them.
+    j2 = Journal(os.path.join(d, "rungrec.jsonl"))
+    cousin.visit(lambda _p: (ACCEPT_REPLY, {"model": "m2", "rung": "second",
+                                            "done_reason": "stop"}),
+                 "brief", "c", "h", "t", journal=j2)
+    rec = j2.read(kinds=["cousin_verdict"])[0]
+    check("ladder: the serving rung is journalled with the verdict",
+          rec.get("rung") == "second", str(rec)[:160])
     check("ladder: falling through is journalled, not silent",
           len(j.read(kinds=["rung_fell_through"])) == 1)
     check("ladder: the rung error is journalled with its reason",
