@@ -1,0 +1,40 @@
+[Unit]
+# The engine loop. Separate unit, separate WorkingDirectory, separate journal
+# from the spine's -- CLAUDE.md §2.6: they share the box and nothing else.
+Description=Growing Cousin engine (creature + cousin loop)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/growing-cousin
+# --cycles 0 means no ceiling. Stop it with `touch %h/growing-cousin/live/STOP`,
+# which lets the current cycle finish; `systemctl stop` kills mid-cycle and
+# throws that cycle away.
+ExecStart=/usr/bin/python3 %h/growing-cousin/run.py \
+    --forever --cycles 0 --pause 30 \
+    --root %h/growing-cousin/live \
+    --rungs %h/growing-cousin/rungs.local.json \
+    --cousin-rungs %h/growing-cousin/rungs.cousin.local.json
+
+# on-failure only, NEVER always: the loop exits 0 when it was asked to stop and
+# when a run of failures ended it. Restarting either case would defeat both
+# bounds -- a stop that restarts itself is not a stop, and a crash loop that
+# respawns burns quota the spine also pays for.
+Restart=on-failure
+RestartSec=60
+
+# The engine must not be able to reach the spine's directory. Read-only root
+# with an explicit writable carve-out is cheap insurance against a bug in our
+# own code doing what the boundary forbids.
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/growing-cousin/live
+PrivateTmp=true
+NoNewPrivileges=true
+
+StandardOutput=append:%h/growing-cousin/live/engine.log
+StandardError=append:%h/growing-cousin/live/engine.log
+
+[Install]
+WantedBy=default.target

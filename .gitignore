@@ -16,3 +16,4 @@ trial/.trial.lock
 .claude/settings.local.json
 rungs*.local.json
 live-run.log
+live-local/

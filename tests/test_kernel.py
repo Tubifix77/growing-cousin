@@ -168,6 +168,130 @@ def test_command_reaches_disk_intact():
     b.destroy()
 
 
+def test_observer_describes_every_kind_it_can_see():
+    """The GUI's real logic is turning structured fields back into a sentence.
+
+    Our journal stores FIELDS, not prose -- that is what makes the state
+    derivable (CLAUDE.md 6.1) and what makes a Counter over kinds meaningful.
+    The cost is that something must render them, and a renderer that silently
+    drops a kind is a blind spot in the only window onto a running system.
+    """
+    import observer
+
+    samples = {
+        "wake": {"context_chars": 900},
+        "think": {"model": "gemma-4-31b-it", "chars": 3097, "finish": "stop"},
+        "exec_start": {"cmd": "ls tools/own"},
+        "exec_end": {"exit_code": 0, "stdout": "a\nb", "stderr": ""},
+        "exec_skip": {"reason": "no_command", "lost": False},
+        "trigger_fired": {"type": "TOOL_WRITE", "tools": ["fetcher"]},
+        "cousin_probe": {"tool": "fetcher", "exit_code": 1, "stderr": "boom"},
+        "cousin_verdict": {"verdict": "RETURNED", "model": "gemma-4-31b-it",
+                           "to_creature": "it could not find the file"},
+        "cousin_want": {"text": "a date filter"},
+        "cousin_noticed": {"text": "the disk is nearly full"},
+        "context_written": {"wants": 3},
+        "tools_changed": {"added": ["grep_tool"], "removed": []},
+        "rung_error": {"rung": "gemini", "reason": "quota (429)"},
+        "rung_fell_through": {"served_by": "local", "past": "gemini(next)"},
+        "loop_start": {"pause": 30, "max_cycles": None},
+        "loop_end": {"cycles": 12, "reason": "asked to stop", "seconds": 900.0},
+        "error": {"where": "cycle", "detail": "RuntimeError: x"},
+    }
+    bad = []
+    for kind, fields in samples.items():
+        e = dict(fields); e["kind"] = kind; e["ts"] = time.time()
+        try:
+            got = observer.describe(e)
+        except Exception as ex:
+            bad.append("%s raised %s" % (kind, ex))
+            continue
+        if not got or not got.strip():
+            bad.append("%s rendered empty" % kind)
+    check("observer: every journal kind renders to something readable",
+          not bad, str(bad))
+
+    # Every kind the KERNEL can write must have a colour, or the one event that
+    # matters is the one that looks like everything else.
+    written = set(samples) | {"body_respawn", "body_unresponsive",
+                              "cousin_unusable"}
+    missing = sorted(k for k in written if k not in observer.KIND_COLORS)
+    check("observer: every kind the kernel writes has its own colour",
+          not missing, str(missing))
+
+    # An UNKNOWN kind must still be shown. The parent's scar is a default
+    # branch that hid what it could not name.
+    got = observer.describe({"kind": "something_new", "ts": 0, "detail": "hi"})
+    check("observer: an unrecognised kind is shown, never swallowed",
+          "hi" in got, repr(got))
+
+    # HTML escaping: a creature writes its own text, so it reaches this window
+    # as untrusted content.
+    html = observer.line_html({"kind": "exec_start", "ts": 0,
+                               "cmd": "echo '<script>x</script>'"})
+    check("observer: creature text cannot inject markup into the window",
+          "<script>" not in html and "&lt;script&gt;" in html, html[:160])
+
+
+def test_observer_shell_assembles():
+    """The renderers being right does not prove the window builds.
+
+    Run headless via QT_QPA_PLATFORM=offscreen. If PyQt6 is absent this SKIPS
+    and says so -- a skip printed as a pass is how a suite starts lying, and
+    this repo already has a scar about checkers that cannot distinguish what
+    they measure.
+    """
+    try:
+        import PyQt6  # noqa: F401
+    except ImportError:
+        print("SKIP observer shell: PyQt6 not installed "
+              "(engine does not need it; the observer is only a window)")
+        return
+
+    import observer
+
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    j.append("wake", context_chars=10)
+    j.append("cousin_verdict", verdict="RETURNED", model="m",
+             to_creature="it needed a URL")
+    os.makedirs(os.path.join(d, "body", "mind", "tools", "own"))
+    with open(os.path.join(d, "context.md"), "w", encoding="utf-8") as f:
+        f.write("1. a date filter\n")
+
+    rc = observer.main(d, selftest=True)
+    check("observer: the window assembles and ticks against real files",
+          rc == 0, "rc=%s" % rc)
+
+
+def test_observer_vitals_are_derived():
+    import observer
+
+    rows = [
+        {"kind": "wake", "ts": 100},
+        {"kind": "think", "ts": 101, "model": "gemma-4-31b-it"},
+        {"kind": "cousin_verdict", "ts": 102, "verdict": "ACCEPTED"},
+        {"kind": "wake", "ts": 200},
+        {"kind": "cousin_verdict", "ts": 201, "verdict": "RETURNED"},
+    ]
+    v = observer.vitals(rows, ["a", "b"], False, now=260)
+    check("observer: cycles are counted from wakes", v["cycles"] == 2, str(v))
+    check("observer: verdicts are split accepted/returned",
+          "1 accepted / 1 returned" in v["verdicts"], str(v))
+    check("observer: it names the rung actually serving",
+          v["serving"] == "gemma-4-31b-it", str(v))
+    check("observer: the library size is shown", v["tools"] == 2, str(v))
+    check("observer: a pending stop is visible BEFORE the run ends",
+          observer.vitals(rows, [], True, now=260)["stopping"] is True)
+    check("observer: an idle run shows its age, not a frozen clock",
+          v["last_event"] == "59s", v["last_event"])
+
+    empty = observer.vitals([], [], False, now=1)
+    check("observer: an empty journal reports zero, not a crash",
+          empty["cycles"] == 0 and empty["serving"] == "?", str(empty))
+
+
 def test_forever_stops_when_asked():
     """A loop that can only be stopped with `kill` is not deployable.
 
@@ -1195,6 +1319,9 @@ def main():
     t0 = time.time()
     for fn in (test_journal, test_marker_invariant, test_body,
                test_command_reaches_disk_intact,
+               test_observer_describes_every_kind_it_can_see,
+               test_observer_shell_assembles,
+               test_observer_vitals_are_derived,
                test_forever_stops_when_asked,
                test_forever_does_not_spin_on_failure,
                test_forever_paces_its_cycles,

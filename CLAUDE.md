@@ -107,7 +107,16 @@ only caught because a human reads a log, it is not fixed.
    it.
 6. **Never touch Growing Spine from this repo.** They run in parallel; the
    comparison is void if either is edited to make the other look better. No
-   shared files, no shared volume, no shared container.
+   shared files, no shared volume, no shared container. Reading its source is
+   allowed and has twice changed this design; writing to it never is.
+   **One recorded exception** (Tue, 2026-09-12): `observer.py` was ported from
+   the spine's. An observer is an observation surface, not part of the system
+   under test, and copying it changes neither framework's behaviour. The
+   condition is that it was copied **once and is never synced** — a file that
+   keeps being merged is how two independent systems quietly become one. What
+   was taken is the architecture (single tick, incremental tail, capped
+   display); the kinds, panels and palette are this engine's own.
+   **They now share the laptop** (§4), and that is the only thing they share.
 7. **Culls need the creature's consent.** Ask, offer alternatives, honour what it
    keeps.
 8. **Never commit secrets.** No `config.yaml`, no keys, no laptop-only failure
@@ -141,6 +150,19 @@ pre-populate §5 with plausible-sounding lessons; a scar nobody paid for is a
 guess with authority it has not earned.
 
 ## 4. Standing decisions (Tue's, inherited)
+
+- **It runs on the same Linux laptop as the spine** (Tue, 2026-09-12), under
+  `deploy/cousin-engine.service`. Not convenience — **the only configuration in
+  which the comparison means anything**: same hardware, same network, same
+  shared quota. On different boxes no latency or throughput figure from the two
+  projects is comparable, and comparing them is the point.
+  **Two consequences.** The laptop cannot run `gemma4:12b`, so the deployed
+  ladder is free-tier only with **no floor** when a rung 429s — slower and
+  gappier, and more honest, because a standin in the ladder is exactly how its
+  numbers later get quoted as the real rung's. And **fast multi-cycle
+  experiments end when we deploy**: anything needing many cycles quickly must be
+  run against a local model on a development box first (Tue's point, and it is
+  why the 60-cycle local run was done before the move rather than after).
 
 - **Growing Spine is on the SAME API accounts, so the free tier is SHARED**
   (Tue, 2026-09-12). This engine gets at most half of what it would with its own

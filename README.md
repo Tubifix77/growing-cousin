@@ -214,6 +214,39 @@ was verified by hoping.
 This engine is 100% text. So the first thing to instrument is not throughput; it
 is whether the manager's guidance recurs as a fault after being given.
 
+## Watching it
+
+`observer.py` is a PyQt window onto a running engine: the journal tailed live,
+the library as it grows, and the cousin's standing direction — what the second
+inhabitant last asked for. It is **read-only over everything**; if stopping the
+observer ever affects the engine, that is a bug.
+
+It was ported from Growing Spine's observer and is deliberately never synced
+with it. What was taken is the architecture, because it encodes lessons already
+paid for there: one tick for everything, the journal tailed by byte offset
+rather than re-read, and a capped display so an all-night run cannot grow the
+widget tree until the box swaps. The palette is warm where the spine's is cold
+blue-black — both will be open on the same desk.
+
+```bash
+python observer.py ./live                       # the window
+python observer.py ./live --selftest            # verify an install, no display
+```
+
+## Where it runs
+
+**On the same Linux laptop as Growing Spine**, under `deploy/`. That is the only
+configuration where the comparison means anything: same hardware, same network,
+same shared quota. On different boxes, no latency or throughput figure from the
+two projects is comparable — and comparing them is the entire point.
+
+They share the box and nothing else. Separate directory, journal, and units.
+
+One honest cost: that laptop cannot run a 12B local model, so **the deployed
+ladder is free-tier only, with no floor** when a rung hits its quota. Slower and
+gappier than a development run — and more truthful, because a standin sitting in
+the ladder is exactly how its numbers later get quoted as the real rung's.
+
 ## Documents
 
 | File | What it is |

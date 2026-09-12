@@ -1,0 +1,23 @@
+[Unit]
+# The window. It is READ-ONLY over the engine's files and holds no state of its
+# own, so it can be restarted, killed or never started without the engine
+# noticing. If stopping the observer ever affects the engine, that is a bug.
+Description=Growing Cousin observer (GUI)
+After=graphical-session.target
+
+[Service]
+Type=simple
+Environment=DISPLAY=:0
+WorkingDirectory=%h/growing-cousin
+ExecStart=/usr/bin/python3 %h/growing-cousin/observer.py %h/growing-cousin/live
+Restart=on-failure
+RestartSec=3
+
+# A window has no business writing anything.
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
