@@ -227,6 +227,93 @@ def test_a_relative_root_still_runs_the_creatures_tools():
         shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_tool_name_is_never_shell_source():
+    """The creature names its own files, so a tool name is untrusted input.
+
+    2026-09-12, first run on the real rung: a file briefly named "`." appeared
+    in tools/own, the probe interpolated it raw, and bash died with "unexpected
+    EOF while looking for matching `". The cousin then reported a syntax error
+    the creature's tool never had -- the framework inventing a fault and the
+    creature being billed for it, for the third time in this shape.
+
+    The sharper edge is that an unquoted name does not merely break, it RUNS.
+    """
+    b = bodymod.LocalBody()
+    own = os.path.join(b.mind, "tools", "own")
+    canary = os.path.join(b.mind, "PWNED")
+
+    # A name that DOES execute when it reaches the shell unquoted. The canary is
+    # RELATIVE because commands run with cwd=mind -- an absolute Windows path
+    # here made `touch` fail for its own reasons, so the assertion passed
+    # whether or not the quoting existed. A checker that cannot distinguish the
+    # thing it measures reports a clean-looking wrong number; this test was one
+    # until it was checked against the unfixed code.
+    hostile = "$(touch PWNED)"
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    e = Engine(j, b, "brief", None, None, os.path.join(d, "context.md"))
+
+    e.evidence(hostile, [])
+    check("probe: a tool name that looks like a command does NOT execute",
+          not os.path.exists(canary),
+          "a filename ran as shell and created %s" % canary)
+
+    # And a name with unbalanced shell syntax must not crash the probe with a
+    # syntax error the creature never caused.
+    claim, header, transcript, library = e.evidence("`.", [])
+    check("probe: an unbalanced name does not produce a shell syntax error",
+          "unexpected EOF" not in transcript, transcript[:160])
+
+    # An ordinary name must pass through the quoting UNCHANGED, or every probe
+    # starts invoking something subtly different from what the creature built.
+    # (That the name then resolves on PATH is asserted by the relative-root
+    # test; here the contract is that quoting alters nothing it should not.)
+    import shlex
+    plain = [shlex.quote(n) == n for n in
+             ("fetcher", "grep_tool", "plan.py", "read-file", "t_1")]
+    check("probe: quoting leaves an ordinary tool name byte-identical",
+          all(plain), str(plain))
+
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_backup_is_not_a_tool():
+    """The library is what the creature BUILT, not what is in the directory.
+
+    2026-09-12, from the first run on the real rung: `tool-edit` -- one of OUR
+    hands -- keeps a `.bak` beside every tool it edits. The kernel counted it,
+    fired TOOL_WRITE for `plan.bak`, spent a cousin visit judging a backup file
+    and handed the creature a refusal about it. The manager is ~13% of all
+    calls and that budget is the whole economic argument for this design;
+    spending it on our own droppings also bills the creature for them.
+    """
+    d = tmpdir()
+    own = os.path.join(d, "tools", "own")
+    os.makedirs(own)
+    for name in ("plan", "plan.bak", "grep_tool", "grep_tool~",
+                 ".hidden", "notes.tmp", "patch.orig"):
+        with open(os.path.join(own, name), "w", encoding="utf-8") as f:
+            f.write("#!/bin/sh\necho x\n")
+
+    got = triggers.list_tools(own)
+    check("library: a .bak is not a tool", "plan.bak" not in got, str(got))
+    check("library: nor an editor leftover or a dotfile",
+          not any(n in got for n in ("grep_tool~", ".hidden", "notes.tmp",
+                                     "patch.orig")), str(got))
+    check("library: the real tools are all still there",
+          got == ["grep_tool", "plan"], str(got))
+
+    # And the trigger must not fire for one, or the cousin is summoned to judge
+    # a backup -- the exact waste this was found doing.
+    fired = triggers.detect([("tool-edit plan", 0)], ["plan"],
+                            triggers.list_tools(own), 0, 0)
+    new_named = [t for t, f in fired if f.get("tools")]
+    check("library: a backup appearing does not summon the cousin as a new tool",
+          not any("plan.bak" in (f.get("tools") or []) for _, f in fired),
+          str(fired))
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_setup_classifier():
     """ONE classifier, shared by producer and checker. The parent's rule: a
     producer and a checker that share a literal will drift."""
@@ -1001,6 +1088,8 @@ def main():
     for fn in (test_journal, test_marker_invariant, test_body,
                test_command_reaches_disk_intact,
                test_a_relative_root_still_runs_the_creatures_tools,
+               test_a_tool_name_is_never_shell_source,
+               test_a_backup_is_not_a_tool,
                test_setup_classifier, test_parse_blocks, test_no_block_classifier,
                test_triggers, test_cousin_parse, test_cousin_visit_journals,
                test_cycle_no_command, test_cycle_executes_and_journals,

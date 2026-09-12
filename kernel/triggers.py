@@ -52,10 +52,29 @@ def detect(executed, tools_before, tools_after, cycles_since_visit,
     return fired
 
 
+# A backup is not a member of the library. `tool-edit` -- one of OUR hands --
+# keeps a `.bak` beside every tool it changes, and counting those as tools means
+# the framework MANUFACTURES work: 2026-09-12, a live run fired TOOL_WRITE for
+# `plan.bak`, spent a cousin visit judging a backup file, and handed the
+# creature a refusal about it. The manager is ~13% of all calls and that budget
+# is the entire economic argument for this design; spending it on our own
+# droppings is worse than wasteful, because the creature then has to answer for
+# them.
+NOT_A_TOOL = (".bak", ".orig", ".tmp", ".swp", ".rej", "~")
+
+
 def list_tools(tools_dir):
-    """Names only. The isfile check lives here so callers cannot forget it."""
+    """The creature's LIBRARY -- not merely the directory listing.
+
+    One definition, used by the triggers, by the library the cousin is shown,
+    and by target selection. Three callers with three notions of what a tool is
+    would drift, and the parent's rule is that a producer and a checker sharing
+    a literal will drift.
+    """
     try:
         return sorted(n for n in os.listdir(tools_dir)
-                      if os.path.isfile(os.path.join(tools_dir, n)))
+                      if os.path.isfile(os.path.join(tools_dir, n))
+                      and not n.startswith(".")
+                      and not n.endswith(NOT_A_TOOL))
     except OSError:
         return []

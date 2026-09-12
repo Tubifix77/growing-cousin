@@ -12,6 +12,7 @@ day 400 as on day 1, however large the library grows.
 """
 import os
 import re
+import shlex
 
 from . import body as bodymod
 from . import cousin as cousinmod
@@ -399,7 +400,18 @@ class Engine:
             # a tool that was perfectly good. The creature was told its working
             # work was broken, by the framework, in honest words about a false
             # event -- the exact fault this whole design exists to prevent.
-            r = self.body.run(target)
+            #
+            # QUOTED, because a filename is data and must never become shell
+            # source. 2026-09-12, first run on the real rung: a file briefly
+            # named "`." appeared in tools/own, the probe interpolated it raw,
+            # and bash died with "unexpected EOF while looking for matching `".
+            # The cousin then reported a syntax error the creature's tool never
+            # had. Same class as the line above and the third time it has been
+            # this exact shape -- and the sharper edge is that an unquoted name
+            # is not merely fragile, it EXECUTES: a file called `$(rm -rf ~)`
+            # would have run. The creature names its own files, so the name is
+            # untrusted input to this line.
+            r = self.body.run(shlex.quote(target))
             # The cousin's OWN attempt, recorded as fact. Nothing else can check
             # whether its testimony describes an event that actually happened --
             # and a fabricated complaint is the exact fault this design exists

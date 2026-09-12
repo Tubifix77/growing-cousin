@@ -19,12 +19,18 @@ stated.
 
 ## 0. Status — read this before anything else
 
-**A creature and its cousin run together. Nothing is deployed.**
-`kernel/` is the 1% from `ARCHITECTURE.md` §14 — journal, body, think, triggers,
-cousin, cycle — `run.py` drives a real creature through it, `census.py` is the
-only thing that checks the manager, and `tests/test_kernel.py` is the gate:
-**115/115 green with the real model in the loop.** `trial/` remains the brief's
-own measurement.
+**A creature and its cousin run together, on the real free-tier rung. Nothing
+is scheduled.** `kernel/` is the 1% from `ARCHITECTURE.md` §14 — journal, body,
+think, triggers, cousin, cycle, backends — `run.py` drives a real creature
+through it, `census.py` is the only thing that checks the manager, and
+`tests/test_kernel.py` is the gate: **149/149 green with the real model in the
+loop.** `trial/` remains the brief's own measurement.
+
+**The ladder is configuration, not code**: `rungs.local.json` and
+`rungs.cousin.local.json`, both gitignored, both naming a `key_file` outside the
+repo. `rungs.example.json` is the committed template. With no spec present the
+run uses the local standin **and says so in its banner** — a run that silently
+falls back is a run whose numbers get quoted later as the real rung's.
 
 **The gate (§3-equivalent):**
 
@@ -246,6 +252,20 @@ was measured, with what, and on what date.*
   fix, and the reverse.** The precision of the damage was the diagnosis; an
   aggregate would only have said "something is off".
 
+- **A tool name is untrusted input, and the probe was passing it to a shell.**
+  2026-09-12, first run on the real rung: a file briefly named `` `. `` appeared
+  in `tools/own`, `evidence()` ran `self.body.run(target)` unquoted, and bash
+  died with *unexpected EOF while looking for matching `*. The cousin duly
+  reported a syntax error the creature's tool never had. The creature names its
+  own files, so **an unquoted name does not merely break, it RUNS** — a file
+  called `$(touch PWNED)` executed, verified. Fixed with `shlex.quote`.
+  **The test nearly proved nothing**: the first version used an absolute Windows
+  canary path that `touch` failed to create for unrelated reasons, so it passed
+  with and without the fix. Caught only by running it against the UNFIXED code,
+  which is now the rule — *a test that has never been seen red is a guess.* Both
+  faults are the top scar again: a checker that cannot distinguish the thing it
+  measures reports a clean-looking pass, never an error.
+
 - **Before believing a behavioural finding about either agent, prove the
   harness was not producing it.** 2026-09-12. A confirmation run started with
   `--root live` — relative — and the body put RELATIVE entries on PATH. Commands
@@ -361,7 +381,45 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    on a rung like that produces confident garbage instead of an obvious failure.
    Record the model per verdict from day one.
 
-## 7. State — 2026-09-12 (creature running, direction wired)
+## 7. State — 2026-09-12 (on the real rung, first time)
+
+**`gemma-4-31b-it` has served this engine.** Not the standin — the rung the
+brief was written for, reached through `kernel/backends.py`'s ladder:
+`gemini/gemma-4-31b-it` → `openrouter/gemma-4-31b-it:free` → `local/gemma4:12b`.
+Measured 2026-09-12: gemini answers in ~32 s, `finish=stop`, ~3,100-char replies.
+Model ids carry **no** `models/` prefix — the prefixed form returned `okok` and
+`finish=length` at 2 tokens.
+
+**The ladder's first live hour was mostly it falling through, which is the
+point.** One HTTP 500 (retried), then gemini 429, then openrouter 429, then the
+local standin served — journalled as `rung_fell_through` with what it passed.
+The spine shares these accounts (§4), so a 429 here is not a measurement of this
+engine's cost.
+
+**Repo is PUBLIC** (Tue, 2026-09-12), closing §6.5. History was scanned before
+the flip: no keys, no credentials, no personal paths. Credentials live in files
+outside the repo and are read per call; only the PATH ever travels.
+
+**Gate: 149/149.** Two faults were found by the first real runs and neither was
+findable by reading:
+
+1. A **relative `--root`** made every tool `command not found` while the body
+   reported healthy — 13 honest refusals, and a creature rebuilding one tool
+   three ways in response. §5.
+2. **`tool-edit` leaves a `.bak` in `tools/own`**, which the kernel counted as a
+   tool, fired `TOOL_WRITE` for, and spent a cousin visit judging. The manager
+   is ~13% of calls and that budget is the whole economic argument; the library
+   is now what the creature BUILT, not what is in the directory.
+
+Both are the same shape as the body-layer scars: **the framework manufacturing
+work and then billing the creature for it.** Third and fourth occurrences.
+
+**Still not built:** no `run_forever` scheduling, no chat channel, `DockerBody`
+written but never exercised. `resume()` now replaces savegames — state is
+derived from the journal, so a crash costs the cycle in flight and nothing
+before it.
+
+### Previous state — 2026-09-12 (creature running, direction wired)
 
 **The loop is complete end to end.** A creature builds tools through its hands,
 marks work done, the cousin genuinely runs what was built, and its verdict
