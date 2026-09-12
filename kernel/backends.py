@@ -176,10 +176,19 @@ def openai_chat(model, base_url, key_env=None, key_file=None, num_predict=900,
         choice = (d.get("choices") or [{}])[0]
         text = ((choice.get("message") or {}).get("content")) or ""
         usage = d.get("usage") or {}
-        return strip_reasoning(text), {
+        clean = strip_reasoning(text)
+        return clean, {
             "model": d.get("model") or model,
             "done_reason": choice.get("finish_reason"),
             "completion_tokens": usage.get("completion_tokens"),
+            # How much of the reply was reasoning we removed. Without this,
+            # "the model said nothing" and "the model said ONLY reasoning and
+            # never closed the block" arrive identical -- and they have
+            # different fixes, which is the oldest lesson in this project.
+            # 2026-09-12 it cost a diagnosis: the raw capture stored the reply
+            # AFTER stripping, so the evidence it existed for was already gone.
+            "chars_before_strip": len(text),
+            "chars_stripped": len(text) - len(clean),
             "seconds": round(time.time() - t0, 1),
         }
     return ask

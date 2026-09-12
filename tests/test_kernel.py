@@ -1656,6 +1656,24 @@ def test_an_unreadable_verdict_keeps_its_evidence():
           "fires on, and the journal must not inherit its size",
           len(rec.get("raw") or "") <= 1200, len(rec.get("raw") or ""))
 
+    # The case that actually happened: the model talked itself out of
+    # answering. An empty reply and a reply that was ALL reasoning arrive
+    # identical unless the stripping is measured -- and they have different
+    # fixes, so the difference has to survive into the journal.
+    j3 = Journal(os.path.join(d, "stripped.jsonl"))
+    cousin.visit(lambda _p: ("", {"model": "m", "rung": "r",
+                                  "done_reason": "length",
+                                  "chars_before_strip": 8000,
+                                  "chars_stripped": 8000}),
+                 "brief", "c", "h", "t", journal=j3)
+    r3 = j3.read(kinds=["cousin_verdict"])[0]
+    check("raw: an all-reasoning reply is distinguishable from an empty one",
+          r3.get("raw_chars") == 0 and r3.get("chars_before_strip") == 8000,
+          str({k: r3.get(k) for k in ("raw_chars", "chars_before_strip",
+                                      "chars_stripped")}))
+    check("raw: and the amount stripped is recorded, not inferred",
+          r3.get("chars_stripped") == 8000, r3.get("chars_stripped"))
+
     # A readable verdict carries no raw copy: the evidence is the verdict.
     j2 = Journal(os.path.join(d, "ok.jsonl"))
     cousin.visit(lambda _p: (ACCEPT_REPLY, {"model": "m", "done_reason": "stop"}),

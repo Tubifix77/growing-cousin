@@ -174,6 +174,12 @@ def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
             # inherit its size.
             fields["raw"] = (v.raw or "")[:1200]
             fields["raw_chars"] = len(v.raw or "")
+            # What the model produced BEFORE reasoning was stripped. An empty
+            # `raw` with a large `before_strip` is a model that talked itself
+            # out of answering -- a different fault from one that said nothing,
+            # and raising the budget fixes neither.
+            fields["chars_before_strip"] = (meta or {}).get("chars_before_strip")
+            fields["chars_stripped"] = (meta or {}).get("chars_stripped")
         journal.append("cousin_verdict", trigger=trigger,
                        model=(meta or {}).get("model"),
                        rung=(meta or {}).get("rung"),
