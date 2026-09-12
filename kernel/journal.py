@@ -28,11 +28,27 @@ EXEC_CMD_CHARS = 800
 # INCREASE that number, never replace it with its own -- the parent showed
 # "+40 chars cut" where 3,319 were withheld, which is worse than no marker,
 # because a small number reads as reassurance.
-_MARK = "…[+%d chars cut; window %d]"
+# The marker names WHO cut, not just how much. Reporting the size alone is not
+# enough and this engine has now paid for that:
+#
+# 2026-09-12, the sixth and worst instance of the framework damaging the
+# creature's work. The creature ran `cat plan; cat log-read`; the pair produced
+# ~4.5k chars and this cap kept 1200, so `plan` appeared to end mid-file and
+# `log-read` never appeared at all. The creature read the old marker --
+# "+3332 chars cut; window 1200" -- concluded *"It's clearly truncated. The
+# tool is broken."*, and then REWROTE BOTH TOOLS SHORTER: plan 99->92 lines,
+# log-read 46->29. It mutilated a working library to fit a display limit it had
+# no way to attribute.
+#
+# The parent's invariant was "a marker reports the TOTAL withheld". True, and
+# insufficient: a reader who cannot tell OUR cut from the content ending
+# concludes the content ended.
+_MARK = "…[%d chars withheld by the log, not missing from the output; window %d]"
 
 
 def capped(text, limit, already_cut=0):
-    """Cut to `limit`, announcing the TOTAL withheld including earlier cuts."""
+    """Cut to `limit`, announcing the TOTAL withheld including earlier cuts,
+    and saying plainly that the cut is the LOG's and not the content's."""
     text = "" if text is None else str(text)
     if len(text) <= limit and not already_cut:
         return text
@@ -47,7 +63,8 @@ def marker_total(text):
     """Read back the withheld count a marker claims. Used to prove the
     invariant holds across nested cuts rather than trusting that it does."""
     import re
-    m = re.search(r"\[\+(\d+) chars cut; window (\d+)\]$", text or "")
+    m = re.search(r"\[(\d+) chars withheld by the log[^\]]*window (\d+)\]$",
+                  text or "")
     return int(m.group(1)) if m else 0
 
 

@@ -70,6 +70,46 @@ def test_journal():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_marker_says_whose_cut_it_is():
+    """Reporting the SIZE of a cut is not enough; it must name the cutter.
+
+    2026-09-12, the sixth and worst instance of the framework damaging the
+    creature's work. It ran `cat plan; cat log-read`; the pair produced ~4.5k
+    chars, the journal kept 1200, so `plan` appeared to end mid-file and
+    `log-read` never appeared at all. It read the marker, concluded *"It's
+    clearly truncated. The tool is broken."*, and REWROTE BOTH TOOLS SHORTER --
+    plan 99->92 lines, log-read 46->29. It mutilated a working library to fit a
+    display limit it had no way to attribute.
+
+    The parent's invariant -- a marker reports the TOTAL withheld -- is true
+    and insufficient. A reader who cannot tell OUR cut from the content ending
+    concludes the content ended.
+    """
+    mark = capped("y" * 5000, 1200)
+    check("marker: it still reports the true total",
+          marker_total(mark) == 3800, marker_total(mark))
+    tail = mark[-140:]
+    check("marker: it says the LOG withheld this, not the command",
+          "log" in tail.lower() and "withheld" in tail.lower(), tail)
+    check("marker: and that the output itself was NOT missing anything",
+          "not missing" in tail.lower(), tail)
+
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    class Stub:
+        mind = d
+    e = Engine(j, Stub(), "brief", None, None, os.path.join(d, "context.md"))
+    j.append("exec_start", cmd="cat tools/own/plan")
+    j.append("exec_end", exit_code=0, stdout="z" * 9000, stderr="")
+    hist = e.recent_block()
+    check("marker: the CONTEXT cap names itself too",
+          "transcript only" in hist, hist[-220:])
+    check("marker: and still says the command's output was complete",
+          "complete" in hist, hist[-220:])
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_marker_invariant():
     """A marker reports the TOTAL withheld. A later cut may only INCREASE that
     number, never replace it with its own -- the parent showed '+40 chars cut'
@@ -1731,7 +1771,8 @@ def test_live_model():
 
 def main():
     t0 = time.time()
-    for fn in (test_journal, test_marker_invariant, test_body,
+    for fn in (test_journal, test_a_marker_says_whose_cut_it_is,
+               test_marker_invariant, test_body,
                test_command_reaches_disk_intact,
                test_observer_describes_every_kind_it_can_see,
                test_observer_shell_assembles,

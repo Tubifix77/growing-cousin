@@ -172,7 +172,13 @@ class Engine:
         def quoted(text, limit=None):
             text = (text or "").rstrip()
             if limit and len(text) > limit:
-                text = text[:limit] + "\n...[%d more chars]" % (len(text) - limit)
+                # Say WHOSE cut this is. A bare "N more chars" reads as the
+                # output having ENDED -- which is how the creature came to
+                # believe two working tools were truncated and rewrote them
+                # shorter. See journal.py `_MARK` for the full account.
+                text = (text[:limit] + "\n...[%d more chars, shortened for this "
+                        "transcript only; the command's own output was complete]"
+                        % (len(text) - limit))
             # DEFANG the fences. A line prefix is not enough: a tool that
             # prints ```bash puts a REAL, parseable block inside the history,
             # and `parse_blocks` will happily extract whatever is in it --
