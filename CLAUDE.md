@@ -19,12 +19,23 @@ stated.
 
 ## 0. Status — read this before anything else
 
-**A creature and its cousin run together, on the real free-tier rung. Nothing
-is scheduled.** `kernel/` is the 1% from `ARCHITECTURE.md` §14 — journal, body,
-think, triggers, cousin, cycle, backends — `run.py` drives a real creature
-through it, `census.py` is the only thing that checks the manager, and
-`tests/test_kernel.py` is the gate: **149/149 green with the real model in the
-loop.** `trial/` remains the brief's own measurement.
+**DEPLOYED. A creature and its cousin run unattended on the laptop beside the
+spine, under systemd.** `kernel/` is the 1% from `ARCHITECTURE.md` §14 —
+journal, body, think, triggers, cousin, cycle, backends, forever — `run.py`
+drives it, `observer.py` is the window, `census.py` is the only thing that
+checks the manager, and `tests/test_kernel.py` is the gate: **216/216 green.**
+
+**The gate's authority moved to the laptop (2026-09-12).** The Windows box
+fails the liveness assertion intermittently under the suite's process churn —
+`code=124 timed out after 15s` spawning bash, once a Windows `Katastrofal fejl
+/ Bash/Service`. Linux runs the identical suite in 2.4s, clean, repeatedly. Run
+it there before committing; the pattern that works without pushing first is a
+scratch `git clone ~/growing-cousin /tmp/gate-check` with the changed files
+uploaded over it.
+
+**And it is barely producing.** 95 cycles in 7 hours yielded **one** usable
+verdict (§7). Green gates and a running service are not the same thing as a
+working system, and this is the clearest example the project has produced.
 
 **The ladder is configuration, not code**: `rungs.local.json` and
 `rungs.cousin.local.json`, both gitignored, both naming a `key_file` outside the
@@ -403,7 +414,47 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    on a rung like that produces confident garbage instead of an obvious failure.
    Record the model per verdict from day one.
 
-## 7. State — 2026-09-12 (on the real rung, first time)
+## 7. State — 2026-09-12 (deployed, and barely producing)
+
+**It runs unattended on the laptop and it is not yet working.** Seven hours, 95
+cycles, 16 verdicts, and **one** of them usable:
+
+> RETURNED — *"I ran `fetch` and it told me it wasn't written yet."*
+
+Correct, and the only judgement the second inhabitant has ever delivered in
+production. The creature built four tools (`archive`, `ask`, `fetch`, `plan`)
+and that verdict says what they are: **stubs printing "not written yet".**
+
+**Zero accepts means zero wants, so the direction channel has still never
+carried anything in production.** It passes the gate and it worked on the
+standin. It has never once steered the real creature. That remains the single
+biggest unproven claim in this project.
+
+The 15 UNKNOWNs split into two causes, and keeping them apart is the point of
+recording `error`:
+
+| cause | n | meaning |
+|---|---|---|
+| `LadderExhausted` | 8 | no rung answered; the cousin correctly refused to judge |
+| `no-block`, `finish=length` | 7 | the model answered and was **cut off before the verdict block** |
+
+The second is the creature's own scar one level up: **the contract puts the
+block LAST, so a truncated reply loses the whole verdict.** The 700-token
+cousin budget was measured on `gemma4:12b`; the real `gemma-4-31b-it` is more
+verbose and spends budget on `<thought>` blocks. Raised to 2048 — **not yet
+proven**, no trigger had fired at the time of writing.
+
+**Creature truncation is NOT the same problem and was deliberately left alone**:
+5 of 65 thinks finish on `length`, but only 2 of 65 lose commands (~3%), which
+is where the parent settled after raising 2048→3072. No evidence to tune it.
+
+**What the deployment itself taught**, all four found by running and none by
+reading: a relative root made every tool vanish; `run_cycle` swallowed the
+exhausted ladder so every wait/backoff bound was unreachable; preflight vetoed
+startup on a transient hiccup; and a missing User-Agent had a Cloudflare WAF
+403 read as "credential rejected", permanently walling a rung that worked.
+
+### Previous state — 2026-09-12 (on the real rung, first time)
 
 **`gemma-4-31b-it` has served this engine.** Not the standin — the rung the
 brief was written for, reached through `kernel/backends.py`'s ladder:
