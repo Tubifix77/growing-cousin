@@ -1367,6 +1367,74 @@ chmod +x tools/own/thing
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
+def test_history_can_never_parse_as_a_command():
+    """THE contract for the history block: what the creature is SHOWN must
+    never look like something to run.
+
+    2026-09-12, measured on the laptop. The command was fenced and its output
+    was not, so past output sat exactly where an emitted command goes. The
+    creature ran `log-read`, was shown the log lines that way, and on the next
+    wake emitted them AS A COMMAND -- nine times in a row, exit 127 each, a
+    degenerate loop it had no way to see the edge of. The framework produced
+    that behaviour and the creature would have worn it.
+
+    So this asserts the property, not the formatting: run the rendered history
+    through the SAME parser the kernel uses on a reply, and require nothing
+    comes back. A formatting test would go green on a different mistake.
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    class Stub:
+        mind = d
+    e = Engine(j, Stub(), "brief", None, None, os.path.join(d, "context.md"))
+
+    # Output engineered to break a naive renderer: a fence, a $ line, and a
+    # bash block of its own -- all things a tool can legitimately print.
+    nasty = "\n".join([
+        "```bash", "rm -rf /", "```",
+        "$ echo this is output, not a command",
+        "[2026-09-12 19:39:55 UTC] a log line"])
+    j.append("exec_start", cmd="log-read -n 10")
+    j.append("exec_end", exit_code=0, stdout=nasty, stderr="")
+    j.append("exec_start", cmd="cat tools/own/ask")
+    j.append("exec_end", exit_code=0, stdout="#!/usr/bin/env python3\nimport os",
+             stderr="bash: boom")
+
+    hist = e.recent_block()
+    check("history: the rendered history contains NO fence at all",
+          "```" not in hist.replace("`" + "`" + "`bash", "@@@").replace("@@@", "")
+          or hist.count("```") == 0,
+          "fences present: %d" % hist.count("```"))
+    check("history: and the kernel's own parser finds nothing to run in it",
+          think.parse_blocks(hist) == [],
+          "parsed %r" % (think.parse_blocks(hist)[:1],))
+    check("history: every line is marked as transcript",
+          all(ln.startswith("|") or not ln.strip() or ln.startswith("#")
+              or ln.startswith("(") or ln.startswith("**")
+              for ln in hist.split("\n")),
+          [ln for ln in hist.split("\n")
+           if ln.strip() and not ln.startswith(("|", "#", "(", "**"))][:2])
+
+    check("history: the command is still legible in it",
+          "log-read -n 10" in hist and "cat tools/own/ask" in hist)
+    check("history: so is the exit code and the output",
+          "exit 0" in hist and "a log line" in hist)
+    check("history: stderr survives too", "boom" in hist, hist[-200:])
+
+    # A tool that prints a novel's worth of text must not become the context.
+    j2 = Journal(os.path.join(d, "big.jsonl"))
+    e2 = Engine(j2, Stub(), "brief", None, None, os.path.join(d, "c2.md"))
+    j2.append("exec_start", cmd="cat huge")
+    j2.append("exec_end", exit_code=0, stdout="x" * 40000, stderr="")
+    big = e2.recent_block()
+    check("history: a huge output is capped again for the CONTEXT",
+          len(big) < 4000, "history was %d chars" % len(big))
+    check("history: and the cut announces itself",
+          "more chars" in big, big[-120:])
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_cousin_sees_the_library():
     """The cousin's third test is "is this new, or the fifth variant?" -- and
     for the whole life of the kernel it was asked that while being shown ONE
@@ -1633,6 +1701,7 @@ def main():
                test_classify_error_never_raises, test_ladder_routes_and_records,
                test_resume_is_derived_from_the_journal,
                test_resume_matches_a_live_run,
+               test_history_can_never_parse_as_a_command,
                test_cousin_sees_the_library,
                test_an_unreadable_verdict_keeps_its_evidence,
                test_cousin_probe_is_recorded,

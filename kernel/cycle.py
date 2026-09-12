@@ -23,6 +23,10 @@ from .journal import EXEC_CMD_CHARS, EXEC_STDERR_CHARS, EXEC_STDOUT_CHARS, cappe
 
 WANTS_KEPT = 3
 
+# Any run of three or more backticks. Anything the creature is SHOWN must be
+# unable to parse as a block it could act on.
+FENCE_RUN = re.compile(r"`{3,}")
+
 
 class Engine:
     def __init__(self, journal, body, brief, ask_creature, ask_cousin,
@@ -133,27 +137,72 @@ class Engine:
         lines += ["- **%s** = %s" % (k, str(v)[:400]) for k, v in sorted(d.items())]
         return "\n".join(lines)
 
+    HISTORY_QUOTE = "| "
+    HISTORY_OUTPUT_CHARS = 700
+
     def recent_block(self, cycles=3):
-        """The last few things it ran and what came back -- already capped, with
-        the loss announced where it was cut."""
+        """The last few things it ran and what came back.
+
+        **QUOTED, never fenced.** Every line carries a prefix, and the history
+        contains no triple-backtick at all. The creature's contract is that a
+        fenced block IS an action, so a fence in its own history is
+        indistinguishable from one it is supposed to emit -- and worse, any
+        OUTPUT containing a fence or a `$` line breaks out of the rendering
+        entirely.
+
+        2026-09-12, measured on the laptop: the command was fenced and its
+        output was not, so past output sat exactly where an emitted command
+        goes. The creature ran `log-read`, was shown the log lines that way,
+        and on the next wake emitted them AS A COMMAND -- nine times in a row,
+        exit 127 each time, a degenerate loop it could not see the edge of. A
+        `cat` of a tool put a whole Python file in that gap.
+
+        The framework produced that behaviour and the creature would have worn
+        it. Fifth occurrence of the class.
+
+        Output is capped again here, tighter than the journal's cap: the
+        journal keeps evidence, the context has to stay small enough that a
+        wake does not cost more every cycle.
+        """
         rows = self.j.read(kinds=["exec_start", "exec_end", "exec_skip"],
                            limit=cycles * 6)
         if not rows:
             return ""
-        out = ["## What you just did", ""]
+
+        def quoted(text, limit=None):
+            text = (text or "").rstrip()
+            if limit and len(text) > limit:
+                text = text[:limit] + "\n...[%d more chars]" % (len(text) - limit)
+            # DEFANG the fences. A line prefix is not enough: a tool that
+            # prints ```bash puts a REAL, parseable block inside the history,
+            # and `parse_blocks` will happily extract whatever is in it --
+            # verified by the test for this, which caught `rm -rf /` being
+            # lifted straight out of quoted output. Replaced with visible text
+            # rather than deleted, because silently dropping part of what a
+            # tool printed is how a creature is shown output it never produced.
+            text = FENCE_RUN.sub("<fence>", text)
+            return "\n".join(self.HISTORY_QUOTE + ln
+                             for ln in text.split("\n")) if text else ""
+
+        out = ["## What you just did", "",
+               "(A transcript. Every line is prefixed `%s`. None of it is "
+               "something to run -- it is what ALREADY ran.)"
+               % self.HISTORY_QUOTE.strip(), ""]
         for r in rows:
             if r["kind"] == "exec_start":
-                out.append("```\n$ %s\n```" % (r.get("cmd") or ""))
+                out.append(quoted("$ " + (r.get("cmd") or "")))
             elif r["kind"] == "exec_end":
-                body = (r.get("stdout") or "").rstrip()
-                err = (r.get("stderr") or "").rstrip()
-                out.append("exit %s%s" % (r.get("exit_code"),
-                                          ("\n" + body) if body else ""))
+                out.append(quoted("exit %s" % r.get("exit_code")))
+                body = quoted(r.get("stdout"), self.HISTORY_OUTPUT_CHARS)
+                if body:
+                    out.append(body)
+                err = quoted(r.get("stderr"), self.HISTORY_OUTPUT_CHARS)
                 if err:
-                    out.append("stderr: " + err)
+                    out.append(quoted("stderr:") + "\n" + err)
             else:
-                out.append("(nothing ran: %s)" % r.get("reason"))
-        out.append("\n**Do not run any of those again.** You already have the "
+                out.append(quoted("(nothing ran: %s)" % r.get("reason")))
+            out.append("")
+        out.append("**Do not run any of those again.** You already have the "
                    "answer; act on it.")
         return "\n".join(out)
 

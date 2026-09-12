@@ -65,9 +65,11 @@ let an ungated commit ship. Check the literal string `ALL TESTS PASS`.
    running, against a `LocalBody` and a local model.
 
 **None of the three is evidence for another.** A green gate says the workflow is
-correct; it says nothing about whether a creature can live in it. And **no number
-here yet comes from a creature that has run a real cycle on the real ladder** —
-when one does, this section is the first thing to rewrite.
+correct; it says nothing about whether a creature can live in it. **Numbers from
+a creature on the real ladder now exist (§7) and are a FOURTH population** — one
+accept, on , a rung the brief was never measured against. They
+are not comparable to  and must never be quoted as if they were, which is
+why  is journalled beside .
 
 Do not let a borrowed number turn into a claim about this system. The parent
 project's most expensive errors were numbers nobody could source.
