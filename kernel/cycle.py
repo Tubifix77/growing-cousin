@@ -145,6 +145,7 @@ class Engine:
     # short, and the creature reported *"the previous log-read had a bug:
     # print(line.str. It was truncated"* and rewrote the tool.
     HISTORY_OUTPUT_CHARS = 2400
+    HISTORY_TOTAL_CHARS = 6000
 
     def recent_block(self, cycles=3):
         """The last few things it ran and what came back.
@@ -177,22 +178,13 @@ class Engine:
 
         def quoted(text, limit=None):
             text = (text or "").rstrip()
-            if limit and len(text) > limit:
-                # Cut at a LINE BOUNDARY, never mid-token. A cut through the
-                # middle of `print(line.strip())` looks exactly like corruption
-                # and the creature read it as one; a cut between lines reads as
-                # an excerpt, which is what it is.
-                head = text[:limit]
-                nl = head.rfind("\n")
-                if nl > limit // 2:          # only if it does not gut the text
-                    head = head[:nl]
-                # And say WHOSE cut this is. A bare "N more chars" reads as the
-                # output having ENDED -- which is how the creature came to
-                # believe two working tools were truncated and rewrote them
-                # shorter. See journal.py `_MARK` for the full account.
-                text = (head + "\n...[%d more chars, shortened for this "
-                        "transcript only; the command's own output was complete]"
-                        % (len(text) - len(head)))
+            if limit:
+                # ONE cutter, shared with the journal. Two implementations of
+                # "shorten this and say so" drift, and the parent's rule is
+                # that a producer and a checker sharing a literal will drift --
+                # this had already become two subtly different cuts, one of
+                # which still landed mid-token.
+                text = capped(text, limit)
             # DEFANG the fences. A line prefix is not enough: a tool that
             # prints ```bash puts a REAL, parseable block inside the history,
             # and `parse_blocks` will happily extract whatever is in it --
@@ -224,7 +216,19 @@ class Engine:
             out.append("")
         out.append("**Do not run any of those again.** You already have the "
                    "answer; act on it.")
-        return "\n".join(out)
+        block = "\n".join(out)
+        # And a bound on the WHOLE block. Raising the per-output cap to fit a
+        # real tool took the history from 4k to 10k chars in one step, and a
+        # context that grows with what the creature happens to print is the
+        # wake-cost failure class arriving by the back door. Oldest goes first:
+        # the newest cycle is the one it needs to not repeat.
+        if len(block) > self.HISTORY_TOTAL_CHARS:
+            keep = block[-self.HISTORY_TOTAL_CHARS:]
+            nl = keep.find("\n")
+            block = ("## What you just did\n\n(Older lines dropped; this is the "
+                     "most recent part of the transcript.)\n"
+                     + (keep[nl:] if nl > 0 else keep))
+        return block
 
     def write_context(self, text):
         d = os.path.dirname(self.context_path)

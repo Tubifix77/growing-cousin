@@ -104,9 +104,9 @@ def test_a_marker_says_whose_cut_it_is():
     j.append("exec_end", exit_code=0, stdout="z" * 9000, stderr="")
     hist = e.recent_block()
     check("marker: the CONTEXT cap names itself too",
-          "transcript only" in hist, hist[-220:])
-    check("marker: and still says the command's output was complete",
-          "complete" in hist, hist[-220:])
+          "withheld by the log" in hist, hist[-220:])
+    check("marker: and still says the output itself was not missing anything",
+          "not missing from the output" in hist, hist[-220:])
     shutil.rmtree(d, ignore_errors=True)
 
 
@@ -135,11 +135,15 @@ def test_history_never_cuts_mid_line():
     hist = e.recent_block()
 
     body = [ln for ln in hist.split(NL) if ln.startswith("| line ")]
-    check("history: a cut output still shows whole lines",
-          all(ln.endswith("content here") for ln in body),
-          [ln for ln in body if not ln.endswith("content here")][:2])
+    # Every line is whole. The LAST one carries the marker appended to it, so
+    # strip that before judging -- the point is that no line of CONTENT is cut
+    # through the middle, not that a marker never touches one.
+    content = [ln.split("…[")[0] for ln in body]
+    check("history: a cut output still shows whole lines of content",
+          all(ln.endswith("content here") for ln in content),
+          [ln for ln in content if not ln.endswith("content here")][:2])
     check("history: and it cut somewhere, so this is not a vacuous pass",
-          "more chars" in hist and len(body) < 400,
+          "withheld by the log" in hist and len(body) < 400,
           "%d lines of 400" % len(body))
 
     # The real case that caused it: a tool just over the old 700 limit must now
@@ -154,7 +158,7 @@ def test_history_never_cuts_mid_line():
     j2.append("exec_end", exit_code=0, stdout=tool, stderr="")
     h2 = e2.recent_block()
     check("history: a tool the size of the real one is shown COMPLETE",
-          "print(line.strip())" in h2 and "more chars" not in h2,
+          "print(line.strip())" in h2 and "withheld" not in h2,
           "%d bytes of tool, history %d" % (len(tool), len(h2)))
     shutil.rmtree(d, ignore_errors=True)
 
@@ -1576,7 +1580,7 @@ def test_history_can_never_parse_as_a_command():
     check("history: a huge output is capped again for the CONTEXT",
           len(big) < 4000, "history was %d chars" % len(big))
     check("history: and the cut announces itself",
-          "more chars" in big, big[-120:])
+          "withheld by the log" in big, big[-120:])
     shutil.rmtree(d, ignore_errors=True)
 
 

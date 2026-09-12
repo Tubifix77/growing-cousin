@@ -53,6 +53,13 @@ def capped(text, limit, already_cut=0):
     if len(text) <= limit and not already_cut:
         return text
     kept = text[:limit]
+    # Prefer a LINE BOUNDARY. A cut through the middle of `print(line.strip())`
+    # looks exactly like corruption -- the creature read one as a bug in its own
+    # tool and rewrote the tool. A cut between lines reads as an excerpt, which
+    # is what it is. Only when a line survives: never gut the text to find one.
+    nl = kept.rfind("\n")
+    if nl > limit // 2:
+        kept = kept[:nl]
     withheld = (len(text) - len(kept)) + already_cut
     if withheld <= 0:
         return kept
