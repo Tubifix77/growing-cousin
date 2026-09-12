@@ -18,6 +18,7 @@ Bounds that must hold whichever body is in use, each from a parent scar:
 """
 import os
 import shutil
+import time
 import subprocess
 import tempfile
 
@@ -153,8 +154,24 @@ class LocalBody:
             pass
 
     def destroy(self):
+        """Remove the body. Returns whether the root actually went away.
+
+        `ignore_errors=True` alone is a cleanup that cannot report its own
+        failure. On Windows the just-exited `bash` can still hold the command
+        script for a moment, rmtree fails, and NOTHING says so -- measured
+        2026-09-12, 191 stale `cousin-*` directories in temp while the gate was
+        intermittently failing its liveness assertion. One retry clears the
+        lock; the return value means a caller that cares can find out, instead
+        of the fault being invisible by construction.
+        """
         self._cleanup()
-        shutil.rmtree(self.root, ignore_errors=True)
+        for attempt in (0, 1):
+            shutil.rmtree(self.root, ignore_errors=True)
+            if not os.path.exists(self.root):
+                return True
+            if attempt == 0:
+                time.sleep(0.2)
+        return False
 
 
 class DockerBody:

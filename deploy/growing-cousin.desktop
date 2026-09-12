@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=Growing Cousin
+GenericName=Creature and cousin observer
+Comment=Watch the creature build and the cousin judge. Read-only: closing this never stops the engine.
+# %h is not expanded in .desktop files -- install.sh rewrites these two lines
+# with the real home directory. A literal %h here silently produces a launcher
+# that does nothing, which is the kind of failure nobody debugs because nothing
+# reports it.
+Exec=/usr/bin/python3 /home/boas/growing-cousin/observer.py /home/boas/growing-cousin/live
+Icon=/home/boas/.local/share/icons/growing-cousin.png
+Terminal=false
+Categories=Development;Utility;
+StartupNotify=true
+StartupWMClass=observer.py
+Keywords=cousin;creature;agent;observer;

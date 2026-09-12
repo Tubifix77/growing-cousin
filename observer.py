@@ -77,6 +77,57 @@ KIND_COLORS = {
 DEFAULT_COLOR = "#c8bdb0"
 
 
+def make_icon(QtGui, QtCore, size=64):
+    """The cousin mark, drawn in code rather than shipped as a binary.
+
+    A stem that FORKS: one line continues, one branches away and comes back to
+    meet it. That is the whole design in a glyph -- the creature building, the
+    second inhabitant arriving from elsewhere to use what was built, the two
+    rejoining. The spine's icon is a single column; this must not be mistaken
+    for it at 22 pixels in a tray, so the fork is wide and the palette is warm
+    against the spine's cold blue.
+    """
+    pm = QtGui.QPixmap(size, size)
+    pm.fill(QtGui.QColor(0, 0, 0, 0))
+    p = QtGui.QPainter(pm)
+    p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+
+    s = size / 64.0
+    pen = QtGui.QPen(QtGui.QColor(ACCENT))
+    pen.setWidthF(6 * s)
+    pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
+    p.setPen(pen)
+
+    # The stem: bottom centre up to the fork.
+    p.drawLine(QtCore.QPointF(32 * s, 58 * s), QtCore.QPointF(32 * s, 38 * s))
+
+    # Two arms leaving the fork, one to each shoulder.
+    left = QtGui.QPainterPath()
+    left.moveTo(32 * s, 38 * s)
+    left.cubicTo(30 * s, 28 * s, 18 * s, 26 * s, 13 * s, 16 * s)
+    p.drawPath(left)
+
+    right = QtGui.QPainterPath()
+    right.moveTo(32 * s, 38 * s)
+    right.cubicTo(34 * s, 28 * s, 46 * s, 26 * s, 51 * s, 16 * s)
+    p.drawPath(right)
+
+    # Two heads: the creature (solid, it builds) and the cousin (hollow, it
+    # only ever uses and reports).
+    p.setBrush(QtGui.QColor(ACCENT))
+    p.setPen(QtCore.Qt.PenStyle.NoPen)
+    p.drawEllipse(QtCore.QPointF(13 * s, 13 * s), 7 * s, 7 * s)
+
+    p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+    hollow = QtGui.QPen(QtGui.QColor(ACCENT))
+    hollow.setWidthF(5 * s)
+    p.setPen(hollow)
+    p.drawEllipse(QtCore.QPointF(51 * s, 13 * s), 6 * s, 6 * s)
+
+    p.end()
+    return QtGui.QIcon(pm)
+
+
 def esc(s):
     return (str(s).replace("&", "&amp;").replace("<", "&lt;")
             .replace(">", "&gt;"))
@@ -217,9 +268,10 @@ def main(root=None, selftest=False):
     stop_file = os.path.join(root, "STOP")
 
     try:
-        from PyQt6.QtWidgets import (QApplication, QLabel, QMainWindow,
-                                     QSplitter, QTextEdit, QVBoxLayout,
-                                     QHBoxLayout, QWidget)
+        from PyQt6 import QtCore as _QtCore, QtGui as _QtGui
+        from PyQt6.QtWidgets import (QApplication, QLabel, QMainWindow, QMenu,
+                                     QSplitter, QSystemTrayIcon, QTextEdit,
+                                     QVBoxLayout, QHBoxLayout, QWidget)
         from PyQt6.QtCore import Qt, QTimer
         from PyQt6.QtGui import QFont
     except ImportError:
@@ -240,7 +292,10 @@ def main(root=None, selftest=False):
         def __init__(self):
             super().__init__()
             self.setWindowTitle("Growing Cousin -- Observer")
+            self.setWindowIcon(make_icon(_QtGui, _QtCore))
             self.resize(1180, 720)
+            self.tray = None
+            self._last_vitals = None
             self._jpos = None
             self._ctx_sig = None
 
@@ -285,9 +340,58 @@ def main(root=None, selftest=False):
             self._timer.start(TICK_MS)
             self.tick()
 
+        def install_tray(self):
+            """A tray icon, and CLOSING THE WINDOW ONLY HIDES IT.
+
+            The observer is read-only over the engine, so closing it must never
+            look like stopping the engine. Hiding to the tray makes that
+            structurally obvious: the mark stays on the panel with the engine's
+            state in its tooltip while the window is gone.
+            """
+            if not QSystemTrayIcon.isSystemTrayAvailable():
+                return False
+            self.tray = QSystemTrayIcon(make_icon(_QtGui, _QtCore), self)
+            menu = QMenu()
+            act_show = menu.addAction("Show observer")
+            act_show.triggered.connect(self.show_again)
+            menu.addSeparator()
+            act_quit = menu.addAction("Quit observer (engine keeps running)")
+            act_quit.triggered.connect(QApplication.instance().quit)
+            self.tray.setContextMenu(menu)
+            self.tray.activated.connect(
+                lambda r: self.show_again()
+                if r == QSystemTrayIcon.ActivationReason.Trigger else None)
+            self.tray.setToolTip("Growing Cousin")
+            self.tray.show()
+            return True
+
+        def show_again(self):
+            self.showNormal()
+            self.raise_()
+            self.activateWindow()
+
+        def closeEvent(self, e):
+            if self.tray is not None:
+                e.ignore()
+                self.hide()
+                self.tray.showMessage(
+                    "Growing Cousin",
+                    "Still watching. The engine is untouched -- this window "
+                    "only reads.", make_icon(_QtGui, _QtCore), 4000)
+            else:
+                e.accept()
+
         def tick(self):
             self.pump_journal()
             self.refresh_side()
+            if self.tray is not None:
+                v = self._last_vitals or {}
+                self.tray.setToolTip(
+                    "Growing Cousin\ncycles %s\nverdicts %s\nserving %s\n"
+                    "last event %s%s"
+                    % (v.get("cycles", "?"), v.get("verdicts", "?"),
+                       v.get("serving", "?"), v.get("last_event", "?"),
+                       "\nSTOPPING after this cycle" if v.get("stopping") else ""))
 
         def pump_journal(self):
             """Tail. Never re-read -- see the module docstring."""
@@ -339,6 +443,7 @@ def main(root=None, selftest=False):
                 pass
 
             v = vitals(rows, tools, os.path.exists(stop_file))
+            self._last_vitals = v
             for key, lab in self.labels.items():
                 val = v[key]
                 if key == "stopping":
@@ -366,13 +471,17 @@ def main(root=None, selftest=False):
                 self._ctx_sig = html
 
     app = QApplication(sys.argv[:1])
+    app.setApplicationName("Growing Cousin")
+    app.setWindowIcon(make_icon(_QtGui, _QtCore))
     d = Dashboard()
+    tray_ok = d.install_tray()
     if selftest:
         d.tick()
         d.tick()        # twice: the second proves the tail ADVANCES, not resets
-        print("observer selftest OK: %d journal chars rendered, library %d"
+        print("observer selftest OK: %d journal chars, library %d, tray %s"
               % (len(d.journal.toPlainText()),
-                 len(trigmod.list_tools(tools_dir))))
+                 len(trigmod.list_tools(tools_dir)),
+                 "installed" if tray_ok else "unavailable on this session"))
         return 0
     d.show()
     return app.exec()
