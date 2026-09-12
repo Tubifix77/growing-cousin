@@ -136,6 +136,18 @@ guess with authority it has not earned.
 
 ## 4. Standing decisions (Tue's, inherited)
 
+- **Growing Spine is on the SAME API accounts, so the free tier is SHARED**
+  (Tue, 2026-09-12). This engine gets at most half of what it would with its own
+  account, and the two projects can starve each other. Three consequences, all
+  binding: (1) a rate limit here may be the spine's traffic, not a real ceiling
+  — never read a 429 as a measurement of this engine's cost; (2) **throughput is
+  not comparable between the two projects** and must never be reported as if it
+  were, though cost-per-cycle and verdict quality still are; (3) the ladder must
+  be quota-polite — fall through on 429 rather than retry, which is why 429 is
+  `NEXT` and not `RETRY` in `classify_error`. Measured the same day:
+  `openrouter/gemma-4-31b-it:free` was already returning 429 while
+  `gemini/gemma-4-31b-it` answered in ~32s.
+
 - **Free tier only, permanently.** "We get what is available without paying
   anything ever." A rung behind a paywall is defunct by definition; removing one
   needs no decision. Rung count and concentration are *outcomes*, not targets.
@@ -233,6 +245,26 @@ was measured, with what, and on what date.*
   changes every verdict it produces: re-measure detection after every correction
   fix, and the reverse.** The precision of the damage was the diagnosis; an
   aggregate would only have said "something is off".
+
+- **Before believing a behavioural finding about either agent, prove the
+  harness was not producing it.** 2026-09-12. A confirmation run started with
+  `--root live` — relative — and the body put RELATIVE entries on PATH. Commands
+  run with `cwd=mind`, so those entries resolved against the mind directory and
+  pointed nowhere: **every tool became `command not found` while the body
+  reported healthy and all 135 assertions stayed green.** The cousin filed 13
+  consecutive honest `RETURNED` verdicts saying the command was not found, and
+  the creature did the rational thing — it rebuilt the same tool three ways
+  (`fetcher.py`, `fetcher`, `fetcher_wrapper.sh`). **From the outside that reads
+  as a creature producing twins.** It was the framework breaking the work and
+  the creature being billed for it, which is the third time that class has
+  appeared here and the reason the body layer already cost six fixes.
+  Distinguish it from the library scar below, which is NOT this: there the
+  cousin *ACCEPTED* every twin, which a broken probe cannot produce — a probe
+  that cannot run the tool returns, it does not accept. **Invariant: a body's
+  root is absolute, normalised in the body and not at the caller, because no
+  caller benefits from a relative root and any caller can forget.** The test is
+  `test_a_relative_root_still_runs_the_creatures_tools`, verified red before
+  green: 4 failures without the fix, reproducing exit 127 exactly.
 
 - **Naming a problem is not handling one, and reporting a defect felt like
   discharging it.** 2026-09-12, caught by Tue, not by me. I had already run the

@@ -167,6 +167,66 @@ def test_command_reaches_disk_intact():
     b.destroy()
 
 
+def test_a_relative_root_still_runs_the_creatures_tools():
+    """A tool the creature wrote must be runnable BY NAME, however the run was
+    started.
+
+    2026-09-12, found by a live run and not by any test: started with
+    `--root live`, the body put RELATIVE entries on PATH. Commands run with
+    cwd=mind, so those entries resolved against the mind directory and pointed
+    nowhere -- every tool became `command not found` while the body still
+    reported healthy and every other assertion stayed green.
+
+    The cousin then filed 13 consecutive honest RETURNED verdicts saying the
+    command was not found, and the creature did the rational thing: it rebuilt
+    the same tool three ways (fetcher.py, fetcher, fetcher_wrapper.sh). Read
+    from the outside that looks exactly like a creature producing twins. It was
+    the framework breaking the work and the creature being billed for it.
+
+    The duplicate-stem twins were a SYMPTOM. The lesson generalises past this
+    bug: before believing a behavioural finding about either agent, check that
+    the harness was not producing it.
+    """
+    import run as runmod
+
+    d = tmpdir()
+    cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        # Deliberately relative -- this is the shape that broke.
+        b = runmod.PathBody(os.path.join("nest", "body"))
+        b.bin = runmod.install_hands(b)
+
+        check("body: a relative root is normalised to an absolute one",
+              os.path.isabs(b.root) and os.path.isabs(b.mind),
+              "root=%r mind=%r" % (b.root, b.mind))
+
+        b.run("\n".join([
+            "cat << 'SH' > tools/own/greeter",
+            "#!/bin/sh",
+            "# does: says hello",
+            "echo hello-from-tool",
+            "SH",
+            "chmod +x tools/own/greeter"]))
+
+        r = b.run("greeter")
+        check("body: the creature's own tool is found BY NAME, not 127",
+              r.code != 127, "exit %d, stderr %r" % (r.code, r.stderr[:120]))
+        check("body: and it actually produces its output",
+              "hello-from-tool" in r.stdout, repr(r.stdout[:120]))
+
+        # The hands are the same promise: the brief tells the creature they are
+        # on PATH, and a prompt that promises what the body does not provide is
+        # a contract violation the creature pays for.
+        r2 = b.run("remember probe-key probe-value")
+        check("body: the hands are on PATH from a relative root too",
+              r2.code != 127, "exit %d, stderr %r" % (r2.code, r2.stderr[:120]))
+        b.destroy()
+    finally:
+        os.chdir(cwd)
+        shutil.rmtree(d, ignore_errors=True)
+
+
 def test_setup_classifier():
     """ONE classifier, shared by producer and checker. The parent's rule: a
     producer and a checker that share a literal will drift."""
@@ -634,6 +694,116 @@ def test_ladder_routes_and_records():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_resume_is_derived_from_the_journal():
+    """A killed run must not restart as if nothing happened.
+
+    Derived, never saved: a savegame written beside the journal is a second
+    account of the same facts, and the two drift precisely when a run dies
+    between the cycle and the save -- which is when a savegame is meant to
+    help. Same reasoning as the manager's derived state (CLAUDE.md 6.1).
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    class Stub:
+        mind = d
+    e = Engine(j, Stub(), "brief", None, None, os.path.join(d, "context.md"))
+
+    check("resume: an empty journal restores nothing and claims nothing",
+          e.resume() == 0 and e.cycles_since_visit == 0
+          and e.cycles_since_change == 0 and e.done_blocked is None)
+
+    # Three quiet cycles: both counters must reach 3, not 2. Counting at wakes
+    # instead of at cycle CLOSE loses the last one -- the cycle a resume most
+    # needs, because it is the one nearest the crash.
+    for _ in range(3):
+        j.append("wake", context_chars=1)
+    check("resume: three quiet cycles count as three, not two",
+          e.resume() == 3 and e.cycles_since_visit == 3
+          and e.cycles_since_change == 3,
+          "visit=%d change=%d" % (e.cycles_since_visit, e.cycles_since_change))
+
+    # A visit ANSWERS what summoned it, so it clears both counters.
+    j.append("wake", context_chars=1)
+    j.append("cousin_verdict", verdict="ACCEPTED", to_creature="fine")
+    e.resume()
+    check("resume: a visit clears both counters, so a STALL cannot re-fire",
+          e.cycles_since_visit == 0 and e.cycles_since_change == 0,
+          "visit=%d change=%d" % (e.cycles_since_visit, e.cycles_since_change))
+
+    # A tool change clears only the stall counter.
+    j.append("wake", context_chars=1)
+    j.append("tools_changed", added=["t"], removed=[])
+    e.resume()
+    check("resume: a tool change clears the stall counter but not the visit one",
+          e.cycles_since_change == 0 and e.cycles_since_visit == 1,
+          "visit=%d change=%d" % (e.cycles_since_visit, e.cycles_since_change))
+
+    # A DELETION is why tools_changed is journalled at all: it moves the
+    # counter and fires no trigger, so it cannot be inferred from TOOL_WRITE.
+    j.append("wake", context_chars=1)
+    j.append("wake", context_chars=1)
+    j.append("tools_changed", added=[], removed=["t"])
+    e.resume()
+    check("resume: a DELETION counts as a change, though no trigger fires",
+          e.cycles_since_change == 0, "change=%d" % e.cycles_since_change)
+
+    # An unread refusal must survive the crash, or the creature is never told.
+    j.append("wake", context_chars=1)
+    j.append("cousin_verdict", verdict="RETURNED", to_creature="it needs a URL")
+    e.resume()
+    check("resume: a refusal the creature has not read yet survives a restart",
+          e.done_blocked == "it needs a URL", repr(e.done_blocked))
+    check("resume: and it is served in the very next context",
+          "it needs a URL" in e.serve_context())
+
+    # The next wake consumes it. Otherwise the creature is told twice, which is
+    # the nag the surface-on-change rule exists to prevent.
+    j.append("wake", context_chars=1)
+    e.resume()
+    check("resume: once a cycle has begun, the refusal is not re-delivered",
+          e.done_blocked is None, repr(e.done_blocked))
+
+    # A mute refusal was never deliverable, so it must not come back as one.
+    j.append("wake", context_chars=1)
+    j.append("cousin_verdict", verdict="RETURNED", to_creature="")
+    e.resume()
+    check("resume: a refusal with no reason is not resurrected either",
+          e.done_blocked is None, repr(e.done_blocked))
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_resume_matches_a_live_run():
+    """The derivation must agree with the engine that produced the journal.
+
+    Asserting the replay against ITSELF would pass while both were wrong. The
+    only honest check is: run real cycles, then rebuild from the log and
+    compare against the engine's own in-memory counters.
+    """
+    writes = """```bash
+cat << 'SH' > tools/own/thing
+#!/bin/sh
+echo hi
+SH
+chmod +x tools/own/thing
+```"""
+    quiet = "Nothing to do this cycle."
+    e, j, b, d = build_engine([writes, quiet, quiet], [ACCEPT_REPLY])
+    for _ in range(3):
+        e.run_cycle()
+
+    live = (e.cycles_since_visit, e.cycles_since_change,
+            (e.done_blocked or "").strip())
+
+    fresh = Engine(j, b, "brief", None, None, e.context_path)
+    fresh.resume()
+    rebuilt = (fresh.cycles_since_visit, fresh.cycles_since_change,
+               (fresh.done_blocked or "").strip())
+
+    check("resume: the rebuilt state matches the engine that wrote the journal",
+          live == rebuilt, "live=%s rebuilt=%s" % (live, rebuilt))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_cousin_sees_the_library():
     """The cousin's third test is "is this new, or the fifth variant?" -- and
     for the whole life of the kernel it was asked that while being shown ONE
@@ -829,7 +999,9 @@ def test_live_model():
 def main():
     t0 = time.time()
     for fn in (test_journal, test_marker_invariant, test_body,
-               test_command_reaches_disk_intact, test_setup_classifier, test_parse_blocks, test_no_block_classifier,
+               test_command_reaches_disk_intact,
+               test_a_relative_root_still_runs_the_creatures_tools,
+               test_setup_classifier, test_parse_blocks, test_no_block_classifier,
                test_triggers, test_cousin_parse, test_cousin_visit_journals,
                test_cycle_no_command, test_cycle_executes_and_journals,
                test_cycle_done_claim_triggers_cousin, test_refusal_is_delivered_once,
@@ -837,6 +1009,8 @@ def main():
                test_memory_reaches_the_context,
                test_want_reaches_the_creature, test_strip_reasoning,
                test_classify_error_never_raises, test_ladder_routes_and_records,
+               test_resume_is_derived_from_the_journal,
+               test_resume_matches_a_live_run,
                test_cousin_sees_the_library,
                test_cousin_probe_is_recorded,
                test_census_catches_a_fabricated_verdict,

@@ -102,18 +102,41 @@ def scripted(replies):
     return ask
 
 
-def openai_chat(model, base_url, key_env, num_predict=900, timeout=180,
-                extra_headers=None):
+def read_key(key_file=None, key_env=None):
+    """The credential, fetched at CALL time from a file or the environment.
+
+    A `key_file` points OUTSIDE this repo and is read on every call. It is never
+    copied into the spec, the journal, `meta`, or an error message -- the only
+    thing that travels is the PATH. This repo is public, so "no keys in the
+    repo" stopped being tidiness and became the load-bearing rule it was always
+    written as.
+    """
+    if key_file:
+        try:
+            with open(os.path.expanduser(key_file), encoding="utf-8") as f:
+                key = f.read().strip()
+        except OSError as e:
+            raise RuntimeError("no credential: cannot read %s (%s)"
+                               % (key_file, e.__class__.__name__))
+        if not key:
+            raise RuntimeError("no credential: %s is empty" % key_file)
+        return key
+    key = os.environ.get(key_env or "", "")
+    if not key:
+        raise RuntimeError("no credential in $%s" % key_env)
+    return key
+
+
+def openai_chat(model, base_url, key_env=None, key_file=None, num_predict=900,
+                timeout=180, extra_headers=None):
     """Any OpenAI-compatible `/chat/completions` rung. Covers the free tier.
 
-    The key is read from the ENVIRONMENT at call time and never stored, logged,
-    or carried in `meta`. Nothing in this repo may hold a credential -- that
-    rule is load-bearing now that the repo is public.
+    Give it `key_file` (a path outside the repo) or `key_env`. Either way the
+    credential is fetched per call and never stored, logged, or carried in
+    `meta`.
     """
     def ask(prompt):
-        key = os.environ.get(key_env, "")
-        if not key:
-            raise RuntimeError("no credential in $%s" % key_env)
+        key = read_key(key_file, key_env)
         body = {"model": model, "temperature": 0,
                 "max_tokens": num_predict,
                 "messages": [{"role": "user", "content": prompt}]}

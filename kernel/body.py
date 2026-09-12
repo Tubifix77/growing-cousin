@@ -59,7 +59,20 @@ class LocalBody:
         # gone AND bringing it back fails too. A body that merely died is
         # recoverable and `ensure_body` is meant to recover it.
         self.can_respawn = can_respawn
-        self.root = root or tempfile.mkdtemp(prefix="cousin-body-")
+        # ABSOLUTE, always. Commands run with cwd=self.mind, so a relative root
+        # yields relative PATH entries that resolve against the mind directory
+        # and therefore point nowhere -- every tool becomes `command not found`
+        # while the body still looks healthy.
+        #
+        # 2026-09-12, measured: a run started with `--root live` produced 13
+        # consecutive honest RETURNED verdicts saying the command was not found,
+        # and the creature responded exactly as it should have -- by rebuilding
+        # the tool three different ways (fetcher.py, fetcher, fetcher_wrapper.sh).
+        # **The framework broke the work and the creature was billed for it**,
+        # which is the one outcome this project exists to prevent. Normalising
+        # here rather than at the caller because there is no caller who benefits
+        # from a relative root, and any caller can forget.
+        self.root = os.path.abspath(root or tempfile.mkdtemp(prefix="cousin-body-"))
         self.mind = os.path.join(self.root, "mind")
         os.makedirs(os.path.join(self.mind, "tools", "own"), exist_ok=True)
         os.makedirs(os.path.join(self.mind, "data"), exist_ok=True)

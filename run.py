@@ -186,6 +186,17 @@ def main():
                os.path.join(args.root, "context.md"),
                creature_brief=creature_brief)
 
+    # Pick up where a killed run left off. Derived from the journal, so there
+    # is no savegame to go stale -- a crash costs the cycle in flight and
+    # nothing before it.
+    prior = e.resume()
+    if prior:
+        print("resumed: %d cycles already in this journal "
+              "(since_visit=%d since_change=%d%s)"
+              % (prior, e.cycles_since_visit, e.cycles_since_change,
+                 ", carrying a refusal the creature has not read yet"
+                 if e.done_blocked else ""))
+
     print("creature + cousin on %s, %d cycles, root=%s\n"
           % (served, args.cycles, args.root))
     t0 = time.time()

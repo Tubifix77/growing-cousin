@@ -165,6 +165,54 @@ class Engine:
 
     # ------------------------------------------------------------------ cycle
 
+    def resume(self):
+        """Restore the engine's counters from the journal. Returns cycles seen.
+
+        **Derived, never saved.** A savegame written beside the journal is a
+        second account of the same facts, and the two drift the moment a run
+        dies between the cycle and the save -- which is exactly when a savegame
+        is supposed to help. The journal is already ground truth and is already
+        written as it goes, so the only honest resume is a replay of it. Same
+        reasoning that made the manager's state derived rather than authored
+        (CLAUDE.md 6.1): a derivation cannot drift.
+
+        A crash therefore costs the current cycle and nothing before it.
+
+        Counters move at the END of a cycle, so the journal is folded as a list
+        of CLOSED cycles rather than counted at each wake -- counting at wakes
+        drops the last cycle's increment, which is the one a resume most needs.
+        """
+        cycles, blocked = [], None
+        for r in self.j.read():
+            kind = r.get("kind")
+            if kind == "wake":
+                cycles.append({"visit": False, "change": False})
+                blocked = None          # cleared at the top of every cycle
+            elif not cycles:
+                continue
+            elif kind == "tools_changed":
+                cycles[-1]["change"] = True
+            elif kind == "cousin_verdict":
+                cycles[-1]["visit"] = True
+                if (r.get("verdict") == "RETURNED"
+                        and (r.get("to_creature") or "").strip()):
+                    blocked = r.get("to_creature")
+
+        since_visit = since_change = 0
+        for c in cycles:
+            if c["visit"]:
+                # A visit is the ANSWER to whatever summoned it: both counters
+                # clear, or a STALL re-fires on every later cycle.
+                since_visit = since_change = 0
+            else:
+                since_visit += 1
+                since_change = 0 if c["change"] else since_change + 1
+
+        self.cycles_since_visit = since_visit
+        self.cycles_since_change = since_change
+        self.done_blocked = blocked
+        return len(cycles)
+
     def run_cycle(self):
         """Returns a dict describing what happened. Substantive = something ran."""
         tools_dir = os.path.join(self.body.mind, "tools", "own")
@@ -222,6 +270,14 @@ class Engine:
 
         tools_after = trigmod.list_tools(tools_dir)
         if tools_after != tools_before:
+            # Journalled explicitly, and not left to be inferred from
+            # TOOL_WRITE: a DELETION changes the set and fires no trigger, so
+            # inferring "did the library change" from triggers silently misses
+            # it. State is derived from the event log (CLAUDE.md 6.1), which
+            # only works when the event is actually IN the log.
+            self.j.append("tools_changed",
+                          added=sorted(set(tools_after) - set(tools_before)),
+                          removed=sorted(set(tools_before) - set(tools_after)))
             self.cycles_since_change = 0
         else:
             self.cycles_since_change += 1
