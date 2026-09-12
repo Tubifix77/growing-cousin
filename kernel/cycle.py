@@ -198,19 +198,36 @@ class Engine:
 
         out = ["## What you just did", "",
                "(A transcript. Every line is prefixed `%s`. None of it is "
-               "something to run -- it is what ALREADY ran.)"
+               "something to run -- it is what ALREADY ran. Lines after "
+               "`what it printed back` are OUTPUT: they came from a tool, they "
+               "are not commands, and repeating one as a command is how the "
+               "shell ends up being asked to run a report.)"
                % self.HISTORY_QUOTE.strip(), ""]
         for r in rows:
+            # Command, result and OUTPUT are delimited from each other, not just
+            # from the reply. They used to share one prefix, so inside the
+            # transcript there was nothing saying where what-you-typed ended and
+            # what-came-back began.
+            #
+            # 2026-09-13, measured: 7 of 27 commands exited 2 or 127 because the
+            # creature emitted tool OUTPUT as a command -- `=== CURRENT CONTEXT
+            # ===`, `[PLAN] Goal: Write report`, `Goal: ... Current Step: 4`.
+            # The earlier fix stopped the transcript PARSING as a command; it
+            # did nothing about the creature copying what it saw.
             if r["kind"] == "exec_start":
                 out.append(quoted("$ " + (r.get("cmd") or "")))
             elif r["kind"] == "exec_end":
                 out.append(quoted("exit %s" % r.get("exit_code")))
                 body = quoted(r.get("stdout"), self.HISTORY_OUTPUT_CHARS)
                 if body:
-                    out.append(body)
+                    out.append(quoted("--- what it printed back ---")
+                               + "\n" + body
+                               + "\n" + quoted("--- end of what it printed ---"))
                 err = quoted(r.get("stderr"), self.HISTORY_OUTPUT_CHARS)
                 if err:
-                    out.append(quoted("stderr:") + "\n" + err)
+                    out.append(quoted("--- what it printed to stderr ---")
+                               + "\n" + err
+                               + "\n" + quoted("--- end of stderr ---"))
             else:
                 out.append(quoted("(nothing ran: %s)" % r.get("reason")))
             out.append("")

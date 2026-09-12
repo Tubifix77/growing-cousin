@@ -1567,6 +1567,17 @@ def test_history_can_never_parse_as_a_command():
 
     check("history: the command is still legible in it",
           "log-read -n 10" in hist and "cat tools/own/ask" in hist)
+    # Command, exit and OUTPUT must be told apart INSIDE the transcript, not
+    # only from the reply. They shared one prefix, and 7 of 27 commands in a
+    # live hour exited 2 or 127 because the creature re-emitted tool output as
+    # a command: `=== CURRENT CONTEXT ===`, `[PLAN] Goal: Write report`.
+    check("history: output is delimited from the command that produced it",
+          "what it printed back" in hist and "end of what it printed" in hist,
+          hist[:400])
+    check("history: and stderr is labelled as stderr, not as more output",
+          "printed to stderr" in hist, hist[-300:])
+    check("history: the header warns that output is not a command",
+          "not commands" in hist or "are OUTPUT" in hist, hist[:400])
     check("history: so is the exit code and the output",
           "exit 0" in hist and "a log line" in hist)
     check("history: stderr survives too", "boom" in hist, hist[-200:])
