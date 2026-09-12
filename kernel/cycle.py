@@ -138,7 +138,13 @@ class Engine:
         return "\n".join(lines)
 
     HISTORY_QUOTE = "| "
-    HISTORY_OUTPUT_CHARS = 700
+    # 2026-09-12, measured against the live library: the creature's tools are
+    # 706-3157 bytes, so the old 700 guaranteed a mid-file cut on essentially
+    # every `cat` of a tool -- a constant I chose with no evidence at all.
+    # It cut `log-read` (706 bytes) at exactly `print(line.str`, six characters
+    # short, and the creature reported *"the previous log-read had a bug:
+    # print(line.str. It was truncated"* and rewrote the tool.
+    HISTORY_OUTPUT_CHARS = 2400
 
     def recent_block(self, cycles=3):
         """The last few things it ran and what came back.
@@ -172,13 +178,21 @@ class Engine:
         def quoted(text, limit=None):
             text = (text or "").rstrip()
             if limit and len(text) > limit:
-                # Say WHOSE cut this is. A bare "N more chars" reads as the
+                # Cut at a LINE BOUNDARY, never mid-token. A cut through the
+                # middle of `print(line.strip())` looks exactly like corruption
+                # and the creature read it as one; a cut between lines reads as
+                # an excerpt, which is what it is.
+                head = text[:limit]
+                nl = head.rfind("\n")
+                if nl > limit // 2:          # only if it does not gut the text
+                    head = head[:nl]
+                # And say WHOSE cut this is. A bare "N more chars" reads as the
                 # output having ENDED -- which is how the creature came to
                 # believe two working tools were truncated and rewrote them
                 # shorter. See journal.py `_MARK` for the full account.
-                text = (text[:limit] + "\n...[%d more chars, shortened for this "
+                text = (head + "\n...[%d more chars, shortened for this "
                         "transcript only; the command's own output was complete]"
-                        % (len(text) - limit))
+                        % (len(text) - len(head)))
             # DEFANG the fences. A line prefix is not enough: a tool that
             # prints ```bash puts a REAL, parseable block inside the history,
             # and `parse_blocks` will happily extract whatever is in it --

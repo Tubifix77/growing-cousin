@@ -110,6 +110,55 @@ def test_a_marker_says_whose_cut_it_is():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_history_never_cuts_mid_line():
+    """A cut through the middle of a token looks like corruption. A cut between
+    lines looks like an excerpt, which is what it is.
+
+    2026-09-12: HISTORY_OUTPUT_CHARS was 700, a constant chosen with no
+    evidence. The creature's tools measure 706-3157 bytes, so it cut nearly
+    every `cat` of a tool mid-file -- `log-read` landed on `print(line.str`,
+    six characters short. The creature reported *"the previous log-read had a
+    bug: print(line.str. It was truncated"* and rewrote the tool. It was
+    reading our display as its own code.
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    class Stub:
+        mind = d
+    e = Engine(j, Stub(), "brief", None, None, os.path.join(d, "context.md"))
+
+    NL = chr(10)
+    src = NL.join("line %03d some content here" % i for i in range(400))
+    j.append("exec_start", cmd="cat tools/own/thing")
+    j.append("exec_end", exit_code=0, stdout=src, stderr="")
+    hist = e.recent_block()
+
+    body = [ln for ln in hist.split(NL) if ln.startswith("| line ")]
+    check("history: a cut output still shows whole lines",
+          all(ln.endswith("content here") for ln in body),
+          [ln for ln in body if not ln.endswith("content here")][:2])
+    check("history: and it cut somewhere, so this is not a vacuous pass",
+          "more chars" in hist and len(body) < 400,
+          "%d lines of 400" % len(body))
+
+    # The real case that caused it: a tool just over the old 700 limit must now
+    # arrive whole.
+    j2 = Journal(os.path.join(d, "j2.jsonl"))
+    e2 = Engine(j2, Stub(), "brief", None, None, os.path.join(d, "c2.md"))
+    tool = ("#!/usr/bin/env python3" + NL
+            + ("# padding padding padding" + NL) * 25
+            + "    for line in log_lines:" + NL
+            + "        print(line.strip())" + NL)
+    j2.append("exec_start", cmd="cat tools/own/log-read")
+    j2.append("exec_end", exit_code=0, stdout=tool, stderr="")
+    h2 = e2.recent_block()
+    check("history: a tool the size of the real one is shown COMPLETE",
+          "print(line.strip())" in h2 and "more chars" not in h2,
+          "%d bytes of tool, history %d" % (len(tool), len(h2)))
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_marker_invariant():
     """A marker reports the TOTAL withheld. A later cut may only INCREASE that
     number, never replace it with its own -- the parent showed '+40 chars cut'
@@ -1771,7 +1820,8 @@ def test_live_model():
 
 def main():
     t0 = time.time()
-    for fn in (test_journal, test_a_marker_says_whose_cut_it_is,
+    for fn in (test_journal, test_history_never_cuts_mid_line,
+               test_a_marker_says_whose_cut_it_is,
                test_marker_invariant, test_body,
                test_command_reaches_disk_intact,
                test_observer_describes_every_kind_it_can_see,
