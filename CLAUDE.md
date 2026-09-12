@@ -33,9 +33,13 @@ it there before committing; the pattern that works without pushing first is a
 scratch `git clone ~/growing-cousin /tmp/gate-check` with the changed files
 uploaded over it.
 
-**And it is barely producing.** 95 cycles in 7 hours yielded **one** usable
-verdict (§7). Green gates and a running service are not the same thing as a
-working system, and this is the clearest example the project has produced.
+**The design closed its loop in production on 2026-09-12** — creature builds,
+cousin uses and accepts, cousin asks for the next capability, the want reaches
+the creature, the creature builds exactly that and it works (§7). That had
+never happened outside a test. It has happened **once**, on a rung the brief
+was never measured against, and the seven hours before it produced one usable
+verdict in 95 cycles. Green gates and a running service are still not the same
+thing as a working system.
 
 **The ladder is configuration, not code**: `rungs.local.json` and
 `rungs.cousin.local.json`, both gitignored, both naming a `key_file` outside the
@@ -425,10 +429,33 @@ Correct, and the only judgement the second inhabitant has ever delivered in
 production. The creature built four tools (`archive`, `ask`, `fetch`, `plan`)
 and that verdict says what they are: **stubs printing "not written yet".**
 
-**Zero accepts means zero wants, so the direction channel has still never
-carried anything in production.** It passes the gate and it worked on the
-standin. It has never once steered the real creature. That remains the single
-biggest unproven claim in this project.
+**CORRECTED 2026-09-12, 21:40 — the direction channel closed the loop in
+production.** This section said, twenty minutes earlier, that it never had.
+The measurement:
+
+> `TOOL_WRITE` fired on a tool the creature had just written. The cousin ran
+> `log "test"`, confirmed `activity.log` had gained a timestamped line,
+> **ACCEPTED** it, and asked for the next capability — *"retrieve recent log
+> entries (e.g., last 10 lines)"*. `record_want` wrote that into the managed
+> context; the creature's next wake served it 17,000 chars including that line;
+> it then wrote `log-read`, ran `log-read -n 10`, and got ten lines back.
+
+Creature builds → cousin uses → cousin accepts and asks for what it wants next
+→ the want reaches the creature → the creature builds exactly that → it works.
+**That is the whole design, and it had never once happened outside a test.**
+
+Two things about how it happened are worth more than the fact of it:
+
+1. **It was served by `groq/gpt-oss-120b`, not by the rung the brief was
+   measured on.** The gemma rung was still returning `no-block`. So the first
+   working verdict in this project's history came from a model the brief was
+   never tuned against — and the accept/refuse rates it produces are therefore
+   NOT comparable to `trial/`. This is exactly why `rung` is journalled.
+2. **It only happened because of a bug fixed an hour earlier.** Without the
+   User-Agent fix, groq was walled as "credential rejected" and this cycle
+   would have been another wait.
+
+One swallow. It is one accept, on one rung, on one tool.
 
 The 15 UNKNOWNs split into two causes, and keeping them apart is the point of
 recording `error`:
