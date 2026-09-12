@@ -1408,6 +1408,47 @@ echo old
           p.count("newthing") >= 1 and "- newthing" not in p, "listed itself")
 
 
+def test_an_unreadable_verdict_keeps_its_evidence():
+    """When a verdict cannot be read, the REPLY must survive.
+
+    2026-09-12, a 7-hour live run: seven UNKNOWN verdicts, every one
+    `no-block`. The cause -- the reply being truncated before the block, which
+    the contract puts LAST -- was diagnosable only because `finish=length`
+    happened to be journalled. The reply itself was thrown away, so the next
+    such run would have started the same diagnosis from nothing.
+
+    A summary cannot be re-interrogated when the summary is what is wrong.
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    long_reply = "I thought about it at some length. " * 80   # no verdict block
+    cousin.visit(lambda _p: (long_reply, {"model": "m", "rung": "r",
+                                          "done_reason": "length"}),
+                 "brief", "c", "h", "t", journal=j)
+    rec = j.read(kinds=["cousin_verdict"])[0]
+    check("raw: an unreadable verdict is recorded as UNKNOWN",
+          rec.get("verdict") == cousin.UNKNOWN and rec.get("error") == "no-block",
+          str(rec)[:140])
+    check("raw: and the reply itself is KEPT, not summarised away",
+          "I thought about it" in (rec.get("raw") or ""), str(rec.get("raw"))[:80])
+    check("raw: with the true length, so a cap cannot hide how big it was",
+          rec.get("raw_chars") == len(long_reply),
+          "%s vs %s" % (rec.get("raw_chars"), len(long_reply)))
+    check("raw: the stored copy is CAPPED -- a runaway reply is the case this "
+          "fires on, and the journal must not inherit its size",
+          len(rec.get("raw") or "") <= 1200, len(rec.get("raw") or ""))
+
+    # A readable verdict carries no raw copy: the evidence is the verdict.
+    j2 = Journal(os.path.join(d, "ok.jsonl"))
+    cousin.visit(lambda _p: (ACCEPT_REPLY, {"model": "m", "done_reason": "stop"}),
+                 "brief", "c", "h", "t", journal=j2)
+    rec2 = j2.read(kinds=["cousin_verdict"])[0]
+    check("raw: a verdict that parsed does not duplicate its own reply",
+          "raw" not in rec2, str(rec2)[:120])
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_cousin_probe_is_recorded():
     """What the cousin actually ran, as fact. Without it nothing can check
     whether its testimony describes an event that happened."""
@@ -1593,6 +1634,7 @@ def main():
                test_resume_is_derived_from_the_journal,
                test_resume_matches_a_live_run,
                test_cousin_sees_the_library,
+               test_an_unreadable_verdict_keeps_its_evidence,
                test_cousin_probe_is_recorded,
                test_census_catches_a_fabricated_verdict,
                test_dead_body_does_not_become_creature_output,

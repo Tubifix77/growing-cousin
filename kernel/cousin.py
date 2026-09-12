@@ -161,11 +161,24 @@ def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
         # heterogeneous: the brief was measured on gemma-4-31b-it, and a
         # verdict served by some other rung is a different instrument. Without
         # this, an accept/refuse rate read later silently mixes them.
+        fields = v.as_fields()
+        if v.verdict == UNKNOWN:
+            # STORE THE RAW EVIDENCE when the verdict could not be read. A
+            # summary cannot be re-interrogated when the summary is what is
+            # wrong -- the oldest scar in this project.
+            #
+            # 2026-09-12: seven UNKNOWNs in a 7-hour run, all `no-block`. The
+            # cause was diagnosable only because `finish=length` happened to be
+            # recorded; the reply itself was gone. Capped, because a runaway
+            # reply is exactly the case this fires on and the journal must not
+            # inherit its size.
+            fields["raw"] = (v.raw or "")[:1200]
+            fields["raw_chars"] = len(v.raw or "")
         journal.append("cousin_verdict", trigger=trigger,
                        model=(meta or {}).get("model"),
                        rung=(meta or {}).get("rung"),
                        finish=(meta or {}).get("done_reason"),
-                       **v.as_fields())
+                       **fields)
         if v.noticed:
             journal.append("cousin_noticed", text=v.noticed)
         if v.want and v.verdict == ACCEPTED:
