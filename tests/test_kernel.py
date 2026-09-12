@@ -13,6 +13,7 @@ you improve the mechanism, and -- worse -- defends the fault: the parent had a
 test asserting a trap phrase AS A REQUIREMENT.
 """
 import io
+import json
 import os
 import shutil
 import sys
@@ -1161,6 +1162,61 @@ tail"""
           repr(got2))
 
 
+def test_temperature_is_configurable_and_defaults_to_zero():
+    """A measurement wants temperature 0; a life does not.
+
+    At 0 the same context produces the same decision forever, so a creature
+    that reaches a repeating state can never leave it. Watched twice on this
+    engine: `ls -R tools/own/` for six consecutive cycles (2026-09-11) and
+    `cat plan; cat log-read` for twelve (2026-09-12) -- replies of 31-65
+    chars, every one finish=stop, nothing truncated and nothing built.
+
+    The default stays 0 so the trial keeps measuring the same brief the same
+    way. The deployed CREATURE is configured above it.
+    """
+    sent = {}
+
+    class FakeResp:
+        def __init__(self, payload):
+            self._p = payload
+        def read(self):
+            return json.dumps(self._p).encode()
+        def __enter__(self):
+            return self
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout=None):
+        sent["body"] = json.loads(req.data.decode())
+        return FakeResp({"choices": [{"message": {"content": "ok"},
+                                      "finish_reason": "stop"}],
+                         "usage": {"completion_tokens": 1}})
+
+    real = backends.urllib.request.urlopen
+    backends.urllib.request.urlopen = fake_urlopen
+    try:
+        os.environ["COUSIN_FAKE_KEY"] = "x"
+        backends.openai_chat("m", "https://x/v1", key_env="COUSIN_FAKE_KEY")("hi")
+        check("temperature: defaults to 0, so the trial keeps measuring one brief",
+              sent["body"].get("temperature") == 0, str(sent["body"])[:120])
+
+        backends.openai_chat("m", "https://x/v1", key_env="COUSIN_FAKE_KEY",
+                             temperature=0.4)("hi")
+        check("temperature: and a LIFE can be configured off the fixed point",
+              sent["body"].get("temperature") == 0.4, str(sent["body"])[:120])
+        check("temperature: it travels in the request, not just the signature",
+              "temperature" in sent["body"])
+    finally:
+        backends.urllib.request.urlopen = real
+        os.environ.pop("COUSIN_FAKE_KEY", None)
+
+    # And it must survive the spec, or the deployed ladder cannot set it.
+    ask = backends.from_spec([{"name": "n", "kind": "openai_chat", "model": "m",
+                               "base_url": "https://x/v1",
+                               "key_env": "NOPE", "temperature": 0.4}])
+    check("temperature: a rung spec accepts it", callable(ask))
+
+
 def test_classify_error_never_raises():
     """The parent's classify_error had a default branch that RAISED, so one
     unrecognised error took down the ladder instead of stepping past a rung."""
@@ -1698,6 +1754,7 @@ def main():
                test_accept_does_not_block, test_context_is_served_not_assembled,
                test_memory_reaches_the_context,
                test_want_reaches_the_creature, test_strip_reasoning,
+               test_temperature_is_configurable_and_defaults_to_zero,
                test_classify_error_never_raises, test_ladder_routes_and_records,
                test_resume_is_derived_from_the_journal,
                test_resume_matches_a_live_run,

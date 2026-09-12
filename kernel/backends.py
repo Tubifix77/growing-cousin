@@ -63,12 +63,12 @@ def _strip_prose(chunk):
 
 
 def ollama(model, host=OLLAMA, num_predict=900, num_ctx=8192, think=False,
-           timeout=900):
+           timeout=900, temperature=0):
     """gemma4 family wraps reasoning in <thought> blocks and will spend the
     entire budget without closing one. think=False is not a preference."""
     def ask(prompt):
         payload = {"model": model, "prompt": prompt, "stream": False,
-                   "options": {"temperature": 0, "num_ctx": num_ctx,
+                   "options": {"temperature": temperature, "num_ctx": num_ctx,
                                "num_predict": num_predict}}
         if think is not None:
             payload["think"] = think
@@ -132,16 +132,28 @@ def read_key(key_file=None, key_env=None):
 
 
 def openai_chat(model, base_url, key_env=None, key_file=None, num_predict=900,
-                timeout=180, extra_headers=None):
+                timeout=180, extra_headers=None, temperature=0):
     """Any OpenAI-compatible `/chat/completions` rung. Covers the free tier.
 
     Give it `key_file` (a path outside the repo) or `key_env`. Either way the
     credential is fetched per call and never stored, logged, or carried in
     `meta`.
+
+    **`temperature` defaults to 0 and that is right for a MEASUREMENT and wrong
+    for a LIFE.** At 0 the same context produces the same decision forever, so
+    a creature that reaches a repeating state can never leave it -- this engine
+    has now watched that happen twice: `ls -R tools/own/` on six consecutive
+    cycles (2026-09-11), and `cat plan; cat log-read` on twelve (2026-09-12,
+    replies of 31-65 chars, every one `finish=stop`, nothing truncated and
+    nothing built). Both times the context was not quite identical, so a strict
+    fixed point is not even required -- near enough is enough.
+
+    The trial keeps 0 because a judge that answers differently on Tuesday
+    cannot be measured. The creature should not.
     """
     def ask(prompt):
         key = read_key(key_file, key_env)
-        body = {"model": model, "temperature": 0,
+        body = {"model": model, "temperature": temperature,
                 "max_tokens": num_predict,
                 "messages": [{"role": "user", "content": prompt}]}
         headers = {"Content-Type": "application/json",
