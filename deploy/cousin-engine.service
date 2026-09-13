@@ -5,6 +5,22 @@ Description=Growing Cousin engine (creature + cousin loop)
 After=network-online.target
 Wants=network-online.target
 
+# THE BOUND THAT MAKES RESTARTING SAFE, and it lives in [Unit] -- NOT [Service].
+# systemd moved these here; left in [Service] they are silently ignored and the
+# effective window falls back to the default. Verified 2026-09-13 by reading
+# them back off the running unit: `StartLimitIntervalUSec=10s` while the file
+# said 1800. The first version of the test only asserted the strings appeared
+# somewhere in the file, which is a checker that cannot distinguish the thing
+# it measures -- it passed over a setting that did nothing.
+#
+# At most 5 starts in 30 minutes, then the unit is left in `failed` for real,
+# which `systemctl status` reports plainly. Restart, but a bounded number of
+# times, answers both failure modes at once: an engine that gives up at 03:00
+# comes back, and a persistent fault stops respawning into a free tier the
+# spine also pays for.
+StartLimitIntervalSec=1800
+StartLimitBurst=5
+
 [Service]
 Type=simple
 WorkingDirectory=%h/growing-cousin
@@ -40,16 +56,7 @@ ExecStart=/usr/bin/python3 -u %h/growing-cousin/run.py \
 # or reached its ceiling.
 Restart=on-failure
 RestartSec=60
-
-# THE BOUND THAT MAKES RESTARTING SAFE. Exiting non-zero would otherwise
-# reintroduce exactly what exiting 0 was guarding against -- a persistent fault
-# respawning forever, burning free-tier quota the spine also pays for. systemd
-# bounds it instead of us: at most 5 starts in 30 minutes, then the unit is
-# left in `failed` for real, which is a state `systemctl status` reports
-# plainly. Restart, but a bounded number of times, is the answer to both
-# failure modes at once.
-StartLimitIntervalSec=1800
-StartLimitBurst=5
+# The bound on how often this may happen is StartLimit* in [Unit] above.
 
 # The engine must not be able to reach the spine's directory. Read-only root
 # with an explicit writable carve-out is cheap insurance against a bug in our

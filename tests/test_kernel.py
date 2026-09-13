@@ -2537,10 +2537,35 @@ def test_the_unit_bounds_its_own_restarting():
                 encoding="utf-8").read()
     check("unit: restarts only on failure, never always",
           "Restart=on-failure" in unit and "Restart=always" not in unit)
-    check("unit: and the restarting is BOUNDED, or a persistent fault "
-          "respawns forever on a shared free tier",
-          "StartLimitBurst=" in unit and "StartLimitIntervalSec=" in unit,
+    # IN THE SECTION WHERE THEY WORK. The first version of this test asserted
+    # only that the strings appeared somewhere in the file, and passed happily
+    # over both directives sitting in [Service], where systemd ignores them --
+    # read back off the running unit as `StartLimitIntervalUSec=10s` while the
+    # file said 1800. A checker that cannot distinguish the thing it measures
+    # reports a clean-looking pass, never an error; this is the fourth time
+    # that shape has been the finding here.
+    # DIRECTIVES, not text. Scanning for the string alone matched the word
+    # inside these very comments -- the third literal-matching slip in one
+    # test, and the same shape as the fault it was written to catch.
+    section, in_unit, in_service = None, {}, {}
+    for line in unit.splitlines():
+        line = line.strip()
+        if line.startswith("#") or not line:
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            section = line
+        elif line.startswith("StartLimit"):
+            k, _, v = line.partition("=")
+            (in_unit if section == "[Unit]" else in_service)[k] = v
+    check("unit: the restarting is BOUNDED, or a persistent fault respawns "
+          "forever on a free tier the spine also pays for",
+          "StartLimitBurst" in in_unit and "StartLimitIntervalSec" in in_unit,
           [l for l in unit.splitlines() if "StartLimit" in l])
+    check("unit: and the bound is a real window, not systemd's 10s default",
+          int(in_unit.get("StartLimitIntervalSec", "0")) >= 600,
+          in_unit.get("StartLimitIntervalSec"))
+    check("unit: StartLimit* is NOT left in [Service], where it is ignored",
+          not in_service, in_service)
 
 
 def test_a_cap_downstream_never_exceeds_the_cap_upstream():
