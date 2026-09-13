@@ -35,9 +35,15 @@ PAUSE_SECS = 30.0
 BACKOFF_CAP_SECS = 900.0
 MAX_CONSECUTIVE_FAILURES = 5
 
-# **FLAT, not exponential.** Tue, 2026-09-13: the framework tries the best rung,
-# then the next, then the next, and retries the whole ladder every two or three
-# minutes. That is the plumbing, and it stays deterministic.
+# **FLAT, not exponential, and the number is not arbitrary.** Tue, 2026-09-13:
+# the framework tries the best rung, then the next, then the next,
+# deterministically, and retries the whole ladder every two or three minutes.
+#
+# **The cadence is matched to `gemma-4-31b-it`** -- the rung that carries most
+# of the traffic and comes back quickly after a refusal. That is what makes
+# two or three minutes the right number rather than a guess: it is the
+# recovery time of the rung this engine actually depends on. Change the
+# primary rung and this constant has to be re-derived, not inherited.
 #
 # The backoff this replaces climbed to an hour, which is wrong for the thing it
 # was waiting on: free-tier windows reset on a CLOCK, so an hour-long wait can
@@ -45,6 +51,10 @@ MAX_CONSECUTIVE_FAILURES = 5
 # had already opened. Doubling is right for a fault that might be self-
 # inflicted; it is wrong for a budget that returns on a schedule nobody here
 # controls.
+#
+# It is also a politeness floor. Hammering a provider seconds after it refuses
+# is how a client gets flagged, and the account is shared with the spine --
+# see `backends.RETRY_GAP_SECS` for the same rule at the single-rung level.
 WAIT_BASE_SECS = 150.0
 WAIT_CAP_SECS = 150.0
 # A wait is not progress, so without a ceiling a permanently rate-limited run

@@ -264,8 +264,20 @@ class LadderExhausted(Exception):
         self.all_walled = all_walled
 
 
+# Never hit the SAME provider again sooner than this. Tue, 2026-09-13:
+# "if you trigger the same say milliseconds after rejection some llm providers
+# might flag you as bot run." The retry loop did exactly that -- a RETRY
+# disposition re-attempted the same rung with no gap at all. Being flagged
+# costs the account, and the account is SHARED with the spine, so the cost
+# lands on the sibling project rather than on us.
+#
+# Stepping to the NEXT rung needs no gap: that is a different provider, and
+# trying it immediately is the whole point of a ladder.
+RETRY_GAP_SECS = 6.0
+
+
 def ladder(rungs, journal=None, retries=1, quota_state=None,
-           quota_path=None):
+           quota_path=None, retry_gap=RETRY_GAP_SECS, sleep=time.sleep):
     """`rungs` is [(name, ask), ...] tried in order.
 
     A walled rung is skipped for the rest of the session: a rejected credential
@@ -323,6 +335,10 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
             # most -- a rung that recovered stays unused until a timer says
             # otherwise, and the ladder stops being deterministic.
             for attempt in range(retries + 1):
+                if attempt:
+                    # Same provider, second attempt. Wait before knocking
+                    # again -- see RETRY_GAP_SECS.
+                    sleep(retry_gap)
                 try:
                     text, meta = rung(prompt)
                     meta = dict(meta or {})

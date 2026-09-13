@@ -583,6 +583,46 @@ def test_forever_does_not_spin_on_failure():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_same_rung_is_never_knocked_twice_without_a_gap():
+    """Retrying a provider milliseconds after it refuses gets you flagged.
+
+    Tue, 2026-09-13: "if you trigger the same say milliseconds after rejection
+    some llm providers might flag you as bot run." The retry loop did exactly
+    that -- a RETRY disposition re-attempted the SAME rung with no gap at all.
+    Being flagged costs the account, and the account is shared with the spine,
+    so the cost lands on the sibling project.
+    """
+    class H(Exception):
+        def __init__(self, code):
+            self.code = code
+
+    slept = []
+
+    def flaky(_p):
+        raise H(500)          # RETRY: same rung, second attempt
+
+    def alive(_p):
+        return "ok", {"model": "m", "done_reason": "stop"}
+
+    ask = backends.ladder([("a", flaky), ("b", alive)], sleep=slept.append)
+    _t, meta = ask("x")
+    check("gap: a second attempt on the SAME rung waits first",
+          slept and slept[0] >= 1, str(slept))
+    check("gap: and it still falls through to the next rung", meta["rung"] == "b")
+
+    # Stepping to a DIFFERENT provider needs no gap -- that is the point of a
+    # ladder, and pausing there would waste the fall-through.
+    slept2 = []
+
+    def quota_dead(_p):
+        raise H(429)          # NEXT: step on immediately
+
+    ask2 = backends.ladder([("a", quota_dead), ("b", alive)], sleep=slept2.append)
+    ask2("x")
+    check("gap: stepping to a DIFFERENT rung is immediate, no wasted wait",
+          slept2 == [], str(slept2))
+
+
 def test_a_spent_rung_is_remembered_not_rediscovered():
     """Asking a rung we already know is spent costs the SIBLING a request.
 
@@ -617,7 +657,7 @@ def test_a_spent_rung_is_remembered_not_rediscovered():
 
     st = {}
     ask = backends.ladder([("dead", quota_dead), ("flaky", transient),
-                           ("alive", alive)], quota_state=st)
+                           ("alive", alive)], quota_state=st, sleep=lambda _s: None)
     ask("x"); ask("x"); ask("x")
 
     # **The record must NOT change the ladder.** Tue, 2026-09-13: the framework
@@ -955,7 +995,7 @@ def test_preflight_is_advisory_for_an_unattended_run():
     # treat an unreachable ladder as a WAIT, which is what lets --forever
     # survive the start that just failed.
     dead = backends.ladder([("only", lambda _p: (_ for _ in ()).throw(
-        backends.LadderExhausted("nothing answered", all_walled=False)))])
+        backends.LadderExhausted("nothing answered", all_walled=False)))], sleep=lambda _s: None)
     raised = None
     try:
         dead("hello")
@@ -1052,19 +1092,19 @@ def test_ladder_reports_why_it_was_exhausted():
         raise H(401)
 
     try:
-        backends.ladder([("a", quota), ("b", quota)])("x")
+        backends.ladder([("a", quota), ("b", quota)], sleep=lambda _s: None)("x")
     except backends.LadderExhausted as e:
         check("ladder: rungs that were merely rate-limited are not 'walled'",
               e.all_walled is False, str(e))
 
     try:
-        backends.ladder([("a", badkey), ("b", badkey)])("x")
+        backends.ladder([("a", badkey), ("b", badkey)], sleep=lambda _s: None)("x")
     except backends.LadderExhausted as e:
         check("ladder: every rung rejecting the credential IS walled",
               e.all_walled is True, str(e))
 
     try:
-        backends.ladder([("a", badkey), ("b", quota)])("x")
+        backends.ladder([("a", badkey), ("b", quota)], sleep=lambda _s: None)("x")
     except backends.LadderExhausted as e:
         check("ladder: one good rung merely rate-limited means WAIT, not die",
               e.all_walled is False, str(e))
@@ -1724,7 +1764,7 @@ def test_ladder_routes_and_records():
         calls.append("alive")
         return "hello", {"model": "m2", "done_reason": "stop"}
 
-    ask = backends.ladder([("top", dead), ("second", alive)], journal=j)
+    ask = backends.ladder([("top", dead), ("second", alive)], journal=j, sleep=lambda _s: None)
     text, meta = ask("x")
     check("ladder: a refusing rung falls through to the next", text == "hello")
     check("ladder: the reply records WHICH rung served it",
@@ -1758,7 +1798,7 @@ def test_ladder_routes_and_records():
     def always_500(_p):
         raise H(500)
 
-    ask3 = backends.ladder([("only", always_500)], journal=j3)
+    ask3 = backends.ladder([("only", always_500)], journal=j3, sleep=lambda _s: None)
     for _ in range(3):
         try:
             ask3("x")
@@ -1780,7 +1820,7 @@ def test_ladder_routes_and_records():
         calls.append("badkey")
         raise H(401)
 
-    ask2 = backends.ladder([("bad", badkey), ("second", alive)], journal=j)
+    ask2 = backends.ladder([("bad", badkey), ("second", alive)], journal=j, sleep=lambda _s: None)
     ask2("x"); before = calls.count("badkey")
     ask2("x")
     check("ladder: a walled rung is never tried again this session",
@@ -1790,7 +1830,7 @@ def test_ladder_routes_and_records():
         raise H(429)
 
     try:
-        backends.ladder([("a", always)])("x")
+        backends.ladder([("a", always)], sleep=lambda _s: None)("x")
         exhausted = False
     except backends.LadderExhausted:
         exhausted = True
@@ -1802,7 +1842,7 @@ def test_ladder_routes_and_records():
     # defers and the two agents share one queue (2026-09-13).
     raised = None
     try:
-        cousin.visit(backends.ladder([("a", always)]), "brief", "c", "h", "t")
+        cousin.visit(backends.ladder([("a", always)], sleep=lambda _s: None), "brief", "c", "h", "t")
     except Exception as ex:
         raised = ex
     check("ladder: an exhausted ladder propagates rather than becoming a verdict",
@@ -2314,6 +2354,7 @@ def main():
                test_observer_vitals_are_derived,
                test_forever_stops_when_asked,
                test_forever_does_not_spin_on_failure,
+               test_the_same_rung_is_never_knocked_twice_without_a_gap,
                test_a_spent_rung_is_remembered_not_rediscovered,
                test_the_cousin_is_never_sent_to_a_tool_that_does_not_exist,
                test_the_two_agents_share_one_queue,
