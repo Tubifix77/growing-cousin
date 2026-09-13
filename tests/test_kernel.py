@@ -582,6 +582,94 @@ def test_forever_does_not_spin_on_failure():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_visit_that_never_happened_does_not_consume_its_trigger():
+    """Deferred is not the same as lost.
+
+    2026-09-13, Tue asked whether the ping-pong simply stops when gemini runs
+    out. The queue for the CREATURE exists -- the supervisor waits and retries.
+    The gap was on the cousin's side: the counters that summoned a visit were
+    cleared unconditionally, so when no rung could be reached the trigger was
+    consumed and that work was never judged, not later, not when quota
+    returned.
+
+    The contradiction was already in the file. One scar says a visit is the
+    ANSWER to whatever summoned it, so it clears the counters. `visit_cousin`
+    says an instrument that cannot run says UNKNOWN. UNKNOWN is explicitly not
+    an answer, and the reset took the wrong side.
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    b = bodymod.LocalBody(root=os.path.join(d, "body"))
+
+    writes = """```bash
+cat << 'SH' > tools/own/newthing
+#!/bin/sh
+echo hi
+SH
+chmod +x tools/own/newthing
+```"""
+
+    def creature(_p):
+        return writes, {"model": "m", "done_reason": "stop"}
+
+    def unreachable(_p):
+        raise backends.LadderExhausted("no rung answered", all_walled=False)
+
+    e = Engine(j, b, "brief", creature, unreachable,
+               os.path.join(d, "context.md"))
+    e.cycles_since_visit = 7
+    e.cycles_since_change = 5
+    r = e.run_cycle()
+
+    check("unanswered: the trigger did fire, so this is not a vacuous test",
+          r.get("triggers"), str(r))
+    check("unanswered: the verdict is UNKNOWN, never invented",
+          r.get("verdict") == cousin.UNKNOWN, r.get("verdict"))
+    check("unanswered: the visit counter is NOT cleared by a visit that could "
+          "not happen",
+          e.cycles_since_visit > 7, e.cycles_since_visit)
+    # The STALL counter legitimately reset above, because a tool really was
+    # written -- the library changed, so "nothing is moving" is false. Isolate
+    # it with a cycle that triggers WITHOUT changing anything.
+    j3 = Journal(os.path.join(d, "stall.jsonl"))
+    b3 = bodymod.LocalBody(root=os.path.join(d, "body3"))
+    done = """```bash
+remember current-phase done
+```"""
+    e3 = Engine(j3, b3, "brief",
+                lambda _p: (done, {"model": "m", "done_reason": "stop"}),
+                unreachable, os.path.join(d, "c3.md"))
+    e3.cycles_since_visit = 7
+    e3.cycles_since_change = 5
+    r3 = e3.run_cycle()
+    check("unanswered: a trigger fired without the library changing",
+          r3.get("triggers"), str(r3))
+    check("unanswered: neither counter is cleared when nothing changed AND the "
+          "cousin could not be reached",
+          e3.cycles_since_visit > 7 and e3.cycles_since_change >= 5,
+          "%d/%d" % (e3.cycles_since_visit, e3.cycles_since_change))
+    b3.destroy()
+    check("unanswered: the lost visit is journalled so it can be counted",
+          len(j.read(kinds=["visit_unanswered"])) == 1,
+          str(dict(j.kinds())))
+
+    # The opposite case must still hold, or the nag scar returns: a visit that
+    # DID answer clears what summoned it.
+    j2 = Journal(os.path.join(d, "answered.jsonl"))
+    b2 = bodymod.LocalBody(root=os.path.join(d, "body2"))
+    e2 = Engine(j2, b2, "brief", creature,
+                lambda _p: (ACCEPT_REPLY, {"model": "m", "done_reason": "stop"}),
+                os.path.join(d, "c2.md"))
+    e2.cycles_since_visit = 7
+    e2.cycles_since_change = 5
+    e2.run_cycle()
+    check("unanswered: a visit that DID answer still clears its counters",
+          e2.cycles_since_visit == 0 and e2.cycles_since_change == 0,
+          "%d/%d" % (e2.cycles_since_visit, e2.cycles_since_change))
+
+    b.destroy(); b2.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_an_exhausted_ladder_reaches_the_supervisor():
     """END TO END: ladder -> run_cycle -> Supervisor. Assert the ROUTE.
 
@@ -1997,6 +2085,7 @@ def main():
                test_observer_vitals_are_derived,
                test_forever_stops_when_asked,
                test_forever_does_not_spin_on_failure,
+               test_a_visit_that_never_happened_does_not_consume_its_trigger,
                test_an_exhausted_ladder_reaches_the_supervisor,
                test_preflight_is_advisory_for_an_unattended_run,
                test_a_quota_wall_is_not_a_fault,

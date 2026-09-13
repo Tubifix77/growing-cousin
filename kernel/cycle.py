@@ -410,12 +410,34 @@ class Engine:
         if fired:
             v = self.visit_cousin(fired[0], executed, tools_after, tools_before)
             result["verdict"] = v.verdict
-            # A visit is the ANSWER to whatever fired. Both counters reset, or a
-            # STALL re-fires on every subsequent cycle and the cousin becomes a
-            # nag the creature learns to skip -- the parent's rule is surface on
-            # a CHANGE of state, never continuously.
-            self.cycles_since_visit = 0
-            self.cycles_since_change = 0
+            if v.verdict != cousinmod.UNKNOWN:
+                # A visit is the ANSWER to whatever fired. Both counters reset,
+                # or a STALL re-fires on every subsequent cycle and the cousin
+                # becomes a nag the creature learns to skip -- the parent's rule
+                # is surface on a CHANGE of state, never continuously.
+                self.cycles_since_visit = 0
+                self.cycles_since_change = 0
+            else:
+                # **A visit that did not HAPPEN is not an answer.** This reset
+                # was unconditional, so when no rung could be reached the
+                # trigger was consumed and that work was never judged -- not
+                # later, not when quota returned. Never.
+                #
+                # The contradiction was already written in this file: the scar
+                # says a visit is the answer to what summoned it, and
+                # `visit_cousin` says an instrument that cannot run says
+                # UNKNOWN. UNKNOWN is explicitly NOT an answer, and the code
+                # took the wrong side.
+                #
+                # 2026-09-13, measured: all four rungs at quota for an hour,
+                # both verdicts in it UNKNOWN/LadderExhausted, and the creature
+                # left re-reading two files with nothing able to redirect it.
+                # Leaving the counters alone means HEARTBEAT fires again and
+                # the work is judged once a rung answers -- which is the
+                # difference between deferred and lost.
+                self.cycles_since_visit += 1
+                self.j.append("visit_unanswered", trigger=fired[0][0],
+                              error=v.error)
         else:
             self.cycles_since_visit += 1
         return result
