@@ -9,6 +9,11 @@ person the work is *for*.**
 > the creature builds, the cousin runs what was built and judges it, and what
 > the cousin asks for next reaches the creature and gets built.
 >
+> **The spine is PAUSED** as of 2026-09-13 13:50 CEST, to give this engine
+> the free tier to itself. The parallel comparison is therefore suspended,
+> not running: any rate measured now is measured under conditions the
+> project is not designed around.
+>
 > Numbers about the *parent* are quoted from Growing Spine. Numbers about the
 > *cousin* were produced here. They are never mixed, and every rate is split by
 > which model served it — an accept from one rung and an accept from another are
@@ -160,11 +165,11 @@ The manager's output is testimony, not instruction.
   cousin (manager)  ──actually tries to use it──▶  ACCEPTED / RETURNED
         │
         ├─▶ testimony back to the creature: what happened to ME, never a diagnosis
-        ├─▶ testimony back to the creature: what happened to ME, never a diagnosis
         ├─▶ on ACCEPTED, a `want` — but ONLY for capability beyond the claim.
-        │   It reaches the creature's next context, newest three kept. A channel
-        │   nothing asserts is a channel that can be dead while everything is
-        │   green — this one was, for a while, and only a test caught it.
+        │   It reaches the creature's next context and STANDS UNTIL THE NEXT
+        │   ANSWERED VISIT discharges it: a visit is the answer to what
+        │   summoned it. A channel nothing asserts is a channel that can be
+        │   dead while everything is green — this one was, for a while.
         └─▶ `noticed` — anything in the way that this work did not cause.
             Gates nothing. Without it the judge blames the messenger.
 ```
@@ -199,7 +204,8 @@ That is where the 99% actually is. It also kills an entire failure class: nothin
 runs per wake, so nothing can silently grow quadratic in the library's size —
 which is what 187,489 regex scans per cycle were.
 
-Manager cost at the chosen trigger policy: **~13% of total LLM calls** — the
+Manager cost at the chosen trigger policy: **a design estimate of ~13% of total
+LLM calls, derived from the parent's counts — a floor, never measured here** — the
 project is free-tier only, permanently, so this is the binding constraint and not
 a detail. A per-cycle manager would be 50% and halve coder throughput.
 
@@ -240,7 +246,7 @@ verified at its call site: the creature's own `run_cycle`, `_maybe_retrospective
 | | Growing Spine | Growing Cousin | |
 |---|---|---|---|
 | Roles besides the creature | 8+ | 1 | different |
-| Do any of them **run** the creature's tools? | **no** — they judge names, descriptions, registries, metric digests | **yes** — running it is the only way it judges | **the difference** |
+| Do any of them **run** the creature's tools? | **no** — they judge names, descriptions, registries, metric digests | **yes, and that is the only first-hand evidence in the design** — though the brief lets it say *"I could not try it, and here is what stopped me"* rather than invent one | **the difference** |
 | Evidence judged on | second-hand: text about tools | first-hand: exit code and output | different |
 | May write the creature's tools? | the architect rules, renames, retires | never — a second *user*, not a second builder | different |
 | Direction mechanism | architect ruling + retro directive + active-project block | one `want`, superseding, discharged by the next answered visit | different |
@@ -251,7 +257,7 @@ verified at its call site: the creature's own `run_cycle`, `_maybe_retrospective
 
 | | Growing Spine | Growing Cousin | |
 |---|---|---|---|
-| Size | `loop.py` ~4,100 lines plus `executive/` and `keychain/` | `kernel/`, eight small modules | different |
+| Size | `loop.py` ~4,100 lines plus `executive/` and `keychain/` | `kernel/`, ten small modules | different |
 | Free tier only, same accounts, same laptop | yes | yes | **same** |
 | Provider ladder | `keychain` + `quota_state` | `backends.ladder` + `kernel/quota.py` | **same shape** |
 | 429 steps down, never retries | yes | yes | **same** |
@@ -335,6 +341,13 @@ Judge: `gemma4:12b`, standing in for **`gemma-4-31b-it`**, the rung that carries
 87–93% of the parent's traffic. Same family, one size down, runs locally, spends
 none of the free-tier allowance.
 
+> **These are IN-SAMPLE.** The four brief rules were derived from failures
+> on these same twelve cases and re-scored on them; there is no held-out
+> set, and the brief was measured on a local stand-in rather than on either
+> rung that serves production. It is a floor for the brief, not a claim
+> about the live ladder. Full caveats in `trial/README.md`.
+
+
 | | result | passes | verdicts |
 |---|---|---|---|
 | **Detection** — can it tell good work from bad? | **110/110 = 100%**, every case identical on every pass | 10 | 120 |
@@ -385,7 +398,9 @@ Full method, fixtures and per-case results: [`trial/`](trial/).
 
 ## Status
 
-Design settled 2026-09-10; validated against real evidence 2026-09-11. It starts
+Design settled 2026-09-10; the brief was scored against real fixtures
+2026-09-11 -- in-sample, on a local stand-in, which is a floor and not a
+validation of the live ladder. It starts
 with a copy of the parent's library — a known-answer test set, so the design can
 be refuted in a week rather than a season (`ARCHITECTURE.md` §11).
 
@@ -395,7 +410,9 @@ contends with the running creature, and wraps replies in `<thought>` blocks. The
 standin is a standin.
 
 **It is deployed and the loop closes in production.** `kernel/` is the 1% that
-stays code, `tests/test_kernel.py` is the gate at **340/340 green**, and a
+stays code, `tests/test_kernel.py` is the gate — **run it for the count; no
+document here quotes one**, because four documents once quoted four different
+numbers and a count in prose is a constant nobody chose. A creature and a
 creature and its cousin run unattended under systemd on the same laptop as the
 spine — same hardware, same network, same free-tier accounts, which is the only
 configuration in which comparing the two projects means anything.

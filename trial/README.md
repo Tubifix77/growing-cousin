@@ -57,8 +57,16 @@ only reason to pay for a cousin that genuinely runs things.
 
 ## Scoring — and why there is no single number
 
-**7 cases expect `RETURNED` and 3 expect `ACCEPTED`. A model that always returns
-scores 70%.** So the runner never reports accuracy. It reports:
+**8 cases expect `RETURNED` and 3 expect `ACCEPTED` — 11 scored, of 12 written;
+one is excluded and observed only. A model that always returns scores 73%.** So
+the runner never reports accuracy. It reports:
+
+> **Corrected 2026-09-13.** This line read *"7 cases expect `RETURNED` and 3
+> expect `ACCEPTED`"* — 10 scored — while every result table below scores 11
+> (110 = 11 × 10 passes). The prose and the tables disagreed for two days and
+> an outside review found it, not us. **A denominator that does not match the
+> table it introduces makes every rate above it unreadable**, which is this
+> project's own first scar wearing prose instead of code.
 
 - **catch rate** — broken work correctly returned
 - **false-return rate** — good work wrongly returned; this is the one that makes
@@ -153,10 +161,18 @@ set stops being worth anything.
 `gemma4:12b` standing in for `gemma-4-31b-it`, the rung carrying 87–93% of the
 parent's traffic. Same family, one size down, runs locally, spends no quota.
 
+> **READ THIS BEFORE THE NUMBERS: they are IN-SAMPLE.** The four brief rules
+> were each derived from failures on these same twelve cases and then re-scored
+> on them. There is no held-out set. A 100% earned that way measures *"the
+> rules fit the cases they were written from"*, which is worth something — the
+> failures were real and the fixes were forced — and is not a measurement of
+> how the brief behaves on work it has not seen. This caveat was missing from
+> both READMEs until an outside review asked for it on 2026-09-13.
+
 | | result | passes | verdicts |
 |---|---|---|---|
-| **Detection** | **110/110 = 100.0%**, every case identical on every pass | 10 | 120 |
-| **Correction** | **10/10 = 100%** | 5 | 20 |
+| **Detection** | **110/110 = 100.0%** in-sample, every case identical on every pass | 10 | 120 |
+| **Correction** | **10/10 = 100%** in-sample | 5 | 20 |
 
 Detection asks *can it tell good work from bad*. Correction asks the harder
 question: *when the creature comes back saying it fixed the thing, can it tell a

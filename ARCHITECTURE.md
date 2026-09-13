@@ -1,10 +1,24 @@
 # Growing Cousin — architecture
 
-**Status: the kernel runs — `kernel/` plus a gate at 90/90 green over five
-consecutive runs. No creature, nothing deployed.** The design below is
-validated: `trial/` put this brief in front of the parent's real library and
-scored **detection 110/110 and correction 10/10** on a stand-in for the workhorse
-model. Dated 2026-09-10, results 2026-09-11.
+**Status: DEPLOYED.** A creature and its cousin run unattended under systemd on
+the same laptop as the spine, free tier only. The loop closes in production:
+the creature builds, the cousin runs what was built and judges it, and the
+capability it asks for next reaches the creature and gets built.
+
+> This header said *"No creature, nothing deployed"* until 2026-09-13 — three
+> days after it stopped being true, and it was found by an outside review
+> rather than by anyone here. `CLAUDE.md` §0 is the status of record; this file
+> is the design. **The gate count is deliberately not quoted anywhere in prose**
+> — run `python tests/test_kernel.py` for the number. A hard-coded count is a
+> constant nobody chose, obeyed forever, which is the fault this project's own
+> doctrine names first.
+
+The design below was validated *before* deployment: `trial/` put this brief in
+front of the parent's real library and scored **detection 110/110 and correction
+10/10** on a stand-in for the workhorse model — **in-sample**, on twelve cases,
+with the rules derived from those same cases. Dated 2026-09-10, results
+2026-09-11. That is a floor for the brief and says nothing about the live
+ladder; see `trial/README.md`.
 
 A mutation of [Growing Spine](https://github.com/Tubifix77/growing-spine). Same
 creature, same volume, same instruments — a different engine.
@@ -335,15 +349,42 @@ that: **139 false-completion blocks in one window.** It claims done constantly.
 exist so the creature is never *unvisited*, and so the manager can be the source
 of direction when nothing is being claimed.
 
-**Ordering rule:** one manager invocation at a time, and the creature's cycles
-continue while it runs. The manager is asynchronous; a verdict lands on the
-next wake. It is not a synchronous gate — blocking the creature on manager
-latency would put the free-tier budget and the throughput in direct conflict.
+**Ordering rule — CHANGED IN THE CODE 2026-09-13, and this paragraph described
+the old one until an outside review caught it.**
+
+It used to read: *"the manager is asynchronous; a verdict lands on the next
+wake. It is not a synchronous gate — blocking the creature on manager latency
+would put the free-tier budget and the throughput in direct conflict."*
+
+**The two agents now share one queue.** The visit happens inside the cycle, and
+a cousin that cannot be reached defers the whole cycle rather than letting the
+creature run on. Tue's reason, and it is the stronger one: *"how can the
+creature think when there is no rung available? it is as dependent on the rung
+as the mentor."* Silence from the second inhabitant is not approval, and a
+creature that keeps building through it is building unjudged.
+
+**The cost is real and is the price of the invariant**, not an oversight: with
+a free-tier ladder and no local floor, a window in which every rung is at quota
+now idles *both* agents. Measured the same day — long stretches where the
+creature's thinks deferred one after another with nothing wrong anywhere. The
+throughput premise in §7 was argued from the asynchronous property and no
+longer holds; read those figures as a design point, never as this engine's
+behaviour.
 
 ## 7. Economics — the binding constraint
 
 Free tier only, permanently. That is a standing decision in the parent project
 and it is not revisitable, so it shapes everything.
+
+> **Everything in this section is a DESIGN ESTIMATE derived from the parent's
+> counts, and the ~13% below is a floor, not a measurement of this engine.**
+> Flagged by an outside review 2026-09-13, which found "~13%" quoted as though
+> measured in three other places. It is now qualified at each of them.
+> The measured figure lives in `vitals.py` (`cousin calls ÷ total calls`, split
+> by rung); a figure with no denominator and no era is not a figure. Two things
+> this estimate cannot see: calls that produced no usable verdict — 14 in one
+> measured window — and the one-queue change in §6, which removed the
+> asynchronous property the throughput half of this argument rested on.
 
 From the parent's last full window (82 productive hours), per day:
 
@@ -575,8 +616,12 @@ cause *fewer, better* tools.
   by review.* If a specialist is ever wanted, make it **summonable** by the
   manager and count the summons — one never summoned gets deleted; one summoned
   constantly becomes code.
-- **A synchronous manager gate.** Blocking coder cycles on manager latency puts
-  throughput and budget in direct conflict.
+- ~~**A synchronous manager gate.**~~ **BUILT 2026-09-13, deliberately,
+  reversing this entry.** Blocking coder cycles on manager latency does put
+  throughput and budget in conflict — that reasoning was right and the cost
+  arrived exactly as predicted. It was outweighed: silence from the second
+  inhabitant is not approval, and the two agents share one queue so that an
+  unreachable ladder stops *both*. See §6.
 - **The manager writing or editing tools.** It is the second user, not a second
   builder. That coupling surface is what killed the "builder" proposal in the
   parent project.

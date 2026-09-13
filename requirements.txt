@@ -1,0 +1,17 @@
+# Growing Cousin — dependencies.
+#
+# The engine and the gate need NOTHING beyond the Python standard library, and
+# that is deliberate: every provider call is urllib, every store is a file, and
+# the fewer moving parts the kernel has the fewer places a fault can hide.
+# `python3 run.py` and `python3 tests/test_kernel.py` both run on a bare
+# interpreter.
+#
+# Python 3.9+ (deployed on Debian 12 / Python 3.11).
+#
+# The OBSERVER is the one exception — it is a window onto the system, not part
+# of the system under test, and it is optional:
+#
+#     pip install PyQt6
+#
+# Nothing else is required. If this file ever grows a real dependency, that is
+# a decision worth arguing about in the commit message, not a convenience.

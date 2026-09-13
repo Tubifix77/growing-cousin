@@ -4,7 +4,9 @@
     python run.py --cycles 10
     python run.py --cycles 10 --model gemma4:12b --root ./live
 
-Both agents are the same model, because both sit on the same ladder. The
+Both agents sit on a ladder; `--cousin-rungs` gives the cousin its own, and
+the deployed configuration uses that -- a rung that answers cleanly but without
+a verdict block is useless to the cousin and fine for the creature. The
 creature reads `CREATURE-PROMPT.md`; the cousin reads `MANAGER-PROMPT.md`. The
 kernel serves the context and holds the bounds, and decides nothing.
 
@@ -137,10 +139,14 @@ def main():
                     help="ladder spec; falls back to --model when absent")
     ap.add_argument("--cousin-rungs", default=None,
                     help="separate ladder for the cousin (default: same as the "
-                         "creature's). The manager is 13%% of calls; serving it "
-                         "from a rung that answers cleanly but uselessly "
-                         "produces confident garbage instead of a visible "
-                         "failure.")
+                         "creature's). Serving the cousin from a rung that "
+                         "answers cleanly but uselessly produces confident "
+                         "garbage instead of a visible failure -- measured "
+                         "2026-09-13: one rung returned 14 replies and 0 "
+                         "usable verdicts. (The '~13%% of calls' figure that "
+                         "used to be quoted here is a design estimate from the "
+                         "parent, never measured on this engine; vitals.py "
+                         "carries the real ratio.)")
     args = ap.parse_args()
 
     if args.fresh and os.path.isdir(args.root):
@@ -161,7 +167,14 @@ def main():
     # outright -- measured here 2026-09-11 at 2 of 10 cycles, and the parent
     # raised its own ceiling for exactly this reason. max_tokens is a cap, not
     # an allocation: the extra is only spent on replies that were being cut off.
-    # The cousin emits a short verdict block and needs far less.
+    # The cousin needs MORE, not less, and the opposite was assumed here until
+    # 2026-09-13. Its contract also puts the block last, and the rung that
+    # carries most of its traffic spends ~94%% of its budget deliberating
+    # before reaching it: at 2048 it produced 14 replies and 0 usable verdicts,
+    # every one cut at finish=length. Growing Spine reached the same conclusion
+    # first -- "verdict-first fights how reasoning models generate", so fund
+    # the musing rather than trying to suppress it. The deployed cousin ladder
+    # is at 4096.
     spec = backends.load_spec(args.rungs)
     cousin_spec = backends.load_spec(args.cousin_rungs) or spec
     if spec:

@@ -6,7 +6,7 @@
     "model": "provider/some-model:free",
     "base_url": "https://example-provider/api/v1",
     "key_env": "SOME_PROVIDER_API_KEY",
-    "num_predict": 900,
+    "num_predict": 3072,
     "timeout": 180
   },
   {

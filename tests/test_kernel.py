@@ -3048,9 +3048,88 @@ def test_library_never_withholds_a_tool_that_failed():
           "archive" in triggers.list_tools(own), triggers.list_tools(own))
 
 
+def _repo_root():
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _docs():
+    root = _repo_root()
+    out = {}
+    for name in ("README.md", "CLAUDE.md", "ARCHITECTURE.md"):
+        p = os.path.join(root, name)
+        if os.path.exists(p):
+            out[name] = io.open(p, encoding="utf-8").read()
+    return out
+
+
+def test_no_document_hard_codes_the_gate_count():
+    """Four documents once carried four different gate counts, all wrong.
+
+    At one HEAD on 2026-09-13: ARCHITECTURE said 90/90 and "nothing deployed",
+    CLAUDE.md said 242/242, README said 340/340, and the gate was at 348 -- the
+    README having been "repaired" 21 minutes earlier. Found by an outside
+    review. A count in prose is a constant nobody chose, obeyed forever, which
+    is the first fault this project's own doctrine names.
+
+    **This is a smoke alarm, not a proof.** It flags a CURRENT-tense gate count
+    in a status position, and deliberately does not flag: dated history, a
+    "Previous state" section, or the trial's own scores, which are evidence
+    rather than status. The first version of it flagged all three and produced
+    fourteen false alarms -- a checker that cannot distinguish the thing it
+    measures, for the fifth time in two days, so it is worth saying plainly
+    what this one does NOT catch.
+    """
+    pat = re.compile(r"\b(\d{2,4})\s*/\s*\1\b")
+    for name, text in _docs().items():
+        # History lives after the first "Previous state" heading; a count there
+        # is a record of what was true then.
+        head = text.split("### Previous state", 1)[0]
+        for line in head.splitlines():
+            m = pat.search(line)
+            if not m or "gate" not in line.lower():
+                continue
+            if int(m.group(1)) < 20:        # trial scores, hook self-tests
+                continue
+            low = line.lower()
+            # NO blockquote exemption: the status blocks in these documents
+            # ARE blockquotes, so exempting them let a hard-coded "348/348"
+            # straight through on the first red-proof. Past tense and a date
+            # are what mark evidence; a quote marker marks nothing.
+            past = (" was " in low or "used to" in low or "2026-" in line)
+            check("docs: %s states a live gate count (%s) -- run the gate "
+                  "instead" % (name, m.group(0)), past, line.strip()[:110])
+
+
+def test_the_module_list_matches_the_kernel():
+    """CLAUDE.md and README said "eight modules" over a kernel of ten.
+
+    Cheap to assert, and it is the shape this project keeps paying for: a
+    checker that distinguishes beats a sentence that was true once.
+    """
+    root = _repo_root()
+    mods = sorted(f[:-3] for f in os.listdir(os.path.join(root, "kernel"))
+                  if f.endswith(".py") and f != "__init__.py")
+    check("kernel: there are modules to check at all", len(mods) >= 5, mods)
+
+    words = {8: "eight", 9: "nine", 10: "ten", 11: "eleven", 12: "twelve"}
+    right = words.get(len(mods))
+    for name, text in _docs().items():
+        for line in text.splitlines():
+            low = line.lower()
+            if "modules" not in low:
+                continue
+            wrong = [w for n, w in words.items()
+                     if w in low and n != len(mods)]
+            check("docs: %s counts the kernel's modules correctly "
+                  "(%d = %s)" % (name, len(mods), right),
+                  not wrong, line.strip()[:110])
+
+
 def main():
     t0 = time.time()
-    for fn in (test_the_creatures_shell_does_not_inherit_the_engines_secrets,
+    for fn in (test_no_document_hard_codes_the_gate_count,
+               test_the_module_list_matches_the_kernel,
+               test_the_creatures_shell_does_not_inherit_the_engines_secrets,
                test_every_defined_test_is_registered,
                test_giving_up_is_distinguishable_from_stopping,
                test_the_unit_bounds_its_own_restarting,

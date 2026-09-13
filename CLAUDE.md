@@ -23,7 +23,18 @@ stated.
 spine, under systemd.** `kernel/` is the 1% from `ARCHITECTURE.md` §14 —
 journal, body, think, triggers, cousin, cycle, backends, forever — `run.py`
 drives it, `observer.py` is the window, `census.py` is the only thing that
-checks the manager, and `tests/test_kernel.py` is the gate: **242/242 green.**
+checks the manager, and `tests/test_kernel.py` is the gate.
+
+**The gate count is deliberately not written down here.** It said 242 while the
+gate was at 348, and three other documents each said something different —
+found by an outside review 2026-09-13, not by anyone here. A count in prose is
+a constant nobody chose, obeyed forever, which is the first fault this file's
+own doctrine names. Run it for the number; `test_no_document_hard_codes_the_gate_count`
+keeps it that way.
+
+`kernel/` is **ten modules** plus `__init__.py`, and that list is asserted
+against the directory rather than typed: see
+`test_the_module_list_matches_the_kernel`.
 
 **The gate's authority moved to the laptop (2026-09-12).** The Windows box
 fails the liveness assertion intermittently under the suite's process churn —
@@ -33,7 +44,42 @@ it there before committing; the pattern that works without pushing first is a
 scratch `git clone ~/growing-cousin /tmp/gate-check` with the changed files
 uploaded over it.
 
-**The design closes its loop in production, repeatedly.** Creature builds, cousin uses and accepts, cousin asks for the next capability, the want reaches the creature, it builds that (§7). Measured 2026-09-12/13 over an evening: **6 accepts, 4 wants, 33 verdicts**, on two different rungs. It is no longer one swallow. It is also not yet a system that produces much -- most of those hours were spent waiting out a shared quota, and the wants have begun repeating themselves.
+**The design closes its loop in production, repeatedly.** Creature builds,
+cousin uses and accepts, cousin asks for the next capability, the want reaches
+the creature, it builds that.
+
+**EVERY PRODUCTION FIGURE MUST NAME ITS RUN.** There are two, and they are not
+comparable:
+
+| run | when | status |
+|---|---|---|
+| **run 1** | to 2026-09-13 12:44 | **ARCHIVED AS CONTAMINATED** — `archive-contaminated-20260913-1244`. The two agents did not share a queue, so 39 of 98 visits never happened and ~40% of the cousin's judgements were discarded silently. Nothing in it is quotable as trajectory. |
+| **run 2** | from 2026-09-13 12:48 | current. Started from nothing: no journal, no context, no memory, no tools. |
+
+The figures that stood here until 2026-09-13 — *"6 accepts, 4 wants, 33
+verdicts, measured 2026-09-12/13"* — are **run 1**, i.e. the run this project
+declared unusable. They were quoted for a day without saying so, against this
+file's own rule: *say which era a figure comes from or do not quote it.* Found
+by an outside review, not here.
+
+**Run 2, and each figure names the engine that produced it.** The engine was
+changed roughly ten times during it, so even within run 2 a rate spans
+instruments:
+
+- The loop closes: cousin asked for *"a way to link tasks in the plan to
+  specific entries in the archive"* (19:05 CEST, `gemini/gemma-4-31b-it`); the
+  creature read its archive tool, rewrote `plan` to add the link, tested it,
+  and the cousin accepted and asked for the next capability. Engine `8715e42`.
+- Wants **progress rather than repeat** — the second built on the first. That
+  is the signal worth having; in run 1 the wants had begun restating themselves.
+- **Cousin verdicts are scarce and the ladder is the reason.** In one measured
+  window (15:40–18:00, engine `41deceb`) `gemini/gemma-4-31b-it` served the
+  cousin 14 times and produced **0** usable verdicts — every one truncated
+  before the terminal block — while `groq/gpt-oss-120b` went **2 for 2**.
+
+**No production journal or vitals output is committed** (`live/` is gitignored),
+so none of the above can be checked by anyone who was not there. That is a real
+gap in the evidence chain, named here rather than papered over.
 
 **The ladder is configuration, not code**: `rungs.local.json` and
 `rungs.cousin.local.json`, both gitignored, both naming a `key_file` outside the
@@ -72,11 +118,31 @@ project's most expensive errors were numbers nobody could source.
 
 ## 1. The two rules
 
-**1. This engine's faults will be in what the manager SAYS, not in what it does.**
-The parent's faults were in Python: a constant nobody chose, a guard hunting one
-literal, a default branch that raised. Those failure modes are mostly gone here.
-What replaces them is worse-behaved, because it is not reproducible and no test
-catches it. So:
+**1. This engine's faults were PREDICTED to be in what the manager says. Measured,
+they have overwhelmingly been in Python.**
+
+The prediction was: *"the parent's faults were in Python — a constant nobody
+chose, a guard hunting one literal, a default branch that raised. Those failure
+modes are mostly gone here."* **They are not gone.** Of the scars in §5,
+counting by where the fault lived rather than where it hurt, the large majority
+are framework and harness faults; three are the brief; three are process. And
+every fault found on 2026-09-13 — nine of them — was Python or a systemd unit:
+a parser that ran what the contract said was not a command, two truncation caps
+in series, a reply banked as an answer, one label for three faults, a want with
+no completion signal, an exit code that suppressed its own restart, a
+`StartLimit` in the section where it is ignored, a sandbox that was never in
+force, and a shell inheriting the engine's environment.
+
+Put plainly: **the design moved the judgement out of Python and the faults
+stayed.** That is not a reason to abandon it — the faults are *findable*, each
+one had a test that failed first, and none of them was the manager producing
+confident garbage. But a doctrine file whose §1 says the Python danger is over
+will mislead the next session that reads §0–§3 and skips §5, which is exactly
+how this drifted for three days. Corrected 2026-09-13 after an outside review
+pointed at the contradiction between this section and the git log.
+
+The prose rules below still hold, because the manager's faults *when they come*
+behave as described — not reproducible, and no test catches them:
 
 - When the creature does something wrong, read the manager's last three verdicts
   before reading the creature's code. The fault is usually upstream in prose.
@@ -150,11 +216,25 @@ only caught because a human reads a log, it is not fixed.
 
 **Does not transfer — do not copy these in as if earned:**
 
-- Every scar about Python framework internals: `classify_error`'s default,
-  truncation caps in series, the quadratic dependency scan, guards keyed on one
-  literal string, the `st_mode` cache key. This engine does not have those
-  failure modes. Importing them as doctrine would be archaeology posing as
-  experience.
+- ~~Every scar about Python framework internals: `classify_error`'s default,
+  **truncation caps in series**, the quadratic dependency scan, guards keyed on
+  one literal string, the `st_mode` cache key. This engine does not have those
+  failure modes.~~
+
+  **WRONG, and expensively so. Corrected 2026-09-13.** This engine had
+  truncation caps in series for its whole life: `EXEC_STDOUT_CHARS = 1200` cut
+  stdout on the way into the journal, and `HISTORY_OUTPUT_CHARS = 2400` was
+  then applied to data already cut — so a carefully measured 700→2400 raise did
+  nothing at all, and a 4 KB tool was shown to its own author 1,200 characters
+  at a time while it tried to extend it. Guards keyed on one literal string
+  also recurred, three times in one evening, inside the tests written to catch
+  that class.
+
+  The general lesson is the opposite of what this section said: **a failure
+  mode you inherit the *shape* of, you inherit.** What does not transfer is the
+  parent's specific code; what transfers is every way a cap, a literal or a
+  default can quietly do nothing. Read the parent's scars as a checklist of
+  shapes to look for here, not as archaeology.
 - The parent's §8 live state. It describes a different running system.
 
 **This repo starts with almost no scars, and that is the honest condition.** The
@@ -331,6 +411,99 @@ was measured, with what, and on what date.*
   for the life of the kernel, and the cousin's verdict had kept its raw text
   since 2026-09-12 — the asymmetry was the bug, and the top scar below says
   so in general terms.
+
+- **A SETTING THAT IS PRESENT, PARSED AND LIVE CAN STILL DO NOTHING — twice in
+  one evening, and only testing the EFFECT found either.** 2026-09-13.
+  (1) `StartLimitIntervalSec`/`StartLimitBurst` were written into `[Service]`,
+  where systemd ignores them; the unit read back `StartLimitIntervalUSec=10s`
+  while the file said 1800. (2) Far worse: `ProtectSystem=strict`,
+  `ProtectHome=read-only` and `ReadWritePaths` were **entirely inert** in a
+  *user* unit without `PrivateUsers=yes` — a throwaway unit carrying all three
+  **wrote a file into `$HOME`**. So the creature's bash, written by free-tier
+  third-party models, could read *and write* anywhere this user can, including
+  `~/growing-spine`, which §2.6 makes a hard boundary. The unit's own comment
+  claimed the opposite. **Invariant: a directive read back off the unit proves
+  it was PARSED, never that it WORKS — test the effect, from inside the same
+  sandbox, before believing any protection exists.** Six effects were checked
+  before shipping the fix, because a sandbox that breaks the run is discovered
+  at 03:00 by nobody.
+
+- **The body ran untrusted input in the class whose docstring forbids exactly
+  that, and passed it the engine's whole environment.** 2026-09-13, found by an
+  **outside review of the public repo**, confirmed here the same evening:
+  `LocalBody` says *"not a sandbox... for running OUR fixtures, never untrusted
+  input"*, and production feeds it bash from third-party models with
+  `env=dict(os.environ, ...)`. A creature-style command read `~/keys/*.key` and
+  listed the spine's directory. Fixed with an **allow-list** child environment —
+  a deny-list has to be updated every time a new secret-shaped variable appears
+  and it will not be. **Still open and stated rather than implied: the key files
+  remain readable by anything running as this uid.** The generalisation:
+  **a class's own docstring is a contract, and deploying against it is a
+  decision someone has to make on purpose** — nobody ever did.
+
+- **Two caps in series, and the one that was tuned was not the one that acts.**
+  2026-09-13. `HISTORY_OUTPUT_CHARS` was raised 700→2400 against a real
+  measurement; `EXEC_STDOUT_CHARS = 1200` had already cut the data on the way
+  into the journal, so the raise did nothing and the served context had been
+  printing `window 1200` ever since for anyone who read it. Cost: `plan` grew
+  to 4,022 bytes, the creature ran `cat tools/own/plan` six times in fifteen
+  minutes, saw a third of it each time, and built nothing. **Invariant: the
+  journal is the evidence, so it may never keep LESS than a consumer is allowed
+  to show** — asserted now, so the next raise cannot be swallowed.
+
+- **A reply is not automatically an answer, and banking one hid a dead rung.**
+  2026-09-13: `gemini/gemma-4-31b-it` served the cousin 14 times and produced 0
+  usable verdicts — every one cut at `finish=length` after spending ~94% of its
+  budget on reasoning — while `groq/gpt-oss-120b` went 2 for 2. The ladder
+  counted all 14 as successes, so it never fell through. This project had
+  already written that down — *such a call registers as a SUCCESS, so nothing
+  walls the rung and nothing below it is ever reached* — and I read the symptom
+  as weather for four hours anyway. **The fix came from reading Growing Spine**,
+  whose `keychain/provider.py` returns a reasoning-only completion as an error
+  so the keychain hops window. Spine also settled the tempting wrong fix:
+  *"verdict-first fights how reasoning models generate"* — do not ask a
+  reasoning model for the answer first; **fund the musing** and require a
+  terminal block.
+
+- **One label for three faults let a broken channel read as weather.**
+  2026-09-13: 14 of 16 verdicts came back `no-block`, which I read as "the model
+  declined to answer". The fields said otherwise the whole time —
+  `chars_before_strip=8407`, `chars_stripped=7935`, `finish=length`. The think
+  side had kept `truncated` / `budget_spent` / `no_command` apart since the
+  kernel's first week; the cousin side collapsed them. **Every distinction you
+  refuse to record, you will later have to guess.**
+
+- **A channel with no completion signal is re-served forever.** 2026-09-13: a
+  `want` stayed in the managed context until three newer ones pushed it out, and
+  new wants only arrive on an accept — so between accepts the creature was
+  handed the same direction every wake with no way to mark it done, and spent
+  cycles re-running `plan goal / plan add / plan list`. The trigger scar one
+  level up, and its resolution was already written three lines from where the
+  fix hooks in: **a visit is the ANSWER to what summoned it, so it clears what
+  summoned it.** An UNKNOWN clears nothing — a bad reply must not erase the only
+  direction the creature has.
+
+- **Giving up is not finishing, and exiting 0 for both meant nothing restarted.**
+  2026-09-13: the supervisor abandons the run after 5 consecutive failures or
+  600 waits, `run.py` returned 0, and the unit says `Restart=on-failure` — so
+  the engine could quit at 03:00, report success, and lie there. Found while
+  answering *"can I check once a day?"*, which is the only reason it mattered
+  enough to look. **A flag, never a parsed reason string**: the reason is prose
+  for a human, and a caller that decides by matching it is a checker agreeing
+  with a producer by eye.
+
+- **An outside reader found in one pass what three days inside did not.**
+  2026-09-13, a review with GitHub-only access under a zero-assumption contract.
+  It found the inert sandbox path, four different gate counts in four documents,
+  `ARCHITECTURE.md` still announcing *"nothing deployed"* three days after
+  deployment, production headline figures quoted from the run this project had
+  itself archived as contaminated, and §1/§3 contradicted by §5 and the git log.
+  **None of it needed access we do not have; all of it needed a reader who had
+  not been here while it happened.** The generalisation is uncomfortable and
+  worth keeping: *the documents drift fastest in exactly the sessions that are
+  working hardest*, because every fix is written into the commit message and the
+  status sections are updated from memory. Where a number can be generated,
+  generate it; where it cannot, date it and name its run.
 
 - **A checker that cannot distinguish the thing it measures reports a
   clean-looking wrong number, never an error — and I built four in one evening
@@ -540,7 +713,29 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    on a rung like that produces confident garbage instead of an obvious failure.
    Record the model per verdict from day one.
 
-## 7. State — 2026-09-12 (deployed, and barely producing)
+## 7. State — 2026-09-13, run 2 (deployed; the loop closes, throughput is the limit)
+
+**Run 2 began 12:48 CEST from nothing** — no journal, no context, no memory, no
+tools — after run 1 was archived as contaminated (§0). Everything below this
+heading, until "Previous state", is **run 2**.
+
+The loop closes and the wants progress rather than repeat (§0 carries the
+measurement and names the engine SHA for each figure). What limits it is not
+the design: it is a free tier where every rung can be at quota at once, and the
+one-queue rule means that idles both agents. Nine framework faults were found
+and fixed during run 2 (§5), so no rate spans the whole of it.
+
+**Open, and both are Tue's:** the creature's shell still shares a uid with the
+engine, so the key files are readable by anything it runs — `DockerBody` or
+`LoadCredential=` closes that; and whether the 2400-character output window
+should grow, now that a single tool exceeds it.
+
+### Previous state — 2026-09-12, RUN 1 (archived as contaminated)
+
+> Everything in this subsection is from the run whose verdicts were ~40%
+> silently discarded because the two agents did not share a queue. It is kept
+> because the faults it found were real and the fixes are in the code; its
+> **numbers are not quotable as trajectory**.
 
 **It runs unattended on the laptop and it is not yet working.** Seven hours, 95
 cycles, 16 verdicts, and **one** of them usable:

@@ -9,8 +9,6 @@ __pycache__/
 *.pyc
 .DS_Store
 live/
-__pycache__/
-*.pyc
 trial/.trial.lock
 .claude/hooks/defect-ledger.log
 .claude/settings.local.json
