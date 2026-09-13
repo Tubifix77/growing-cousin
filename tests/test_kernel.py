@@ -23,8 +23,8 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from kernel import (backends, body as bodymod, cousin, forever, think,
-                    triggers)
+from kernel import (backends, body as bodymod, cousin, forever, library,
+                    think, triggers)
 from kernel.cycle import Engine
 from kernel.journal import (EXEC_STDOUT_CHARS, Journal, capped, marker_total)
 
@@ -2421,9 +2421,145 @@ def test_live_model():
           bool(v.to_creature.strip()) and v.deliverable, repr(v.to_creature)[:90])
 
 
+def _write_tool(own, name, does="", call="", body="echo hi"):
+    os.makedirs(own, exist_ok=True)
+    lines = ["#!/bin/sh"]
+    if does:
+        lines.append("# does: " + does)
+    if call:
+        lines.append("# call: " + call)
+    lines.append(body)
+    with open(os.path.join(own, name), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def test_the_creature_is_shown_its_own_library_every_wake():
+    """It was asked not to build the fifth variant while never shown the four.
+
+    The cousin's library gap was found 2026-09-12 and fixed; the SAME gap
+    aimed at the builder survived it, because the fix was written as "the
+    judge needs both sides of a comparison" rather than "both inhabitants need
+    to see the library". 2026-09-13 Tue named it from the other end -- MCP and
+    skills re-present a tool's frontmatter on every load, and a creature that
+    is told its tools are on PATH and never told WHICH is being handed a
+    promise the context does not keep.
+
+    Every wake, not on a trigger: this is state, not news.
+    """
+    e, j, b, d = build_engine(["thinking, no commands"], [])
+    own = os.path.join(b.mind, "tools", "own")
+    _write_tool(own, "plan", does="tracks what to do next",
+                call="plan goal|add|list|done")
+
+    seen = {}
+
+    def spy(prompt):
+        seen["p"] = prompt
+        return "thinking, no commands", {"model": "spy", "done_reason": "stop"}
+    e.ask_creature = spy
+    e.run_cycle()
+
+    p = seen.get("p", "")
+    check("creature library: it is shown the tools it has built",
+          "plan" in p, p[-300:] if p else "(no prompt captured)")
+    check("creature library: with each tool's stated purpose",
+          "tracks what to do next" in p, p[-300:] if p else "")
+    check("creature library: and how each one is called",
+          "used as: plan goal|add|list|done" in p, p[-300:] if p else "")
+
+
+def test_library_marks_a_tool_its_user_has_never_run():
+    """The tested/untested column, decided 2026-09-13 (Tue).
+
+    Placement matters more than the string: the cousin RUNS the test, and
+    nothing ENFORCES it. A cousin that could withhold a tool would be a second
+    builder (CLAUDE.md §2.3) and a second judge with no judge of its own. So
+    the framework records who ran what and shows it; neither agent gets a
+    gate.
+    """
+    d = tmpdir()
+    own = os.path.join(d, "own")
+    _write_tool(own, "taskprio", does="orders tasks")
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    out = library.render(own, j)
+    check("library column: an untouched tool says so plainly",
+          "NEVER run" in out, out)
+
+    j.append("cousin_probe", tool="taskprio", exit_code=0,
+             stdout="ok", stderr="")
+    out2 = library.render(own, j)
+    check("library column: once its user runs it, that replaces never-run",
+          "NEVER run" not in out2 and "ran this once" in out2, out2)
+    check("library column: and carries the exit code it really saw",
+          "exited 0" in out2, out2)
+
+    j.append("cousin_probe", tool="taskprio", exit_code=1,
+             stdout="", stderr="boom")
+    out3 = library.render(own, j)
+    check("library column: the LAST run is what is reported, not the best one",
+          "exited 1" in out3 and "ran this 2 times" in out3, out3)
+
+
+def test_library_counts_only_its_users_runs():
+    """The discrimination test, and the reason this file is worth having.
+
+    The creature runs its own tools constantly while writing them. Counting
+    that would mark every tool exercised the moment it existed -- a column
+    that reports a clean-looking wrong number rather than an error, which is
+    the oldest scar in CLAUDE.md §5 and one I have now written four times.
+
+    Verified red before green: with `exec_end` included in `use_history` the
+    first assertion fails, which is what makes the second one mean anything.
+    """
+    d = tmpdir()
+    own = os.path.join(d, "own")
+    _write_tool(own, "fetch", does="gets a page")
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    # The creature running its own tool, twice, successfully.
+    j.append("exec_start", cmd="fetch http://x")
+    j.append("exec_end", cmd="fetch http://x", exit_code=0)
+    j.append("exec_end", cmd="fetch http://y", exit_code=0)
+
+    out = library.render(own, j)
+    check("library column: the author running its own tool is NOT a test of it",
+          "NEVER run" in out, out)
+
+    j.append("cousin_probe", tool="fetch", exit_code=0, stdout="", stderr="")
+    check("library column: its user running it IS",
+          "NEVER run" not in library.render(own, j), library.render(own, j))
+
+
+def test_library_never_withholds_a_tool_that_failed():
+    """Visibility, never a gate.
+
+    A failing verdict must not remove a tool from the library or from PATH.
+    If it could, the cousin would hold a write path into the creature's world
+    without ever touching a file, and a bad model day would wall working work
+    the creature could not route around.
+    """
+    d = tmpdir()
+    own = os.path.join(d, "own")
+    _write_tool(own, "archive", does="stores a note")
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    j.append("cousin_probe", tool="archive", exit_code=127, stdout="",
+             stderr="not found")
+
+    out = library.render(own, j)
+    check("library column: a tool its user could not run is STILL listed",
+          "archive" in out and "exited 127" in out, out)
+    check("library column: and is still a tool as far as the kernel is concerned",
+          "archive" in triggers.list_tools(own), triggers.list_tools(own))
+
+
 def main():
     t0 = time.time()
-    for fn in (test_journal, test_history_never_cuts_mid_line,
+    for fn in (test_the_creature_is_shown_its_own_library_every_wake,
+               test_library_marks_a_tool_its_user_has_never_run,
+               test_library_counts_only_its_users_runs,
+               test_library_never_withholds_a_tool_that_failed,
+               test_journal, test_history_never_cuts_mid_line,
                test_a_marker_says_whose_cut_it_is,
                test_marker_invariant, test_body,
                test_command_reaches_disk_intact,

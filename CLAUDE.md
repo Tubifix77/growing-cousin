@@ -206,6 +206,47 @@ guess with authority it has not earned.
   `openrouter/gemma-4-31b-it:free` was already returning 429 while
   `gemini/gemma-4-31b-it` answered in ~32s.
 
+- **Where each function lives — creature, cousin, or framework** (Tue,
+  2026-09-13, deciding it rather than leaving it implicit). The prompt was that
+  "task prioritization" is not one function but several, and that **testing
+  belongs on the non-coding side**, because a builder judging its own work has
+  the wrong evidence: it knows what it meant.
+
+  | function | home |
+  |---|---|
+  | task invention — what to build | **creature** |
+  | need statement — what I cannot do | **cousin** |
+  | ordering of needs | **framework** (the want channel: newest-3, superseding) |
+  | ordering of the creature's own work | **creature**, inside its world |
+  | tool availability — what exists, what is on PATH | **framework** |
+  | running the test | **cousin** |
+  | the verdict | **cousin** |
+  | **enforcing** the verdict | **nobody** |
+  | recording who ran what | **framework** (`kernel/library.py`) |
+
+  Two of these are the load-bearing ones. **The cousin states a lack, never a
+  task** — a user says *"I have tasks in `plan` and no way to say which matters
+  first"*, not *"add a priority flag"*; the creature owns the shape of the
+  solution or it is taking dictation. That is §1's *state the invariant, never
+  the mechanism*, aimed at the cousin's wants, and the live want
+  `"Task prioritization."` is already on the wrong side of it. **And a failed
+  verdict withholds nothing.** A cousin that could keep a tool out of the
+  library would hold a write path into the creature's world without touching a
+  file (§2.3) and be a second judge with no judge of its own — the reason
+  `census.py` reports and never gates. The pressure is visibility instead: the
+  library listing carries, per tool, whether its user has ever run it and what
+  the last run exited.
+
+- **Both inhabitants see the library, every time, as state rather than news**
+  (Tue, 2026-09-13): *"I want and need the creature to be always aware of the
+  tools available to it"*, after the way MCP and skills re-present a tool's
+  frontmatter on every load. The cousin's library gap was found and fixed
+  2026-09-12 (§5); **the identical gap aimed at the BUILDER survived it for a
+  day**, because the fix had been written as "a judge needs both sides of a
+  comparison" rather than "both inhabitants need to see the library". A
+  creature told its tools are on PATH and never told which is being handed a
+  promise the context does not keep.
+
 - **Free tier only, permanently.** "We get what is available without paying
   anything ever." A rung behind a paywall is defunct by definition; removing one
   needs no decision. Rung count and concentration are *outcomes*, not targets.

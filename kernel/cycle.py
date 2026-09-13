@@ -16,6 +16,7 @@ import shlex
 
 from . import body as bodymod
 from . import cousin as cousinmod
+from . import library as librarymod
 from . import think as thinkmod
 from . import triggers as trigmod
 from .journal import EXEC_CMD_CHARS, EXEC_STDERR_CHARS, EXEC_STDOUT_CHARS, capped
@@ -70,6 +71,26 @@ class Engine:
         recent = self.recent_block()
         if recent:
             parts.append(recent)
+        # ITS OWN LIBRARY, EVERY WAKE. 2026-09-13 (Tue): "I want and need the
+        # creature to be always aware of the tools available to it", after the
+        # way MCP and skills present a tool's frontmatter on every load rather
+        # than once.
+        #
+        # It was never shown this. The cousin's library gap (CLAUDE.md §5) was
+        # fixed in September and the same gap aimed at the BUILDER went
+        # unnoticed for as long: a creature asked not to build the fifth
+        # variant of something, while never being shown the four. The prompt
+        # promises its tools are on PATH; a promise the context does not keep
+        # is a contract violation, not a detail -- the same rule `memory_block`
+        # exists for.
+        #
+        # Placed directly before the wants, so what it HAS and what is still
+        # ASKED FOR are read together. That adjacency is the whole anti-twin
+        # pressure, and it costs nothing.
+        lib = librarymod.render(os.path.join(self.body.mind, "tools", "own"),
+                                self.j)
+        if lib:
+            parts.append(lib)
         if os.path.exists(self.context_path):
             with open(self.context_path, encoding="utf-8") as f:
                 managed = f.read().strip()
@@ -529,40 +550,24 @@ class Engine:
         # it is asked to make was not available to it. That is a structural gap,
         # not a prompt weakness: no rewording helps a judge that cannot see what
         # it is comparing against.
-        siblings = [t for t in trigmod.list_tools(
-            os.path.join(self.body.mind, "tools", "own")) if t != target]
-        library = ""
-        if siblings:
-            lines = []
-            for name in siblings[:40]:
-                # BOTH `# does:` and `# call:`. The does-line says what a tool
-                # is for; the call-line says what it can be ASKED to do, and
-                # without the second the cousin cannot tell a tool with
-                # sub-commands from one without.
-                #
-                # 2026-09-13, measured over an evening: it accepted work and
-                # asked for "Ability to add and update steps in the plan" three
-                # times in different words, while `plan add-step` already
-                # worked. All three restatements stood in the creature's
-                # direction at once -- one idea filling a channel bounded to
-                # three. It was not being shown that the capability existed.
-                does = call = ""
-                try:
-                    with open(os.path.join(self.body.mind, "tools", "own", name),
-                              encoding="utf-8", errors="replace") as f:
-                        for line in f.readlines()[:8]:
-                            t = line.strip()
-                            if t.startswith("# does:") and not does:
-                                does = t.split(":", 1)[1].strip()
-                            elif t.startswith("# call:") and not call:
-                                call = t.split(":", 1)[1].strip()
-                except OSError:
-                    pass
-                entry = "- %s%s" % (name, (" - " + does) if does else "")
-                if call:
-                    entry += "\n    used as: %s" % call
-                lines.append(entry)
-            library = "\n".join(lines)
+        # BOTH `# does:` and `# call:` come through `library.render`. The
+        # does-line says what a tool is for; the call-line says what it can be
+        # ASKED to do, and without the second the cousin cannot tell a tool
+        # with sub-commands from one without.
+        #
+        # 2026-09-13, measured over an evening: it accepted work and asked for
+        # "Ability to add and update steps in the plan" three times in
+        # different words, while `plan add-step` already worked. All three
+        # restatements stood in the creature's direction at once -- one idea
+        # filling a channel bounded to three. It was not being shown that the
+        # capability existed.
+        #
+        # `title=None` because the cousin's own LIBRARY_TEMPLATE already frames
+        # the list; two headings over one list is the sort of seam a reader
+        # spends attention on.
+        library = librarymod.render(
+            os.path.join(self.body.mind, "tools", "own"), self.j,
+            exclude=target, title=None)
 
         claim = "I finished %s." % (target or "this work")
         if target:
