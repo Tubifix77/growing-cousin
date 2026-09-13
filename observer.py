@@ -74,6 +74,9 @@ KIND_COLORS = {
     "cousin_want": "#6fd0b8",
     "cousin_unusable": "#e06c60",
     "context_written": "#6fd0b8",
+    # Dim: a want being discharged is the channel working, not news. It shares
+    # the direction colour family so the eye groups it with what wrote it.
+    "want_retired": "#4f9c8a",
     "trigger_fired": "#e8a33d",
     "tools_changed": "#9fc98a",
     # Expected weather, not alarm. A free-tier rung declining is the normal
@@ -240,6 +243,15 @@ def describe(e):
         return "noticed: %s" % (e.get("text") or "")[:160]
     if k == "context_written":
         return "direction rewritten (%s wants standing)" % e.get("wants")
+    if k == "want_retired":
+        # WHY it was retired, not just that it was. "Superseded" and "answered
+        # by a RETURNED" are different events with different meanings for
+        # whether the capability ever arrived.
+        texts = e.get("texts") or []
+        first = (texts[0] if texts else "")[:110]
+        more = " (+%d more)" % (len(texts) - 1) if len(texts) > 1 else ""
+        return "want discharged -- %s: %s%s" % (
+            e.get("because") or "?", first or "(text not kept)", more)
     if k == "tools_changed":
         added, removed = e.get("added") or [], e.get("removed") or []
         bits = []

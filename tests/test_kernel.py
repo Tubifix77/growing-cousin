@@ -296,6 +296,8 @@ def test_observer_describes_every_kind_it_can_see():
         "cousin_want": {"text": "a date filter"},
         "cousin_noticed": {"text": "the disk is nearly full"},
         "context_written": {"wants": 3},
+        "want_retired": {"count": 2, "because": "answered by a RETURNED with "
+                         "no new want", "texts": ["a date filter", "a tag"]},
         "tools_changed": {"added": ["grep_tool"], "removed": []},
         "rung_declined": {"rung": "gemini", "reason": "quota (429)",
                           "expected": True},
@@ -2468,6 +2470,67 @@ def test_the_creature_is_shown_its_own_library_every_wake():
           "used as: plan goal|add|list|done" in p, p[-300:] if p else "")
 
 
+def test_a_want_is_discharged_by_the_visit_that_answers_it():
+    """A want had no completion signal and was re-served forever.
+
+    2026-09-13: it was written into the managed context and stayed until three
+    NEWER wants pushed it out -- and new wants only arrive on an accept. So
+    between accepts the creature was handed the same direction every wake with
+    no way to mark it done, and it spent a run of cycles re-running `plan goal
+    / plan add / plan list` against a standing "add a task to the plan".
+
+    The trigger scar one level up: *a trigger that does not reset its own
+    counter fires forever*. A visit is the ANSWER to what summoned it, and now
+    to what was standing when it arrived.
+    """
+    def acc(w):
+        return ("<<<COUSIN\nverdict: ACCEPTED\ntried: ran it\noutcome: fine\n"
+                "to_creature: I used it and it worked.\nwant: %s\nCOUSIN" % w)
+    ret = ("<<<COUSIN\nverdict: RETURNED\ntried: ran it\noutcome: crashed\n"
+           "to_creature: it stopped with an error before printing anything.\n"
+           "COUSIN")
+    unusable = "I thought about this at length but never said anything usable."
+
+    done = "```bash\nremember current-phase done\n```"
+
+    # 1. An accept replaces what was standing rather than stacking on it.
+    e, j, b, d = build_engine([done] * 2, [acc("a date filter"),
+                                           acc("a tag filter")])
+    e.run_cycle()
+    check("want: the first want stands", e.wants() == ["a date filter"],
+          str(e.wants()))
+    e.run_cycle()
+    check("want: a newer want REPLACES the old one, never stacks",
+          e.wants() == ["a tag filter"], str(e.wants()))
+    check("want: and the discharge is journalled under its own kind",
+          dict(j.kinds()).get("want_retired") == 1, dict(j.kinds()))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+    # 2. A RETURNED answers the standing want too. It asked for nothing new,
+    #    and its testimony is the direction now.
+    e, j, b, d = build_engine([done] * 2, [acc("a date filter"), ret])
+    e.run_cycle(); e.run_cycle()
+    check("want: a RETURNED discharges what was standing",
+          e.wants() == [], str(e.wants()))
+    rec = j.read(kinds=["want_retired"])[-1]
+    check("want: the discharge says WHY, not just that it happened",
+          "RETURNED" in (rec.get("because") or ""), rec.get("because"))
+    check("want: and keeps the text, so a discarded direction is recoverable",
+          rec.get("texts") == ["a date filter"], rec.get("texts"))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+    # 3. THE DISCRIMINATION: a visit that produced nothing usable is not an
+    #    answer. Retiring on it would let a bad reply silently erase the only
+    #    direction the creature has -- an UNKNOWN gates nothing, here too.
+    e, j, b, d = build_engine([done] * 2, [acc("a date filter"), unusable])
+    e.run_cycle(); e.run_cycle()
+    check("want: an UNANSWERED visit retires nothing -- nobody spoke",
+          e.wants() == ["a date filter"], str(e.wants()))
+    check("want: and nothing is journalled as discharged",
+          dict(j.kinds()).get("want_retired") is None, dict(j.kinds()))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_quoted_text_in_a_bare_fence_is_not_a_command():
     """An untagged fence is not an action, and running one invents work.
 
@@ -2631,7 +2694,8 @@ def test_library_never_withholds_a_tool_that_failed():
 
 def main():
     t0 = time.time()
-    for fn in (test_quoted_text_in_a_bare_fence_is_not_a_command,
+    for fn in (test_a_want_is_discharged_by_the_visit_that_answers_it,
+               test_quoted_text_in_a_bare_fence_is_not_a_command,
                test_the_creature_is_shown_its_own_library_every_wake,
                test_a_think_keeps_the_reply_that_produced_it,
                test_library_marks_a_tool_its_user_has_never_run,

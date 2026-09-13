@@ -123,17 +123,59 @@ class Engine:
         want = (want or "").strip()
         if not want:
             return
-        kept = [w for w in self.wants() if w != want]
-        kept.insert(0, want)
-        kept = kept[:WANTS_KEPT]
-        body = ["## What the person who uses your work asked for next", ""]
-        body += ["%d. %s" % (i + 1, w) for i, w in enumerate(kept)]
-        body.append("")
-        body.append("The first is the most recent. These are wants, not orders "
-                    "-- but they are the only thing anyone has actually asked "
-                    "you for.")
+        retired = [w for w in self.wants() if w != want]
+        # NUMBERED, because `wants()` reads this file back and matches on the
+        # number. One item needs no list -- but a writer and a reader that
+        # agree only by eye drift, and this pair drifted the moment the
+        # numbering was dropped: `wants()` returned nothing, `retire_wants`
+        # believed nothing was standing, and the round trip was silently open.
+        body = ["## What the person who uses your work asked for next", "",
+                "1. %s" % want, "",
+                "That is what they asked for last. It is a want, not an order "
+                "-- but it is the only thing anyone has actually asked you "
+                "for."]
         self.write_context("\n".join(body))
-        self.j.append("context_written", wants=len(kept), chars=len(body))
+        if retired:
+            self.j.append("want_retired", count=len(retired),
+                          because="superseded", texts=retired[:WANTS_KEPT])
+        self.j.append("context_written", wants=1, chars=len(body))
+
+    def retire_wants(self, because):
+        """The cousin spoke and did not ask for this again, so it stops standing.
+
+        **A want had no completion signal.** It was written into the managed
+        context and re-served EVERY wake until three newer wants pushed it out,
+        and new wants only arrive on an accept. So between accepts the creature
+        was handed the same direction again and again with no way to mark it
+        discharged -- and on 2026-09-13 it spent a run of cycles re-running
+        `plan goal / plan add / plan list` against a standing
+        *"add a task to the plan"*.
+
+        That is the trigger scar one level up: *a trigger that does not reset
+        its own counter fires forever*, and its resolution is already written
+        three lines from where this is called -- **a visit is the ANSWER to
+        whatever summoned it, so it clears what summoned it.** A want is
+        answered by the cousin's next answered visit, whatever that visit
+        said.
+
+        **The objection, stated rather than hidden:** that visit may have been
+        about a different tool, so the want can retire without the creature
+        ever having built it. Recency still wins, for the same reason the
+        channel supersedes rather than appends -- the cousin is the direction
+        authority and its most recent word is its direction. A want from three
+        visits ago competing with today's refusal is exactly the *three
+        restatements standing at once* fault in another costume. If the
+        capability is still missing, the cousin is the one who will say so
+        again, and it gets a turn every visit.
+
+        An UNANSWERED visit retires nothing: nobody spoke.
+        """
+        standing = self.wants()
+        if not standing:
+            return
+        self.write_context("")
+        self.j.append("want_retired", count=len(standing), because=because,
+                      texts=standing[:WANTS_KEPT])
 
     def wants(self):
         """Read back the wants the managed context currently holds."""
@@ -507,6 +549,14 @@ class Engine:
             # three parent guards that aim rather than refuse have no
             # replacement at all.
             self.record_want(v.want)
+        else:
+            # An ANSWERED visit that asked for nothing new discharges whatever
+            # was standing. Same invariant as the counters reset by a visit,
+            # applied to the channel that carries direction instead of the
+            # ones that summon the cousin. Reached only past the UNKNOWN
+            # return above, so a cousin that ran and said nothing usable --
+            # and one that could not be reached at all -- retires nothing.
+            self.retire_wants("answered by a %s with no new want" % v.verdict)
         if v.blocks_done:
             self.done_blocked = v.to_creature
         return v
