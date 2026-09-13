@@ -12,6 +12,7 @@ Every test asserts a CONTRACT, never a mechanism. A mechanism test goes red when
 you improve the mechanism, and -- worse -- defends the fault: the parent had a
 test asserting a trap phrase AS A REQUIREMENT.
 """
+import collections
 import io
 import json
 import os
@@ -579,6 +580,95 @@ def test_forever_does_not_spin_on_failure():
           "consecutive" not in reason2, reason2)
     check("forever: recovery resets the failure count",
           state["n"] >= 5, "only %d attempts" % state["n"])
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_spent_rung_is_remembered_not_rediscovered():
+    """Asking a rung we already know is spent costs the SIBLING a request.
+
+    CLAUDE.md 4 requires the ladder to be quota-polite because the free tier is
+    shared with the spine. It was not: every call re-probed every rung.
+    Measured in run 2's first 26 minutes -- 15 of 29 rung failures were repeat
+    429s against rungs already known spent, about 35 wasted requests an hour.
+
+    Idea taken from the spine's keychain/quota_state.py (read 2026-09-13,
+    rewritten here -- 2.6 permits reading that source and forbids sharing
+    files with it).
+    """
+    from kernel import quota
+
+    class H(Exception):
+        def __init__(self, code):
+            self.code = code
+
+    calls = collections.Counter()
+
+    def quota_dead(_p):
+        calls["dead"] += 1
+        raise H(429)
+
+    def transient(_p):
+        calls["flaky"] += 1
+        raise H(500)
+
+    def alive(_p):
+        calls["alive"] += 1
+        return "ok", {"model": "m", "done_reason": "stop"}
+
+    st = {}
+    ask = backends.ladder([("dead", quota_dead), ("flaky", transient),
+                           ("alive", alive)], quota_state=st)
+    ask("x")
+    first = calls["dead"]
+    ask("x")
+    ask("x")
+    check("quota: a rung that answered 429 is not asked again while spent",
+          calls["dead"] == first, "asked %d times, expected %d"
+          % (calls["dead"], first))
+    check("quota: and it is recorded as spent", quota.is_spent(st, "dead"),
+          str(st))
+
+    # THE distinction that matters: a 500 is transient and says nothing about
+    # budget. Marking it would wall a working rung -- the WAF-403 mistake.
+    check("quota: a transient failure does NOT mark a rung spent",
+          not quota.is_spent(st, "flaky"), str(st.get("flaky")))
+    check("quota: so the flaky rung is still being tried",
+          calls["flaky"] >= 3, calls["flaky"])
+
+    # Spent is not dead: the mark expires so the rung is retried, not condemned.
+    now = time.time()
+    st2 = quota.record_exhaustion({}, "r", now=now)
+    check("quota: spent now", quota.is_spent(st2, "r", now=now))
+    check("quota: and tried again once the window passes",
+          not quota.is_spent(st2, "r", now=now + quota.FIRST_SKIP_SECS + 1))
+
+    # A success clears it and KEEPS how long the dark period was -- the only
+    # evidence there is for how long these windows really last.
+    quota.record_success(st2, "r", now=now + 120)
+    check("quota: success clears the mark", not quota.is_spent(st2, "r"))
+    check("quota: and measures the outage rather than guessing it",
+          abs(st2["r"]["last_recovery_secs"] - 120) < 1,
+          st2["r"].get("last_recovery_secs"))
+
+    # Repeated failures widen the window; the first failure time is kept so a
+    # long outage does not later report as a short one.
+    st3 = quota.record_exhaustion({}, "r", now=now)
+    since = st3["r"]["since"]
+    quota.record_exhaustion(st3, "r", now=now + 10)
+    check("quota: a second failure widens the skip",
+          st3["r"]["skip"] > quota.FIRST_SKIP_SECS, st3["r"]["skip"])
+    check("quota: but the dark period still starts at the FIRST failure",
+          st3["r"]["since"] == since, st3["r"]["since"])
+
+    # A corrupt or missing state file must not stop the engine.
+    d = tmpdir()
+    bad = os.path.join(d, "q.json")
+    with open(bad, "w", encoding="utf-8") as f:
+        f.write("{not json")
+    check("quota: a corrupt state file loads as empty rather than raising",
+          quota.load(bad) == {})
+    quota.save(bad, {"r": {"since": 1}})
+    check("quota: and state survives a restart", quota.load(bad).get("r"))
     shutil.rmtree(d, ignore_errors=True)
 
 
@@ -1654,18 +1744,24 @@ def test_ladder_routes_and_records():
     # night went to quota" could not be answered from the record.
     j3 = Journal(os.path.join(d, "counts.jsonl"))
 
-    def always_429(_p):
-        raise H(429)
+    # A TRANSIENT failure, deliberately: a 429 now marks the rung spent and it
+    # is skipped, so it cannot fail three times. Counting and skipping are
+    # separate properties and this asserts the first without the second.
+    def always_500(_p):
+        raise H(500)
 
-    ask3 = backends.ladder([("only", always_429)], journal=j3)
+    ask3 = backends.ladder([("only", always_500)], journal=j3)
     for _ in range(3):
         try:
             ask3("x")
         except backends.LadderExhausted:
             pass
     errs = j3.read(kinds=["rung_error"])
+    # SIX, not three: a 500 is RETRY, so each of the three calls attempts twice.
+    # Every ATTEMPT is a real request and every one is counted -- that is the
+    # point, since the old announce-once recorded exactly one of them.
     check("ladder: every rung failure is counted, not only the first of its kind",
-          len(errs) == 3, "journalled %d of 3" % len(errs))
+          len(errs) == 6, "journalled %d of 6 (3 calls x 2 attempts)" % len(errs))
     check("ladder: and the first still carries the full reason, so a tally is "
           "distinguishable from an announcement",
           errs[0].get("first") is True and errs[-1].get("first") is False,
@@ -2210,6 +2306,7 @@ def main():
                test_observer_vitals_are_derived,
                test_forever_stops_when_asked,
                test_forever_does_not_spin_on_failure,
+               test_a_spent_rung_is_remembered_not_rediscovered,
                test_the_cousin_is_never_sent_to_a_tool_that_does_not_exist,
                test_the_two_agents_share_one_queue,
                test_a_visit_that_never_happened_does_not_consume_its_trigger,

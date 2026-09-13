@@ -12,6 +12,8 @@ import time
 import urllib.error
 import urllib.request
 
+from . import quota as quotamod
+
 OLLAMA = "http://localhost:11434"
 
 # Sent on every remote call. See the note in `openai_chat`: a missing
@@ -262,7 +264,8 @@ class LadderExhausted(Exception):
         self.all_walled = all_walled
 
 
-def ladder(rungs, journal=None, retries=1):
+def ladder(rungs, journal=None, retries=1, quota_state=None,
+           quota_path=None):
     """`rungs` is [(name, ask), ...] tried in order.
 
     A walled rung is skipped for the rest of the session: a rejected credential
@@ -275,6 +278,11 @@ def ladder(rungs, journal=None, retries=1):
     obvious failure, and you cannot notice that without the per-call record.
     """
     walled, announced = set(), set()
+    # Remembered exhaustion. Without it every call re-probes every rung, so a
+    # rung that already said 429 is asked again -- 15 of 29 failures in one
+    # measured half hour, each a real request against an account shared with
+    # the spine. See kernel/quota.py.
+    qstate = {} if quota_state is None else quota_state
 
     def announce(name, reason):
         """Every failure is counted; the full text is written once.
@@ -301,11 +309,25 @@ def ladder(rungs, journal=None, retries=1):
         for name, rung in rungs:
             if name in walled:
                 continue
+            if quotamod.is_spent(qstate, name):
+                # Known spent and still inside its window. Skipping costs
+                # nothing; asking costs the sibling a request to be told what
+                # we already know.
+                tried.append("%s(spent)" % name)
+                continue
             for attempt in range(retries + 1):
                 try:
                     text, meta = rung(prompt)
                     meta = dict(meta or {})
                     meta["rung"] = name
+                    if qstate.get(name, {}).get("since") is not None:
+                        quotamod.record_success(qstate, name)
+                        if quota_path:
+                            quotamod.save(quota_path, qstate)
+                        if journal:
+                            journal.append("rung_recovered", rung=name,
+                                           dark_secs=qstate[name].get(
+                                               "last_recovery_secs"))
                     if journal and tried:
                         journal.append("rung_fell_through",
                                        served_by=name, past=",".join(tried))
@@ -313,6 +335,15 @@ def ladder(rungs, journal=None, retries=1):
                 except Exception as e:
                     verdict, reason = classify_error(e)
                     announce(name, reason)
+                    # ONLY quota marks a rung spent. A 500 or a timeout is
+                    # transient and says nothing about budget -- gemini
+                    # produced ten non-quota failures in the same window and
+                    # was working minutes later. Marking those would wall a
+                    # healthy rung, which is the WAF-403 mistake again.
+                    if "quota" in reason or "rate limit" in reason:
+                        quotamod.record_exhaustion(qstate, name)
+                        if quota_path:
+                            quotamod.save(quota_path, qstate)
                     if verdict == WALL:
                         walled.add(name)
                         tried.append("%s(walled)" % name)
@@ -329,7 +360,7 @@ def ladder(rungs, journal=None, retries=1):
 KINDS = {"ollama": ollama, "openai_chat": openai_chat}
 
 
-def from_spec(spec, journal=None):
+def from_spec(spec, journal=None, quota_state=None, quota_path=None):
     """Build a ladder from plain data: [{name, kind, model, ...}, ...].
 
     Rungs are CONFIGURATION, not code, so adding or dropping one is not a commit
@@ -352,7 +383,8 @@ def from_spec(spec, journal=None):
         rungs.append((name, KINDS[kind](**r)))
     if not rungs:
         raise ValueError("empty ladder spec")
-    return ladder(rungs, journal=journal)
+    return ladder(rungs, journal=journal, quota_state=quota_state,
+                  quota_path=quota_path)
 
 
 def load_spec(path):

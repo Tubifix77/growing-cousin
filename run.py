@@ -165,8 +165,19 @@ def main():
     spec = backends.load_spec(args.rungs)
     cousin_spec = backends.load_spec(args.cousin_rungs) or spec
     if spec:
-        ask_creature = backends.from_spec(spec, journal=j)
-        ask_cousin = backends.from_spec(cousin_spec, journal=j)
+        # ONE quota memory, shared by both ladders. The rungs are the same
+        # accounts, so a rung the creature found spent is spent for the cousin
+        # too -- two separate memories would each have to learn it, which is
+        # two wasted requests against the sibling's account instead of one.
+        qpath = os.path.join(args.root, "quota.json")
+        qstate = backends.quotamod.load(qpath)
+        ask_creature = backends.from_spec(spec, journal=j, quota_state=qstate,
+                                          quota_path=qpath)
+        ask_cousin = backends.from_spec(cousin_spec, journal=j,
+                                        quota_state=qstate, quota_path=qpath)
+        spent = backends.quotamod.spent_rungs(qstate)
+        if spent:
+            print("resumed with rungs still spent: %s" % ", ".join(spent))
         served = " -> ".join(r.get("name", r.get("model", "?")) for r in spec)
     else:
         # No ladder configured. The local standin, and SAY SO -- a run that
