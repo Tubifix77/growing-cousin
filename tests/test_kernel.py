@@ -2468,6 +2468,34 @@ def test_the_creature_is_shown_its_own_library_every_wake():
           "used as: plan goal|add|list|done" in p, p[-300:] if p else "")
 
 
+def test_a_think_keeps_the_reply_that_produced_it():
+    """The counterpart of `test_an_unreadable_verdict_keeps_its_evidence`.
+
+    2026-09-13, live: a cycle ran three command blocks, two of which were the
+    creature's own transcript pasted back into a fence -- `| exit 0` sent to
+    bash. Which agent produced that decides everything. A framework extracting
+    commands the creature never fenced is the worst fault this design has; a
+    creature copying its own context is ordinary confusion nobody may touch.
+
+    The journal held `chars` and `finish` and nothing else, so the question was
+    answerable only by reading `FENCE_RE` in the source -- which is not an
+    answer the next reader can reproduce from the log. A summary cannot be
+    re-interrogated when the summary is what is wrong.
+    """
+    reply = ("Looking at my library.\n\n```bash\nls -l tools/own/\n```\n"
+             "and then the thing I pasted by mistake\n\n```bash\n| exit 0\n```")
+    e, j, b, d = build_engine([reply], [])
+    e.run_cycle()
+
+    rec = j.read(kinds=["think"])[0]
+    check("think evidence: the reply itself survives the cycle",
+          "| exit 0" in (rec.get("raw") or ""), sorted(rec.keys()))
+    check("think evidence: enough of it to see which blocks were fenced",
+          rec.get("raw", "").count("```") >= 4, repr(rec.get("raw"))[:160])
+    check("think evidence: the summary fields are kept too, not replaced",
+          rec.get("chars") == len(reply), rec.get("chars"))
+
+
 def test_library_marks_a_tool_its_user_has_never_run():
     """The tested/untested column, decided 2026-09-13 (Tue).
 
@@ -2556,6 +2584,7 @@ def test_library_never_withholds_a_tool_that_failed():
 def main():
     t0 = time.time()
     for fn in (test_the_creature_is_shown_its_own_library_every_wake,
+               test_a_think_keeps_the_reply_that_produced_it,
                test_library_marks_a_tool_its_user_has_never_run,
                test_library_counts_only_its_users_runs,
                test_library_never_withholds_a_tool_that_failed,

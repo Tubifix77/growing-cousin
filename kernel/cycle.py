@@ -24,6 +24,12 @@ from .journal import EXEC_CMD_CHARS, EXEC_STDERR_CHARS, EXEC_STDOUT_CHARS, cappe
 
 WANTS_KEPT = 3
 
+# Generous, because this is EVIDENCE and the point of keeping it is that the
+# question it will be asked has not been thought of yet. The creature's replies
+# measured 2026-09-13 on the live ladder run ~3,100 chars, so this keeps whole
+# replies rather than the interesting half of one. `capped` marks any cut.
+THINK_RAW_CHARS = 12000
+
 # Any run of three or more backticks. Anything the creature is SHOWN must be
 # unable to parse as a block it could act on.
 FENCE_RUN = re.compile(r"`{3,}")
@@ -374,9 +380,28 @@ class Engine:
         # actually produced the text. The brief was measured on
         # gemma-4-31b-it, so any later reading of accept/refuse rates has to be
         # able to separate verdicts by both.
+        # THE REPLY ITSELF, capped. The cousin's verdict has kept its raw text
+        # since 2026-09-12 (`test_an_unreadable_verdict_keeps_its_evidence`);
+        # the creature's think never did, and the asymmetry cost a diagnosis
+        # on 2026-09-13.
+        #
+        # A cycle ran three command blocks, two of which were the creature's
+        # own transcript pasted back -- a quoted history line, `| exit 0`, sent
+        # to bash. The question that matters is which agent produced that: a
+        # framework that extracts commands the creature never fenced is the
+        # worst fault this design has, and a creature copying its own context
+        # is ordinary confusion nobody may touch. **Only the raw reply can
+        # tell those apart, and it had been thrown away.** The answer came
+        # from reading `FENCE_RE` instead, which is not an answer the next
+        # reader can reproduce from the log.
+        #
+        # `chars` and `finish` are a summary, and a summary cannot be
+        # re-interrogated when the summary is what is wrong -- the oldest scar
+        # in CLAUDE.md §5, here in the one channel still missing its evidence.
         self.j.append("think", chars=len(reply or ""),
                       model=meta.get("model"), rung=meta.get("rung"),
-                      finish=meta.get("done_reason"))
+                      finish=meta.get("done_reason"),
+                      raw=capped(reply or "", THINK_RAW_CHARS))
 
         blocks = thinkmod.parse_blocks(reply)
         if not blocks:
