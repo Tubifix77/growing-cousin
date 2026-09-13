@@ -143,6 +143,40 @@ Decide. Emit exactly one `<<<COUSIN` block as the last thing in your reply.
 """
 
 
+REASONING_SHARE = 0.5
+
+
+def why_unreadable(finish, before_strip, stripped):
+    """WHY was there no verdict block? Three answers, three different fixes.
+
+    The think side has done this since the kernel's first week
+    (`think.classify_no_blocks`): *truncated*, *budget_spent* and *no_command*
+    are kept apart because each has its own repair, and collapsing them makes a
+    budget problem look like a quality problem. **The cousin side said
+    `no-block` for all of them**, and that single label cost four hours on
+    2026-09-13: 14 of 16 verdicts came back "no-block", I read it as "the model
+    declined to answer", called it expected weather, and left it frozen under
+    the tuning rule while the engine produced nothing.
+
+    What the fields actually said, once read: `chars_before_strip=8407`,
+    `chars_stripped=7935`, `finish=length`. The model wrote 8,400 characters,
+    **94% of them reasoning**, and was cut off before reaching the block the
+    contract puts LAST. That is not a model with nothing to say. It is the
+    oldest measured finding in this project -- *budget is not the binding
+    constraint, unbounded reasoning is* -- wearing a label that hid it.
+
+    The label is FRAMEWORK and model-independent. What to DO about a rung that
+    reasons past its budget is tuning, and is a separate decision.
+    """
+    if finish != "length":
+        # A complete reply that simply contains no block. The only one of the
+        # three that is genuinely the model choosing not to answer.
+        return "no-block"
+    if before_strip and stripped and stripped >= REASONING_SHARE * before_strip:
+        return "reasoning-ate-the-budget"
+    return "truncated-before-block"
+
+
 def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
           library=""):
     """One manager invocation, end to end. `ask(prompt) -> (text, meta)`."""
@@ -195,6 +229,10 @@ def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
             if recovered.verdict != UNKNOWN:
                 recovered.recovered_from_reasoning = True
                 v = recovered
+    if v.verdict == UNKNOWN and v.error == "no-block":
+        v.error = why_unreadable((meta or {}).get("done_reason"),
+                                 (meta or {}).get("chars_before_strip"),
+                                 (meta or {}).get("chars_stripped"))
     if journal:
         # The rung is recorded beside the model because the ladder is
         # heterogeneous: the brief was measured on gemma-4-31b-it, and a

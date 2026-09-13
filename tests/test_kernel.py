@@ -2200,8 +2200,12 @@ def test_an_unreadable_verdict_keeps_its_evidence():
                                           "done_reason": "length"}),
                  "brief", "c", "h", "t", journal=j)
     rec = j.read(kinds=["cousin_verdict"])[0]
-    check("raw: an unreadable verdict is recorded as UNKNOWN",
-          rec.get("verdict") == cousin.UNKNOWN and rec.get("error") == "no-block",
+    # The label is the one this fixture's own cause deserves. It asserted
+    # `no-block` until 2026-09-13, which is the imprecision the docstring above
+    # had already described in words: this reply was CUT OFF, not withheld.
+    check("raw: an unreadable verdict is recorded as UNKNOWN, and says it was cut",
+          rec.get("verdict") == cousin.UNKNOWN
+          and rec.get("error") == "truncated-before-block",
           str(rec)[:140])
     check("raw: and the reply itself is KEPT, not summarised away",
           "I thought about it" in (rec.get("raw") or ""), str(rec.get("raw"))[:80])
@@ -2470,6 +2474,53 @@ def test_the_creature_is_shown_its_own_library_every_wake():
           "used as: plan goal|add|list|done" in p, p[-300:] if p else "")
 
 
+def test_an_unreadable_verdict_says_which_of_three_things_went_wrong():
+    """One label for three faults is how a broken channel reads as weather.
+
+    2026-09-13, live: 14 of 16 verdicts came back `no-block`. I read that as
+    "the model declined to answer", called it expected on a free tier, and left
+    it frozen under the tuning rule while the engine produced nothing for two
+    hours. The fields had said otherwise the whole time --
+    `chars_before_strip=8407`, `chars_stripped=7935`, `finish=length`: the
+    model wrote 8,400 characters, 94% of them reasoning, and was cut off before
+    the block the contract puts LAST.
+
+    The think side has kept these apart since the kernel's first week. This is
+    the same discrimination on the cousin side.
+    """
+    w = cousin.why_unreadable
+
+    check("unreadable: a COMPLETE reply with no block is the model's own choice",
+          w("stop", 900, 0) == "no-block", w("stop", 900, 0))
+    check("unreadable: cut off with little reasoning is TRUNCATION, not silence",
+          w("length", 4000, 100) == "truncated-before-block",
+          w("length", 4000, 100))
+    check("unreadable: cut off after mostly reasoning is its own fault, "
+          "because raising the budget does not fix it",
+          w("length", 8407, 7935) == "reasoning-ate-the-budget",
+          w("length", 8407, 7935))
+    check("unreadable: unknown finish falls back to no-block, never to a guess",
+          w(None, None, None) == "no-block", w(None, None, None))
+
+    # End to end: the label must survive into the journal, or the next reader
+    # is back to reading a summary that cannot be re-interrogated.
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    long_reply = "I reasoned about this at length. " * 20   # no verdict block
+    cousin.visit(lambda _p: (long_reply, {"model": "m", "rung": "r",
+                                          "done_reason": "length",
+                                          "chars_before_strip": 8407,
+                                          "chars_stripped": 7935}),
+                 "brief", "c", "h", "t", journal=j)
+    rec = j.read(kinds=["cousin_verdict"])[0]
+    check("unreadable: the journal carries the distinguishing label",
+          rec.get("error") == "reasoning-ate-the-budget", rec.get("error"))
+    check("unreadable: and still keeps the evidence behind it",
+          rec.get("chars_stripped") == 7935 and rec.get("finish") == "length",
+          {k: rec.get(k) for k in ("chars_stripped", "finish")})
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_a_want_is_discharged_by_the_visit_that_answers_it():
     """A want had no completion signal and was re-served forever.
 
@@ -2694,7 +2745,8 @@ def test_library_never_withholds_a_tool_that_failed():
 
 def main():
     t0 = time.time()
-    for fn in (test_a_want_is_discharged_by_the_visit_that_answers_it,
+    for fn in (test_an_unreadable_verdict_says_which_of_three_things_went_wrong,
+               test_a_want_is_discharged_by_the_visit_that_answers_it,
                test_quoted_text_in_a_bare_fence_is_not_a_command,
                test_the_creature_is_shown_its_own_library_every_wake,
                test_a_think_keeps_the_reply_that_produced_it,
