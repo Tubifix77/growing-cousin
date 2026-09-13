@@ -337,6 +337,69 @@ def test_observer_describes_every_kind_it_can_see():
           "<script>" not in html and "&lt;script&gt;" in html, html[:160])
 
 
+def test_vitals_never_aggregates_across_rungs():
+    """The instrument that makes a change measurable instead of asserted.
+
+    Tue, 2026-09-13: this framework is not deterministic. A change that looks
+    like an improvement on one observation may be noise, may be a regression
+    the next hour would show, and may be specific to whichever model answered.
+    Five context changes were made in four hours, each declared good from one
+    window, none compared against a baseline.
+
+    So the one thing this file must never do is let an accept rate be read
+    across rungs -- an accept from `gemma-4-31b-it` and one from
+    `gpt-oss-120b` are different instruments, and their average measures
+    neither.
+    """
+    import vitals
+
+    rows = [
+        {"kind": "wake", "ts": 1}, {"kind": "think", "ts": 2},
+        {"kind": "exec_start", "ts": 3, "cmd": "ls"},
+        {"kind": "exec_end", "ts": 4, "exit_code": 0},
+        {"kind": "exec_start", "ts": 5, "cmd": "ls"},
+        {"kind": "exec_end", "ts": 6, "exit_code": 2},
+        {"kind": "cousin_verdict", "ts": 7, "verdict": "ACCEPTED", "rung": "A"},
+        {"kind": "cousin_verdict", "ts": 8, "verdict": "UNKNOWN", "rung": "B",
+         "error": "no-block"},
+        {"kind": "cousin_verdict", "ts": 9, "verdict": "UNKNOWN",
+         "error": "LadderExhausted: nothing answered"},
+        {"kind": "cousin_want", "ts": 10, "text": "a date filter"},
+        {"kind": "cousin_want", "ts": 11, "text": "a date filter"},
+    ]
+    m = vitals.measure(rows)
+    check("vitals: verdicts are split by rung", set(m["by_rung"]) == {"A", "B", "(none)"},
+          str(m["by_rung"]))
+    check("vitals: a rung's accepts are not pooled with another's",
+          m["by_rung"]["A"] == {"ACCEPTED": 1}
+          and m["by_rung"]["B"] == {"UNKNOWN": 1}, str(m["by_rung"]))
+    check("vitals: unknown causes are kept apart, not merged into one number",
+          m["unknown_why"].get("no-block") == 1
+          and m["unknown_why"].get("LadderExhausted") == 1, str(m["unknown_why"]))
+    check("vitals: a repeated command shows in the distinct rate",
+          abs(m["cmd_distinct_rate"] - 0.5) < 0.01, m["cmd_distinct_rate"])
+    check("vitals: a repeated want shows in the want distinct rate",
+          abs(m["want_distinct_rate"] - 0.5) < 0.01, m["want_distinct_rate"])
+    check("vitals: the command failure rate is a ratio of real counts",
+          abs(m["cmd_fail_rate"] - 0.5) < 0.01, m["cmd_fail_rate"])
+
+    # The rendered report must not offer an overall accept rate to quote.
+    text = vitals.fmt(m, "t")
+    check("vitals: the report refuses to print a single pooled accept rate",
+          "BY RUNG" in text, text[:200])
+
+    # A comparison states DIRECTIONS and no score. A score is what invites
+    # declaring a change good because one number moved.
+    cmp_text = vitals.compare(m, m)
+    check("vitals: a comparison warns that one window is an anecdote",
+          "not deterministic" in cmp_text, cmp_text[-200:])
+    check("vitals: and it produces no overall score to be quoted",
+          "score" not in cmp_text.lower(), cmp_text[:200])
+
+    check("vitals: an empty journal measures zero rather than dividing by it",
+          vitals.measure([])["cmd_fail_rate"] == 0.0)
+
+
 def test_observer_shell_assembles():
     """The renderers being right does not prove the window builds.
 
@@ -1904,6 +1967,7 @@ def main():
                test_marker_invariant, test_body,
                test_command_reaches_disk_intact,
                test_observer_describes_every_kind_it_can_see,
+               test_vitals_never_aggregates_across_rungs,
                test_observer_shell_assembles,
                test_observer_stop_button_states,
                test_observer_vitals_are_derived,

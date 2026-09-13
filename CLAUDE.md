@@ -208,6 +208,39 @@ guess with authority it has not earned.
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
 
+- **This framework is NOT DETERMINISTIC, so one observation is not a
+  measurement — and I spent a night forgetting that.** Tue, 2026-09-13, after
+  watching it happen: *"any amount of change to the way the mentor or creature
+  behaves could actually steer it away from a better course, and you might go
+  back and forth and never get an improvement because it is as good as it ever
+  gets. Also some models react very differently — while you are optimising for
+  gemini and then get some other model, that model might fail or succeed where
+  gemini did not."* All three were already true of the work in progress. **Five
+  changes to how the creature's context reads were made in four hours** —
+  fenced→quoted history, cap 700→2400, line-boundary cuts, output delimiters,
+  header wording — plus temperature 0→0.4, a cousin budget change and a ladder
+  reorder, **each declared good from a single 15–50 minute window with no
+  baseline and no control.** "The call-line fix worked, the newest want is
+  distinct" was ONE want.
+
+  **Split every change into two kinds and treat them differently:**
+
+  | | |
+  |---|---|
+  | **Correctness** — wrong for any model | a relative root that hides tools; a history that parses as a command; a marker that will not say who cut; a WAF 403 read as a bad credential; a swallowed exception that makes a bound unreachable. **Fix immediately; no measurement needed.** |
+  | **Tuning** — behaviour under one model | temperatures, caps, budgets, prompt wording, ladder order. **A change here needs a before/after across several windows, split by rung, or it is superstition.** |
+
+  The second kind is where this goes wrong, because it FEELS like the first.
+  `vitals.py` exists to make it measurable: counts and ratios only, **split by
+  rung always**, directions rather than a score — a score invites declaring a
+  change good because one number moved. It prints, in its own output, that one
+  window is an anecdote.
+
+  **And the ladder is heterogeneous now**, so an accept from `gemma-4-31b-it`
+  and one from `gpt-oss-120b` are different instruments whose average measures
+  neither. Tuning the transcript against whichever model happened to answer is
+  optimising into noise.
+
 - **A checker that cannot distinguish the thing it measures reports a
   clean-looking wrong number, never an error — and I built four in one evening
   while writing the tools meant to catch exactly that.** 2026-09-10, all found
