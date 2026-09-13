@@ -582,6 +582,53 @@ def test_forever_does_not_spin_on_failure():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_cousin_is_never_sent_to_a_tool_that_does_not_exist():
+    """A guessed name may be garbage; believing it invents a complaint.
+
+    2026-09-13, run 2, minutes after a clean reset: pick_target parsed the
+    token after a write pattern and returned a single backtick. The cousin was
+    sent to use a tool named `` ` ``, got `command not found`, and filed an
+    honest RETURNED -- which reached the creature as *"I tried to run the tool
+    you finished, but the system told me the command was not found"*, about a
+    tool it had never made.
+
+    The framework manufactured a complaint against the creature. shlex.quote
+    had already made that probe SAFE; safe is not the same as real.
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    class Stub:
+        mind = d
+    e = Engine(j, Stub(), "brief", None, None, os.path.join(d, "context.md"))
+
+    # A command whose write-pattern is followed by junk, and a library that
+    # does NOT contain that junk.
+    executed = [("cat << 'EOF' > tools/own/`  weird", 0)]
+    got = e.pick_target(executed, ["plan", "archive"], ["plan", "archive"])
+    check("target: a guessed name that is not in the library is refused",
+          got != "`", repr(got))
+    check("target: and it falls back to a tool that really exists",
+          got in ("plan", "archive"), repr(got))
+
+    # A guess that IS real must still be honoured -- the guard must not make
+    # the fallback useless.
+    got2 = e.pick_target([("tool-edit plan", 0)], ["plan", "archive"],
+                         ["plan", "archive"])
+    check("target: a guess that names a real tool is still used",
+          got2 == "plan", repr(got2))
+
+    # A genuinely new tool always wins, guess or no guess.
+    got3 = e.pick_target([("tool-edit plan", 0)], ["plan", "fresh"], ["plan"])
+    check("target: a newly created tool takes precedence",
+          got3 == "fresh", repr(got3))
+
+    # An empty library cannot name a target at all.
+    check("target: nothing to judge when the library is empty",
+          e.pick_target([("x", 0)], [], []) == "")
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_two_agents_share_one_queue():
     """An unreachable cousin stops the cycle, exactly as an unreachable
     creature does. They wait for each other.
@@ -2163,6 +2210,7 @@ def main():
                test_observer_vitals_are_derived,
                test_forever_stops_when_asked,
                test_forever_does_not_spin_on_failure,
+               test_the_cousin_is_never_sent_to_a_tool_that_does_not_exist,
                test_the_two_agents_share_one_queue,
                test_a_visit_that_never_happened_does_not_consume_its_trigger,
                test_an_exhausted_ladder_reaches_the_supervisor,

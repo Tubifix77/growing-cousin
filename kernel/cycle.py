@@ -459,6 +459,22 @@ class Engine:
         return v
 
     def pick_target(self, executed, tools_after, tools_before):
+        """Which tool the cousin is sent to use. **It must be one that EXISTS.**
+
+        The fallback parses the token after a write pattern in the command
+        text, and a command is arbitrary text: 2026-09-13, run 2, it returned
+        a single backtick. The cousin was sent to use a tool named `` ` ``, got
+        `command not found`, and filed an honest RETURNED -- which the creature
+        then read as *"I tried to run the tool you finished, but the system
+        told me the command was not found"*, about a tool it had never made.
+
+        **The framework manufactured a complaint against the creature**, which
+        is the one outcome this whole design exists to prevent, and the seventh
+        time that class has appeared here. `shlex.quote` had already made the
+        probe SAFE; safe is not the same as real.
+
+        Guessing a name from text is allowed. Believing the guess is not.
+        """
         new = sorted(set(tools_after) - set(tools_before))
         if new:
             return new[-1]
@@ -467,7 +483,10 @@ class Engine:
             if m:
                 tail = cmd[m.end():].strip().split()
                 if tail:
-                    return os.path.basename(tail[0].strip("'\""))
+                    guess = os.path.basename(tail[0].strip("'\""))
+                    # Only if the library actually holds it.
+                    if guess in tools_after:
+                        return guess
         return tools_after[-1] if tools_after else ""
 
     def evidence(self, target, executed):
