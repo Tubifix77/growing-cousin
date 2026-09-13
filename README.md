@@ -4,13 +4,15 @@
 replace the deterministic framework with a second agent, and make that agent the
 person the work is *for*.**
 
-> No engine yet — no container, no loop, no creature. What exists is the design
-> and a trial that put it in front of the parent's real library and scored it:
-> **detection 110/110, correction 10/10** on a stand-in for the workhorse model.
+> **It runs.** A creature and its cousin live unattended on a laptop beside the
+> spine, under systemd, on the free tier only. The loop closes in production:
+> the creature builds, the cousin runs what was built and judges it, and what
+> the cousin asks for next reaches the creature and gets built.
 >
 > Numbers about the *parent* are quoted from Growing Spine. Numbers about the
-> *cousin* were produced here, against fixtures captured read-only from the live
-> creature. They are never mixed.
+> *cousin* were produced here. They are never mixed, and every rate is split by
+> which model served it — an accept from one rung and an accept from another are
+> different instruments.
 
 ---
 
@@ -201,6 +203,74 @@ Manager cost at the chosen trigger policy: **~13% of total LLM calls** — the
 project is free-tier only, permanently, so this is the binding constraint and not
 a detail. A per-cycle manager would be 50% and halve coder throughput.
 
+## The two projects, 1:1
+
+Read from Growing Spine's source on 2026-09-13, not from its prose — the last
+time this comparison was written from prose it was wrong twice over, and reading
+the code changed the design.
+
+**The headline: spine's cousin is fictional.** `executive/loop.py` briefs the
+creature to build *"a toolkit for a near-conscious LLM 'cousin' (Linux
+container, Python 3, persistent memory, shell tools, free-tier LLM APIs, no
+human watching)"* — which is a description of the creature's own environment.
+Nobody ever runs those tools. This project exists to make that second inhabitant
+real.
+
+### The creature
+
+| | Growing Spine | Growing Cousin | |
+|---|---|---|---|
+| What it is | LLM agent in a container building shell tools | identical | **same** |
+| Hands | `tool-new`, `tool-edit`, `remember`, `recall` | identical | **same** |
+| `tools/own` is its world, never edited by the framework | yes | yes | **same** |
+| Think budget | 3072 tokens | 3072 | **same** |
+| Who it builds for | an **imagined** cousin described in prompt text | a **real** agent that runs what it builds | **the difference** |
+| What it hears back | framework-computed warnings about itself | one user's testimony about what happened to *them* | different |
+| Context per wake | ~16 blocks assembled fresh every cycle | 6 parts, served from a file the cousin wrote | different |
+| Wake cost as the library grows | rises | flat by construction | different |
+
+### Second LLM session
+
+Spine has **no second inhabitant** but **eight-plus separate LLM roles**, each
+verified at its call site: the creature's own `run_cycle`, `_maybe_retrospective`
+(every 20 cycles), `run_architect`, the `idea_gate` batch judge,
+`_refill_composition_queue`, `_oracle_composition_spec`, `_oracle_gap_spec`,
+`_is_basin_relapse`, `_classify_category_cheap`, and chat.
+
+| | Growing Spine | Growing Cousin | |
+|---|---|---|---|
+| Roles besides the creature | 8+ | 1 | different |
+| Do any of them **run** the creature's tools? | **no** — they judge names, descriptions, registries, metric digests | **yes** — running it is the only way it judges | **the difference** |
+| Evidence judged on | second-hand: text about tools | first-hand: exit code and output | different |
+| May write the creature's tools? | the architect rules, renames, retires | never — a second *user*, not a second builder | different |
+| Direction mechanism | architect ruling + retro directive + active-project block | one `want`, superseding, discharged by the next answered visit | different |
+| Who decides *when* they run | the framework | the framework | **same shape** |
+| Who decides *what they say* | framework prompt templates | the cousin's brief | different |
+
+### The framework
+
+| | Growing Spine | Growing Cousin | |
+|---|---|---|---|
+| Size | `loop.py` ~4,100 lines plus `executive/` and `keychain/` | `kernel/`, eight small modules | different |
+| Free tier only, same accounts, same laptop | yes | yes | **same** |
+| Provider ladder | `keychain` + `quota_state` | `backends.ladder` + `kernel/quota.py` | **same shape** |
+| 429 steps down, never retries | yes | yes | **same** |
+| A truncated reply is not an answer | `provider.py` returns reasoning-only as an error and hops window | `unusable_reply` rejects it and the ladder falls through — **taken from spine** | **same** |
+| State | derived from the event log | derived from the event log | **same** |
+| Journal | one record per event | one *kind* per event, structured fields | **same principle** |
+| Creature-facing guards | about twenty | **zero** | **the deleted 99%** |
+| Who composes a warning | Python | the cousin, or nobody | different |
+| Triggers | intervals and cycle counts | done-claim, tool-write, stall, heartbeat | different |
+| Health tripwires reporting outward | flatline, tier check, health script | observer, vitals | **same principle** |
+
+**In one line:** spine encodes the judgement about the creature's work in Python
+and imagines the user; cousin deletes the Python, states the judgement in prose,
+and hires the user.
+
+Nothing above carries a number that was not earned. The call sites, guard names,
+cadence constants and the cousin description were read from source; spine's live
+tool counts and rates were **not** re-measured and are not quoted here.
+
 ## Honest trade
 
 This engine **sheds the parent's solved failure class and inherits its recurring
@@ -324,10 +394,18 @@ when probed directly, but the full run against it is not finished — it is slow
 contends with the running creature, and wraps replies in `<thought>` blocks. The
 standin is a standin.
 
-**The kernel runs end to end, and a creature has now lived in it** —
-`kernel/` is the 1% that stays code, `tests/test_kernel.py` is **115/115 green**
-with the real model in the loop, and a creature has run **40+ real cycles**
-building its own tools while the cousin judged them.
+**It is deployed and the loop closes in production.** `kernel/` is the 1% that
+stays code, `tests/test_kernel.py` is the gate at **340/340 green**, and a
+creature and its cousin run unattended under systemd on the same laptop as the
+spine — same hardware, same network, same free-tier accounts, which is the only
+configuration in which comparing the two projects means anything.
+
+A measured example, 2026-09-13: the cousin asked for *"a way to link tasks in
+the plan to specific entries in the archive"*; three cycles later the creature
+read its archive tool, rewrote its plan tool to add the link, tested it, and the
+cousin accepted and asked for the next thing — *"a way to suggest new tasks for
+the plan based on information stored in the archive."* Wants that build on the
+previous one rather than restating it are the signal worth having.
 
 Four faults were found by running it that no amount of reading would have found,
 and each one is in `CLAUDE.md` §5 with the instrument that caught it:
@@ -342,7 +420,18 @@ and each one is in `CLAUDE.md` §5 with the instrument that caught it:
   damage as the creature's failure. That is the single outcome this design exists
   to prevent, and only a byte-for-byte test closed it.
 
-Still missing, and the green hides none of it: no provider ladder (one backend),
-no scheduling loop, no savegames, no chat channel, `DockerBody` written but never
-exercised, and **nothing here has touched the live free-tier ladder.** The
-standin is a standin.
+**What the deployment itself taught, and none of it was findable by reading.**
+Nine times now the framework has manufactured work and the creature has been
+billed for it: a relative root that hid every tool; a history that parsed as a
+command; a tool name passed unquoted to a shell; a probe sent to a tool that did
+not exist; a parser that executed a bare fence the creature's own contract said
+was not a command — after which the creature read the manufactured failure in
+its transcript and formed a false belief about its user; and two truncation caps
+in series, where the one that had been carefully tuned was not the one that
+acted, so a 4KB tool was shown to its author 1200 characters at a time while it
+tried to extend it.
+
+Every one of those looked, from outside, like a creature going in circles.
+
+**Still missing:** no chat channel, and `DockerBody` is written but never
+exercised — the deployed body is local.
