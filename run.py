@@ -278,6 +278,16 @@ def main():
         return 4
 
     print("\n%d cycles in %.0fs -- %s" % (ran, time.time() - t0, why))
+    if sup.ended_in_fault:
+        # NON-ZERO, so `Restart=on-failure` actually restarts. Giving up is not
+        # finishing, and until 2026-09-13 both exited 0: the engine could
+        # abandon the run at 03:00, report success, and lie there until someone
+        # looked. systemd bounds the retrying (StartLimitBurst in the unit), so
+        # this does not reintroduce the crash loop that exiting 0 was guarding
+        # against -- it is restarted a few times and then left down for real.
+        sys.stderr.write("GAVE UP: %s\nExiting non-zero so the supervisor "
+                         "restarts it rather than leaving it dead.\n" % why)
+        return 5
     print("journal kinds: %s" % dict(j.kinds()))
     print("tools built  : %s" % sorted(
         os.listdir(os.path.join(body.mind, "tools", "own"))))

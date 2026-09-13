@@ -2474,6 +2474,75 @@ def test_the_creature_is_shown_its_own_library_every_wake():
           "used as: plan goal|add|list|done" in p, p[-300:] if p else "")
 
 
+def test_giving_up_is_distinguishable_from_stopping():
+    """Finishing and abandoning both exited 0, so nothing ever restarted it.
+
+    2026-09-13. `forever` gives up after 5 consecutive failures or 600 waits;
+    `run.py` printed the reason and returned 0; the unit says
+    `Restart=on-failure`, which only fires on a non-zero exit. So the engine
+    could abandon the run at 03:00, report success, and lie there until a human
+    looked. At a ten-minute check that costs ten minutes. At a daily check it
+    costs the night and the data -- which is what made it worth finding before
+    the cadence was lengthened, not after.
+
+    A FLAG rather than a parsed reason string: the reason is prose for a human,
+    and a caller deciding by matching it is a checker agreeing with a producer
+    by eye. That exact shape broke `wants()` earlier the same day.
+    """
+    d = tmpdir()
+    stop = os.path.join(d, "STOP")
+
+    # 1. Asked to stop: finished its job.
+    def one():
+        open(stop, "w").close()      # ask to stop, from inside the cycle
+    s = forever.Supervisor(one, stop, sleep=lambda _x: None)
+    s.loop(max_cycles=5)
+    check("giveup: being asked to stop is NOT a fault", not s.ended_in_fault)
+
+    # 2. Reached its ceiling: also finished its job.
+    s2 = forever.Supervisor(lambda: None, os.path.join(d, "nope"),
+                            sleep=lambda _x: None)
+    ran, why = s2.loop(max_cycles=3)
+    check("giveup: reaching the cycle ceiling is NOT a fault",
+          not s2.ended_in_fault and ran == 3, "%s %s" % (ran, why))
+
+    # 3. A run of failures: abandoned it.
+    def boom():
+        raise RuntimeError("the body is gone")
+    s3 = forever.Supervisor(boom, os.path.join(d, "nope"),
+                            sleep=lambda _x: None,
+                            is_wait=lambda _e: False)
+    ran3, why3 = s3.loop(max_cycles=50)
+    check("giveup: a run of failures IS a fault, so systemd restarts it",
+          s3.ended_in_fault and "consecutive failures" in why3, why3)
+
+    # 4. Nothing to talk to, forever: also abandoned it. Waiting is correct
+    #    behaviour; waiting for a day and then quitting is not a success.
+    s4 = forever.Supervisor(boom, os.path.join(d, "nope"),
+                            sleep=lambda _x: None,
+                            is_wait=lambda _e: True,
+                            max_consecutive_waits=3)
+    ran4, why4 = s4.loop(max_cycles=50)
+    check("giveup: exhausting the wait budget IS a fault",
+          s4.ended_in_fault and "no rung available" in why4, why4)
+
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_unit_bounds_its_own_restarting():
+    """Restarting on failure without a bound is the crash loop that exiting 0
+    was guarding against. systemd bounds it; we do not hand-roll it."""
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    unit = open(os.path.join(repo, "deploy", "cousin-engine.service"),
+                encoding="utf-8").read()
+    check("unit: restarts only on failure, never always",
+          "Restart=on-failure" in unit and "Restart=always" not in unit)
+    check("unit: and the restarting is BOUNDED, or a persistent fault "
+          "respawns forever on a shared free tier",
+          "StartLimitBurst=" in unit and "StartLimitIntervalSec=" in unit,
+          [l for l in unit.splitlines() if "StartLimit" in l])
+
+
 def test_a_cap_downstream_never_exceeds_the_cap_upstream():
     """Two caps in series, and only the smaller one is real.
 
@@ -2853,7 +2922,9 @@ def test_library_never_withholds_a_tool_that_failed():
 
 def main():
     t0 = time.time()
-    for fn in (test_a_cap_downstream_never_exceeds_the_cap_upstream,
+    for fn in (test_giving_up_is_distinguishable_from_stopping,
+               test_the_unit_bounds_its_own_restarting,
+               test_a_cap_downstream_never_exceeds_the_cap_upstream,
                test_a_reply_with_no_verdict_falls_through_to_the_next_rung,
                test_an_unreadable_verdict_says_which_of_three_things_went_wrong,
                test_a_want_is_discharged_by_the_visit_that_answers_it,

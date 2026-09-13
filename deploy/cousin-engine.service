@@ -25,12 +25,31 @@ ExecStart=/usr/bin/python3 -u %h/growing-cousin/run.py \
     --rungs %h/growing-cousin/rungs.local.json \
     --cousin-rungs %h/growing-cousin/rungs.cousin.local.json
 
-# on-failure only, NEVER always: the loop exits 0 when it was asked to stop and
-# when a run of failures ended it. Restarting either case would defeat both
-# bounds -- a stop that restarts itself is not a stop, and a crash loop that
-# respawns burns quota the spine also pays for.
+# on-failure only, NEVER always: a stop that restarts itself is not a stop.
+#
+# CORRECTED 2026-09-13. This comment used to say the loop "exits 0 when it was
+# asked to stop AND when a run of failures ended it", and treated that as
+# desirable. It was not: those are opposite events. Being asked to stop is the
+# loop finishing its job; giving up after five consecutive failures, or after
+# 600 waits with no rung, is the loop ABANDONING it. Both exited 0, so
+# on-failure never fired, and the engine could quit at 03:00 and lie there
+# reporting success until a human happened to look. On a ten-minute check that
+# costs ten minutes. On a daily check it costs the night and the data.
+#
+# `run.py` now exits 5 when the supervisor gave up, and 0 when it was stopped
+# or reached its ceiling.
 Restart=on-failure
 RestartSec=60
+
+# THE BOUND THAT MAKES RESTARTING SAFE. Exiting non-zero would otherwise
+# reintroduce exactly what exiting 0 was guarding against -- a persistent fault
+# respawning forever, burning free-tier quota the spine also pays for. systemd
+# bounds it instead of us: at most 5 starts in 30 minutes, then the unit is
+# left in `failed` for real, which is a state `systemctl status` reports
+# plainly. Restart, but a bounded number of times, is the answer to both
+# failure modes at once.
+StartLimitIntervalSec=1800
+StartLimitBurst=5
 
 # The engine must not be able to reach the spine's directory. Read-only root
 # with an explicit writable carve-out is cheap insurance against a bug in our

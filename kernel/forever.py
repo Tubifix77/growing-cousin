@@ -109,6 +109,22 @@ class Supervisor:
             import os
             exists = os.path.exists
         self._exists = exists
+        # DID IT STOP, OR DID IT GIVE UP? Two different events that looked
+        # identical from outside until 2026-09-13.
+        #
+        # The loop exits for four reasons: asked to stop, reached its cycle
+        # ceiling, five consecutive failures, or no rung after 600 waits. The
+        # first two are the loop finishing its job. The last two are it
+        # abandoning the job -- and `run.py` returned 0 for all four, so
+        # `Restart=on-failure` saw a clean exit and left the engine dead. On a
+        # 10-minute check that costs ten minutes; on a daily check it costs the
+        # night, the morning, and the data.
+        #
+        # A FLAG, not a parsed reason string. The reason is prose meant for a
+        # human, and a caller that decides by matching it is a checker agreeing
+        # with a producer by eye -- which broke `wants()` earlier the same day
+        # when the writer dropped a list numbering the reader depended on.
+        self.ended_in_fault = False
 
     def _log(self, kind, **fields):
         if self.j:
@@ -150,6 +166,7 @@ class Supervisor:
                     waits += 1
                     if waits >= self.max_consecutive_waits:
                         reason = "no rung available after %d waits" % waits
+                        self.ended_in_fault = True
                         break
                     # Flat. See WAIT_BASE_SECS: the thing being waited on
                     # returns on a clock, so a widening gap can only miss it.
@@ -163,6 +180,7 @@ class Supervisor:
                           detail="%s: %s" % (type(e).__name__, e))
                 if failures >= self.max_consecutive_failures:
                     reason = "%d consecutive failures" % failures
+                    self.ended_in_fault = True
                     break
                 # Back off before the next attempt, so a persistent fault costs
                 # the shared quota geometrically less rather than linearly more.
