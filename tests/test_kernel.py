@@ -2474,6 +2474,51 @@ def test_the_creature_is_shown_its_own_library_every_wake():
           "used as: plan goal|add|list|done" in p, p[-300:] if p else "")
 
 
+def test_a_cap_downstream_never_exceeds_the_cap_upstream():
+    """Two caps in series, and only the smaller one is real.
+
+    2026-09-13. `HISTORY_OUTPUT_CHARS` was raised 700 -> 2400 the day before,
+    against a real measurement -- the creature's tools are 706-3157 bytes and
+    it was being shown them cut mid-token. The raise did nothing: `exec_end`
+    had already cut stdout to 1200 on the way into the journal, so the context
+    could not show what had never been stored.
+
+    Measured cost: `plan` reached 4022 bytes, and the creature ran `cat
+    tools/own/plan` six times in fifteen minutes, shown 1200 characters each
+    time, never building what its cousin had asked for. From outside that is a
+    creature going in circles; it was the framework showing it a third of its
+    own tool.
+
+    This is the parent's *truncation caps in series*, which CLAUDE.md §3 lists
+    among the failure modes this engine does not have.
+    """
+    check("caps: the journal keeps at least what the context may show",
+          EXEC_STDOUT_CHARS >= Engine.HISTORY_OUTPUT_CHARS,
+          "journal %d < history %d" % (EXEC_STDOUT_CHARS,
+                                       Engine.HISTORY_OUTPUT_CHARS))
+
+    # And the behaviour, not just the arithmetic: a big output must survive
+    # the journal and reach the served context at the HISTORY cap.
+    big = "".join("line %04d padding padding padding\n" % i for i in range(120))
+    check("caps: the fixture is larger than both caps, or it proves nothing",
+          len(big) > Engine.HISTORY_OUTPUT_CHARS > 0, len(big))
+
+    writes = "```bash\nprintf '%s'\n```" % "x"
+    e, j, b, d = build_engine([writes], [])
+    j.append("exec_start", cmd="cat tools/own/plan")
+    j.append("exec_end", cmd="cat tools/own/plan", exit_code=0,
+             stdout=capped(big, EXEC_STDOUT_CHARS), stderr="")
+    stored = j.read(kinds=["exec_end"])[-1].get("stdout") or ""
+    check("caps: the journal stored the full history window, not a third of it",
+          len(stored) >= Engine.HISTORY_OUTPUT_CHARS,
+          "%d stored vs %d showable" % (len(stored),
+                                        Engine.HISTORY_OUTPUT_CHARS))
+    shown = e.recent_block()
+    check("caps: and the creature is shown far more than one screen of its tool",
+          shown.count("line ") > 40, shown.count("line "))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_a_reply_with_no_verdict_falls_through_to_the_next_rung():
     """A reply is not automatically an answer.
 
@@ -2808,7 +2853,8 @@ def test_library_never_withholds_a_tool_that_failed():
 
 def main():
     t0 = time.time()
-    for fn in (test_a_reply_with_no_verdict_falls_through_to_the_next_rung,
+    for fn in (test_a_cap_downstream_never_exceeds_the_cap_upstream,
+               test_a_reply_with_no_verdict_falls_through_to_the_next_rung,
                test_an_unreadable_verdict_says_which_of_three_things_went_wrong,
                test_a_want_is_discharged_by_the_visit_that_answers_it,
                test_quoted_text_in_a_bare_fence_is_not_a_command,

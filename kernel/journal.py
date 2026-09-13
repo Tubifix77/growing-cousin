@@ -20,7 +20,28 @@ import time
 # Caps are named constants shared by writer and reader, never literals at the
 # call site. The parent's scar: two caps in series are a producer and a checker,
 # and raising only one is a silent no-op.
-EXEC_STDOUT_CHARS = 1200
+# THE JOURNAL IS THE EVIDENCE, so it must never keep LESS than a consumer is
+# allowed to show. 2026-09-13: it did, and the effect was invisible for a day.
+#
+# `Engine.HISTORY_OUTPUT_CHARS` was raised 700 -> 2400 on 2026-09-12 to stop the
+# creature being shown a tool cut mid-token. The measurement behind it was real
+# (its tools are 706-3157 bytes) and the change did NOTHING, because `exec_end`
+# had already cut stdout to 1200 before the history ever saw it. The knob that
+# was tuned was not the knob that acts.
+#
+# That is the parent's *truncation caps in series* -- which CLAUDE.md §3 lists
+# among the scars that "do not transfer" because "this engine does not have
+# those failure modes". It has them.
+#
+# Cost, measured 18:17-18:57 the same day: `plan` had grown to 4022 bytes. The
+# creature ran `cat tools/own/plan` six times in fifteen minutes, was shown
+# 1200 characters each time, and never built the thing its cousin had asked
+# for. From outside that reads as a creature going in circles. It was the
+# framework showing it a third of its own tool.
+#
+# `test_a_cap_downstream_never_exceeds_the_cap_upstream` holds the invariant so
+# the next raise cannot be silently swallowed again.
+EXEC_STDOUT_CHARS = 2400
 EXEC_STDERR_CHARS = 600
 EXEC_CMD_CHARS = 800
 
