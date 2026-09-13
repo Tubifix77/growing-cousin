@@ -1441,6 +1441,30 @@ def test_ladder_routes_and_records():
     check("ladder: the rung error is journalled with its reason",
           len(j.read(kinds=["rung_error"])) == 1)
 
+    # EVERY failure is counted, not just the first of its kind. Announcing once
+    # was right for noise and wrong for measurement: it made the journal show
+    # WHICH rungs fail and never HOW OFTEN, so a rung that failed twice and one
+    # that failed two hundred times looked identical -- and "how much of the
+    # night went to quota" could not be answered from the record.
+    j3 = Journal(os.path.join(d, "counts.jsonl"))
+
+    def always_429(_p):
+        raise H(429)
+
+    ask3 = backends.ladder([("only", always_429)], journal=j3)
+    for _ in range(3):
+        try:
+            ask3("x")
+        except backends.LadderExhausted:
+            pass
+    errs = j3.read(kinds=["rung_error"])
+    check("ladder: every rung failure is counted, not only the first of its kind",
+          len(errs) == 3, "journalled %d of 3" % len(errs))
+    check("ladder: and the first still carries the full reason, so a tally is "
+          "distinguishable from an announcement",
+          errs[0].get("first") is True and errs[-1].get("first") is False,
+          str([e.get("first") for e in errs]))
+
     # A walled rung is not retried for the rest of the session.
     def badkey(_p):
         calls.append("badkey")

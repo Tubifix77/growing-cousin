@@ -277,12 +277,24 @@ def ladder(rungs, journal=None, retries=1):
     walled, announced = set(), set()
 
     def announce(name, reason):
+        """Every failure is counted; the full text is written once.
+
+        Announcing once was right for NOISE and wrong for MEASUREMENT: it made
+        the journal show which rungs fail and never how often, so a rung that
+        failed twice and one that failed two hundred times were indistinguish-
+        able. 2026-09-13, reading a night's record: the counts turned out to be
+        distinct failure KINDS per process, not frequencies, and the question
+        the night actually raised -- how much of this engine's time goes to
+        quota -- could not be answered from them.
+
+        `first` marks the one carrying the full reason, so a reader can still
+        tell the announcement from the tally.
+        """
         key = (name, reason.split(":")[0])
-        if key in announced:
-            return
+        first = key not in announced
         announced.add(key)
         if journal:
-            journal.append("rung_error", rung=name, reason=reason)
+            journal.append("rung_error", rung=name, reason=reason, first=first)
 
     def ask(prompt):
         tried = []
