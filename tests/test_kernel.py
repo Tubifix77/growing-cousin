@@ -2624,6 +2624,22 @@ def test_the_unit_bounds_its_own_restarting():
                 encoding="utf-8").read()
     check("unit: restarts only on failure, never always",
           "Restart=on-failure" in unit and "Restart=always" not in unit)
+
+    # PrivateUsers=yes is what makes the rest of the sandbox real. Verified by
+    # EFFECT on the laptop 2026-09-13: without it, a user unit carrying
+    # ProtectSystem=strict + ProtectHome=read-only wrote a file into $HOME, so
+    # every filesystem protection in this unit had been inert since it was
+    # written. This asserts the line is present; only the laptop can prove it
+    # works, and that check is in the commit body and CLAUDE.md §5.
+    directives = [l.strip() for l in unit.splitlines()
+                  if l.strip() and not l.strip().startswith("#")]
+    for need in ("PrivateUsers=yes", "ProtectSystem=strict",
+                 "ProtectHome=read-only", "NoNewPrivileges=true"):
+        check("unit: %s" % need, need in directives, need)
+    check("unit: the spine is made invisible, not merely read-only",
+          any(d.startswith("InaccessiblePaths=") and "growing-spine" in d
+              for d in directives),
+          [d for d in directives if d.startswith("Inaccessible")])
     # IN THE SECTION WHERE THEY WORK. The first version of this test asserted
     # only that the strings appeared somewhere in the file, and passed happily
     # over both directives sitting in [Service], where systemd ignores them --
