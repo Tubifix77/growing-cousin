@@ -618,22 +618,25 @@ def test_a_spent_rung_is_remembered_not_rediscovered():
     st = {}
     ask = backends.ladder([("dead", quota_dead), ("flaky", transient),
                            ("alive", alive)], quota_state=st)
-    ask("x")
-    first = calls["dead"]
-    ask("x")
-    ask("x")
-    check("quota: a rung that answered 429 is not asked again while spent",
-          calls["dead"] == first, "asked %d times, expected %d"
-          % (calls["dead"], first))
-    check("quota: and it is recorded as spent", quota.is_spent(st, "dead"),
-          str(st))
+    ask("x"); ask("x"); ask("x")
 
-    # THE distinction that matters: a 500 is transient and says nothing about
-    # budget. Marking it would wall a working rung -- the WAF-403 mistake.
-    check("quota: a transient failure does NOT mark a rung spent",
+    # **The record must NOT change the ladder.** Tue, 2026-09-13: the framework
+    # tries the best rung, then the next, deterministically, every time -- and
+    # the models are unaware which rung worked. These numbers exist so a HUMAN
+    # can see whether a rung has gone permanently stale. A skip would also fail
+    # in the direction that costs most: a rung that recovered stays unused
+    # until a timer says otherwise.
+    check("quota: a spent rung is STILL TRIED -- the record does not gate",
+          calls["dead"] == 3, "asked %d times, expected 3" % calls["dead"])
+    check("quota: the order stays deterministic, best rung first every time",
+          calls["alive"] == 3, calls["alive"])
+    check("quota: and the exhaustion is recorded for a human to read",
+          quota.is_spent(st, "dead"), str(st))
+
+    # THE distinction that matters for the RECORD: a 500 is transient and says
+    # nothing about budget, so it must not look like a spent rung on a chart.
+    check("quota: a transient failure is not recorded as spent",
           not quota.is_spent(st, "flaky"), str(st.get("flaky")))
-    check("quota: so the flaky rung is still being tried",
-          calls["flaky"] >= 3, calls["flaky"])
 
     # Spent is not dead: the mark expires so the rung is retried, not condemned.
     now = time.time()
@@ -1000,8 +1003,13 @@ def test_a_quota_wall_is_not_a_fault():
           str(dict(j.kinds())))
     check("wait: a permanently unavailable rung eventually gives up and says so",
           "after" in reason and "waits" in reason, reason)
-    check("wait: it waits in MINUTES not seconds, and grows",
-          slept and slept[0] >= 60 and slept[-1] > slept[0], str(slept[:6]))
+    # FLAT, not growing. Tue, 2026-09-13: retry the whole ladder every two or
+    # three minutes. The thing being waited on returns on a CLOCK, so a
+    # widening gap can only miss the reset -- an hour-long backoff leaves the
+    # engine idle through a window that already opened.
+    check("wait: it waits in MINUTES, at a FLAT cadence",
+          slept and all(x == slept[0] for x in slept) and slept[0] >= 60,
+          str(slept[:6]))
     check("wait: the wait is capped at an hour, not doubled forever",
           all(x <= 3600 for x in slept), str(slept[:6]))
     check("wait: a wait is not counted as a cycle that ran",

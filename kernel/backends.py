@@ -309,12 +309,19 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
         for name, rung in rungs:
             if name in walled:
                 continue
-            if quotamod.is_spent(qstate, name):
-                # Known spent and still inside its window. Skipping costs
-                # nothing; asking costs the sibling a request to be told what
-                # we already know.
-                tried.append("%s(spent)" % name)
-                continue
+            # NOTE: the quota record below is OBSERVATION ONLY. It does not
+            # skip a rung and must not. Tue, 2026-09-13: the framework tries
+            # the best rung, then the next, then the next -- deterministically,
+            # every time -- and the models are entirely unaware which rung
+            # worked. What stops the hammering is the PACE of retrying, not
+            # cleverness about remembering.
+            #
+            # I built a skip first, from reading the spine's current
+            # quota_state as though it were the design. It is not: those
+            # numbers exist so a HUMAN can see whether a rung has gone
+            # permanently stale. A skip also fails in the direction that costs
+            # most -- a rung that recovered stays unused until a timer says
+            # otherwise, and the ladder stops being deterministic.
             for attempt in range(retries + 1):
                 try:
                     text, meta = rung(prompt)

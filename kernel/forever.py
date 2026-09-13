@@ -35,15 +35,26 @@ PAUSE_SECS = 30.0
 BACKOFF_CAP_SECS = 900.0
 MAX_CONSECUTIVE_FAILURES = 5
 
-# Waiting out a quota is measured in hours, not minutes: free-tier windows reset
-# on a clock and there is no local rung on the deployed box to fall to.
-WAIT_BASE_SECS = 60.0
-WAIT_CAP_SECS = 3600.0
+# **FLAT, not exponential.** Tue, 2026-09-13: the framework tries the best rung,
+# then the next, then the next, and retries the whole ladder every two or three
+# minutes. That is the plumbing, and it stays deterministic.
+#
+# The backoff this replaces climbed to an hour, which is wrong for the thing it
+# was waiting on: free-tier windows reset on a CLOCK, so an hour-long wait can
+# miss a reset by up to an hour and leave the engine idle through a window that
+# had already opened. Doubling is right for a fault that might be self-
+# inflicted; it is wrong for a budget that returns on a schedule nobody here
+# controls.
+WAIT_BASE_SECS = 150.0
+WAIT_CAP_SECS = 150.0
 # A wait is not progress, so without a ceiling a permanently rate-limited run
 # can never reach its cycle limit and hangs forever -- found by the test for
-# this very feature hanging, which is the test doing its job. At the hour cap
-# this is roughly a day of patience before it gives up and says so.
-MAX_CONSECUTIVE_WAITS = 24
+# this very feature hanging, which is the test doing its job.
+#
+# Raised with the flat cadence: at 150s a day of patience is ~576 waits, and a
+# free tier that resets daily deserves at least that. The old 24 was sized
+# against an hour-long backoff and would now give up after an hour.
+MAX_CONSECUTIVE_WAITS = 600
 
 
 class StopRequested(Exception):
@@ -130,8 +141,9 @@ class Supervisor:
                     if waits >= self.max_consecutive_waits:
                         reason = "no rung available after %d waits" % waits
                         break
-                    delay = min(self.wait_base * (2 ** min(waits, 6)),
-                                self.wait_cap)
+                    # Flat. See WAIT_BASE_SECS: the thing being waited on
+                    # returns on a clock, so a widening gap can only miss it.
+                    delay = min(self.wait_base, self.wait_cap)
                     self._log("loop_waiting", consecutive=waits,
                               seconds=round(delay), detail=str(e)[:200])
                     self._sleep(delay)
