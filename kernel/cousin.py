@@ -150,6 +150,30 @@ def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
     try:
         reply, meta = ask(prompt)
     except Exception as e:
+        # **UNREACHABLE IS NOT A VERDICT, AND IT IS NOT THIS CYCLE'S ANSWER.**
+        #
+        # A ladder that no rung would serve is the same event for the cousin as
+        # for the creature, and it must get the same response: the cycle stops
+        # and the supervisor waits. Turning it into UNKNOWN here let the cycle
+        # walk on as though the work had been looked at -- the creature marked
+        # something done, nothing reviewed it, and it was told nothing.
+        #
+        # 2026-09-13, measured over 546 cycles: 39 of 98 visits never happened.
+        # Every one was discarded, and the creature's whole trajectory formed
+        # against feedback that silently went missing. Tue's call, and it is the
+        # right one: the two agents SHARE ONE QUEUE AND WAIT FOR EACH OTHER.
+        # That run was archived rather than patched, because a trajectory
+        # cannot be repaired retroactively.
+        #
+        # Anything else -- a model that answered badly, a parse failure, a
+        # timeout inside a rung that DID serve -- is still UNKNOWN, because
+        # that is an instrument that ran and produced nothing usable.
+        from . import backends
+        if isinstance(e, backends.LadderExhausted):
+            if journal:
+                journal.append("visit_deferred", trigger=trigger,
+                               detail=str(e)[:300])
+            raise
         v = Verdict(UNKNOWN, error="%s: %s" % (type(e).__name__, e))
         if journal:
             journal.append("cousin_verdict", trigger=trigger, **v.as_fields())

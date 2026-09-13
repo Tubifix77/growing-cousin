@@ -582,6 +582,72 @@ def test_forever_does_not_spin_on_failure():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_two_agents_share_one_queue():
+    """An unreachable cousin stops the cycle, exactly as an unreachable
+    creature does. They wait for each other.
+
+    Tue's call, 2026-09-13, and the reason the first run was thrown away rather
+    than patched. Over 546 cycles, 39 of 98 visits never happened -- and the
+    cycle walked on each time as though the work had been looked at. The
+    creature marked something done, nothing reviewed it, and it was told
+    nothing at all: `done_blocked` is only set by a RETURNED, so an unreachable
+    cousin produced SILENCE, which from the creature's side is indistinguish-
+    able from "it was looked at and there was nothing to say".
+
+    A trajectory built against feedback that silently went missing cannot be
+    repaired afterwards, which is why the run was archived and reset.
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    b = bodymod.LocalBody(root=os.path.join(d, "body"))
+
+    def unreachable(_p):
+        raise backends.LadderExhausted("no rung answered", all_walled=False)
+
+    done = """```bash
+remember current-phase done
+```"""
+    e = Engine(j, b, "brief",
+               lambda _p: (done, {"model": "m", "done_reason": "stop"}),
+               unreachable, os.path.join(d, "context.md"))
+
+    raised = None
+    try:
+        e.run_cycle()
+    except Exception as ex:
+        raised = ex
+    check("one queue: an unreachable cousin STOPS the cycle rather than "
+          "letting it walk on unjudged",
+          isinstance(raised, backends.LadderExhausted), repr(raised))
+    check("one queue: the deferral is journalled, so a lost review is countable",
+          len(j.read(kinds=["visit_deferred"])) == 1, str(dict(j.kinds())))
+    check("one queue: and no verdict is invented for a visit that never happened",
+          not j.read(kinds=["cousin_verdict"]), str(dict(j.kinds())))
+
+    # The supervisor must treat it exactly as it treats an unreachable
+    # creature: wait, do not spend the failure budget.
+    check("one queue: the supervisor calls it a WAIT, the same as for a think",
+          forever.default_is_wait(raised), repr(raised))
+
+    # A cousin that DID run and answered badly is a different thing: it gates
+    # nothing, says UNKNOWN, and the cycle completes.
+    j2 = Journal(os.path.join(d, "ran.jsonl"))
+    b2 = bodymod.LocalBody(root=os.path.join(d, "body2"))
+    e2 = Engine(j2, b2, "brief",
+                lambda _p: (done, {"model": "m", "done_reason": "stop"}),
+                lambda _p: ("no verdict block here at all",
+                            {"model": "m", "done_reason": "stop"}),
+                os.path.join(d, "c2.md"))
+    r2 = e2.run_cycle()
+    check("one queue: a cousin that RAN and answered badly still completes the "
+          "cycle as UNKNOWN",
+          r2.get("verdict") == cousin.UNKNOWN, str(r2))
+    check("one queue: and that one is recorded as a verdict, because it happened",
+          len(j2.read(kinds=["cousin_verdict"])) == 1, str(dict(j2.kinds())))
+
+    b.destroy(); b2.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_a_visit_that_never_happened_does_not_consume_its_trigger():
     """Deferred is not the same as lost.
 
@@ -612,10 +678,15 @@ chmod +x tools/own/newthing
     def creature(_p):
         return writes, {"model": "m", "done_reason": "stop"}
 
-    def unreachable(_p):
-        raise backends.LadderExhausted("no rung answered", all_walled=False)
+    # A cousin that RAN and answered badly. (An UNREACHABLE cousin is a
+    # different case and now stops the cycle entirely -- see
+    # test_the_two_agents_share_one_queue.)
+    def answered_badly(_p):
+        return "I have opinions but no verdict block", {"model": "m",
+                                                        "done_reason": "stop"}
 
-    e = Engine(j, b, "brief", creature, unreachable,
+    unreachable = answered_badly
+    e = Engine(j, b, "brief", creature, answered_badly,
                os.path.join(d, "context.md"))
     e.cycles_since_visit = 7
     e.cycles_since_change = 5
@@ -1575,9 +1646,16 @@ def test_ladder_routes_and_records():
     check("ladder: every rung refusing raises LadderExhausted, not a fake reply",
           exhausted)
 
-    v = cousin.visit(backends.ladder([("a", always)]), "brief", "c", "h", "t")
-    check("ladder: an exhausted ladder reaches the cousin as UNKNOWN, never a verdict",
-          v.verdict == cousin.UNKNOWN and not v.deliverable, v.verdict)
+    # An exhausted ladder must NOT become a verdict. It used to return UNKNOWN
+    # and let the cycle walk on unjudged; it now propagates so the whole cycle
+    # defers and the two agents share one queue (2026-09-13).
+    raised = None
+    try:
+        cousin.visit(backends.ladder([("a", always)]), "brief", "c", "h", "t")
+    except Exception as ex:
+        raised = ex
+    check("ladder: an exhausted ladder propagates rather than becoming a verdict",
+          isinstance(raised, backends.LadderExhausted), repr(raised))
     shutil.rmtree(d, ignore_errors=True)
 
 
@@ -2085,6 +2163,7 @@ def main():
                test_observer_vitals_are_derived,
                test_forever_stops_when_asked,
                test_forever_does_not_spin_on_failure,
+               test_the_two_agents_share_one_queue,
                test_a_visit_that_never_happened_does_not_consume_its_trigger,
                test_an_exhausted_ladder_reaches_the_supervisor,
                test_preflight_is_advisory_for_an_unattended_run,

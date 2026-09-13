@@ -418,23 +418,15 @@ class Engine:
                 self.cycles_since_visit = 0
                 self.cycles_since_change = 0
             else:
-                # **A visit that did not HAPPEN is not an answer.** This reset
-                # was unconditional, so when no rung could be reached the
-                # trigger was consumed and that work was never judged -- not
-                # later, not when quota returned. Never.
+                # The cousin RAN and produced nothing usable -- a bad reply, an
+                # unparseable verdict. That is an instrument that ran, so it
+                # says UNKNOWN and gates nothing. But it is still not an ANSWER
+                # to what summoned it, so the counters stay and HEARTBEAT will
+                # bring the cousin back to the work.
                 #
-                # The contradiction was already written in this file: the scar
-                # says a visit is the answer to what summoned it, and
-                # `visit_cousin` says an instrument that cannot run says
-                # UNKNOWN. UNKNOWN is explicitly NOT an answer, and the code
-                # took the wrong side.
-                #
-                # 2026-09-13, measured: all four rungs at quota for an hour,
-                # both verdicts in it UNKNOWN/LadderExhausted, and the creature
-                # left re-reading two files with nothing able to redirect it.
-                # Leaving the counters alone means HEARTBEAT fires again and
-                # the work is judged once a rung answers -- which is the
-                # difference between deferred and lost.
+                # A cousin that could not be REACHED never gets here at all:
+                # `cousin.visit` re-raises LadderExhausted so the whole cycle
+                # defers, which is the one queue both agents share.
                 self.cycles_since_visit += 1
                 self.j.append("visit_unanswered", trigger=fired[0][0],
                               error=v.error)
