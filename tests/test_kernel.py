@@ -2468,6 +2468,54 @@ def test_the_creature_is_shown_its_own_library_every_wake():
           "used as: plan goal|add|list|done" in p, p[-300:] if p else "")
 
 
+def test_quoted_text_in_a_bare_fence_is_not_a_command():
+    """An untagged fence is not an action, and running one invents work.
+
+    2026-09-13, from the first raw think reply this journal ever kept. The
+    creature quoted a tool's OUTPUT in a bare fence while reasoning about it,
+    and the framework ran it. Exit 2. In the NEXT reply it read that
+    manufactured failure out of its own transcript and concluded *"This
+    happened because the cousin probably copied the output of a tool and tried
+    to run it as a script"* -- a false belief about the other agent,
+    manufactured by us and delivered as evidence.
+
+    `CREATURE-PROMPT.md` says it twice: commands are ```bash blocks, and the
+    prompt's own tool-header example is a BARE fence that is plainly not one.
+    The creature was following its contract. The parser was not.
+    """
+    live = (
+        "```\n"
+        "Tasks sorted by priority (Goal: Organize weekly research tasks):\n"
+        "1. [10] (Index 1) Implement a memory archive\n"
+        "```\n"
+        "It seems to be working.\n\n"
+        "Let's examine the tool.\n\n"
+        "```bash\ncat tools/own/prioritize\n```")
+
+    blocks = think.parse_blocks(live)
+    check("fence: quoted output in a bare fence is not run",
+          all("Tasks sorted by priority" not in b for b in blocks), blocks)
+    check("fence: the tagged block in the same reply still is",
+          blocks == ["cat tools/own/prioritize"], blocks)
+
+    # The prompt TEACHES a bare fence, so this is not a hypothetical shape.
+    header = "```\n#!/usr/bin/env python3\n# tool: x\n# does: y\n```"
+    check("fence: the prompt's own tool-header example is not a command",
+          think.parse_blocks(header) == [], think.parse_blocks(header))
+
+    check("fence: ```sh still counts, the tag is required not the word bash",
+          think.parse_blocks("```sh\nls\n```") == ["ls"])
+
+    # A reply that used to run and now does not must SAY so. A change that
+    # silently stops doing something looks exactly like a model that stopped
+    # asking for it.
+    reason, detail = think.classify_no_blocks(header)
+    check("fence: an untagged-only reply gets its own reason, not no_command",
+          reason == "untagged_fence", reason)
+    check("fence: and that is not counted as commands LOST",
+          not think.commands_were_lost(reason), reason)
+
+
 def test_a_think_keeps_the_reply_that_produced_it():
     """The counterpart of `test_an_unreadable_verdict_keeps_its_evidence`.
 
@@ -2583,7 +2631,8 @@ def test_library_never_withholds_a_tool_that_failed():
 
 def main():
     t0 = time.time()
-    for fn in (test_the_creature_is_shown_its_own_library_every_wake,
+    for fn in (test_quoted_text_in_a_bare_fence_is_not_a_command,
+               test_the_creature_is_shown_its_own_library_every_wake,
                test_a_think_keeps_the_reply_that_produced_it,
                test_library_marks_a_tool_its_user_has_never_run,
                test_library_counts_only_its_users_runs,
