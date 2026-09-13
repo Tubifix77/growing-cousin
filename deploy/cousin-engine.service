@@ -64,6 +64,21 @@ RestartSec=60
 ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=%h/growing-cousin/live
+
+# READ-ONLY IS NOT UNREACHABLE, and the comment above used to claim it was.
+# 2026-09-13, verified on this laptop: a creature-style command listed
+# %h/growing-spine and could read its config.yaml. `ProtectHome=read-only`
+# stops the engine WRITING to the sibling; the boundary in CLAUDE.md §2.6 is
+# about not touching it at all, and reading its secrets is not "not touching".
+# The engine has never needed this path, so making it invisible costs nothing.
+InaccessiblePaths=%h/growing-spine
+
+# The key files are NOT closed by this, and pretending otherwise would be worse
+# than leaving it open. The engine reads them per call and shares a uid with
+# the shell it spawns, so `InaccessiblePaths=%h/keys` would blind the engine
+# too. The real answers are `DockerBody` -- named as the real body since the
+# design -- or `LoadCredential=` here plus an allow-listed child environment in
+# `body.child_env` (which now exists). Tue's decision; recorded, not hidden.
 PrivateTmp=true
 NoNewPrivileges=true
 

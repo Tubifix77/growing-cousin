@@ -16,6 +16,7 @@ import collections
 import io
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -2474,6 +2475,92 @@ def test_the_creature_is_shown_its_own_library_every_wake():
           "used as: plan goal|add|list|done" in p, p[-300:] if p else "")
 
 
+def test_the_creatures_shell_does_not_inherit_the_engines_secrets():
+    """The body ran untrusted input with the engine's whole environment.
+
+    Found 2026-09-13 by an outside review of the public repo, and confirmed the
+    same evening on the live laptop: a creature-style command run from the
+    body's own directory read `~/keys/*.key` and listed the spine's directory,
+    `config.yaml` included. `LocalBody`'s own docstring says it is "not a
+    sandbox... for running OUR fixtures, never untrusted input" -- and the
+    input in production is bash written by free-tier third-party models.
+
+    An ALLOW-LIST, because a deny-list has to be updated every time a new
+    secret-shaped variable appears and it will not be.
+
+    This test does NOT claim the body is sandboxed. The key files stay readable
+    by anything running as this user; only `DockerBody` or systemd
+    `LoadCredential=`+`InaccessiblePaths=` closes that.
+    """
+    d = tmpdir()
+    b = bodymod.LocalBody(os.path.join(d, "body"))
+    os.environ["SPINE_API_KEY_CANARY"] = "sk-do-not-leak-me"
+    try:
+        r = b.run('echo "[$SPINE_API_KEY_CANARY]"; echo "home=$HOME"')
+        check("env: a secret in the engine's environment does not reach the "
+              "creature's shell",
+              "do-not-leak-me" not in r.stdout, repr(r.stdout)[:120])
+        check("env: HOME points into the body, so `~` is the creature's own tree",
+              os.path.realpath(b.root) in os.path.realpath(
+                  r.stdout.split("home=", 1)[-1].strip() or "/nowhere"),
+              r.stdout)
+        # It must still be a WORKING shell: stripping the environment is only
+        # correct if the creature can still run things.
+        ok = b.run("echo alive && which bash >/dev/null && echo hasbash")
+        check("env: and the shell still works with the stripped environment",
+              ok.code == 0 and "alive" in ok.stdout and "hasbash" in ok.stdout,
+              "%s %r" % (ok.code, ok.stdout[:80]))
+        keep = bodymod.CHILD_ENV_KEEP
+        check("env: the allow-list carries PATH, or nothing is runnable",
+              "PATH" in keep, keep)
+        check("env: and carries no secret-shaped name",
+              not [k for k in keep
+                   if any(s in k.upper() for s in ("KEY", "TOKEN", "SECRET",
+                                                   "PASS", "CRED"))], keep)
+    finally:
+        os.environ.pop("SPINE_API_KEY_CANARY", None)
+        b.destroy()
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def test_every_defined_test_is_registered():
+    """A hand-maintained list in `main()` is a classic way a written test never
+    runs. Raised by an outside review of the public repo on 2026-09-13 as
+    unverified. It was in fact clean at 70/70 -- which is exactly why it earns
+    an assertion rather than a one-off grep: nothing was stopping the next one
+    from being forgotten.
+
+    Both of this test's own first drafts were the fault it exists to catch.
+    One split on the literal strings "def main(" and the totals line, which
+    appear in this function's own source, so it split ITSELF, read a
+    16-character body and declared all 70 tests unregistered. The other reached
+    the file through a bash heredoc, where the word-boundary escape became a
+    literal backspace byte and the pattern matched nothing at all. Both
+    reported a confident wrong answer rather than an error.
+    """
+    src = io.open(os.path.abspath(__file__), encoding="utf-8").read()
+    defined = set(re.findall(r"^def (test_[a-z0-9_]+)[(]", src, re.M))
+    check("registry: the file defines tests at all, or this proves nothing",
+          len(defined) > 40, len(defined))
+
+    # ANCHORED TO COLUMN 0, so the literals inside this very function cannot
+    # be mistaken for the runner.
+    start = re.search(r"^def main[(]", src, re.M)
+    check("registry: the runner is findable", bool(start))
+    rest = src[start.end():] if start else ""
+    end = re.search(r"^    total = ", rest, re.M)
+    body = rest[:end.start()] if end else rest
+    check("registry: and its list is non-empty, or this proves nothing",
+          len(body) > 500, len(body))
+
+    registered = set(re.findall(r"(test_[a-z0-9_]+)", body))
+    missing = sorted(defined - registered)
+    check("registry: every defined test is in the runner's list", not missing,
+          missing)
+    check("registry: and the runner names no test that does not exist",
+          not sorted(registered - defined), sorted(registered - defined))
+
+
 def test_giving_up_is_distinguishable_from_stopping():
     """Finishing and abandoning both exited 0, so nothing ever restarted it.
 
@@ -2947,7 +3034,9 @@ def test_library_never_withholds_a_tool_that_failed():
 
 def main():
     t0 = time.time()
-    for fn in (test_giving_up_is_distinguishable_from_stopping,
+    for fn in (test_the_creatures_shell_does_not_inherit_the_engines_secrets,
+               test_every_defined_test_is_registered,
+               test_giving_up_is_distinguishable_from_stopping,
                test_the_unit_bounds_its_own_restarting,
                test_a_cap_downstream_never_exceeds_the_cap_upstream,
                test_a_reply_with_no_verdict_falls_through_to_the_next_rung,

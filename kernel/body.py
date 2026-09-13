@@ -50,6 +50,12 @@ def exec_setup_failure(stdout, stderr, code):
     return any(s in blob for s in signs)
 
 
+#: Everything the creature's shell is allowed to inherit from the engine's own
+#: environment. An ALLOW-LIST, not a deny-list: a deny-list has to be updated
+#: every time a new secret-shaped variable appears, and it will not be.
+CHILD_ENV_KEEP = ("PATH", "LANG", "LC_ALL", "TZ", "TERM")
+
+
 class LocalBody:
     """A temp tree and a subprocess. For tests and for a kernel that has no
     container available. Not a sandbox: it is for running OUR fixtures, never
@@ -79,6 +85,41 @@ class LocalBody:
         os.makedirs(os.path.join(self.mind, "data"), exist_ok=True)
         self._alive = True
 
+    def child_env(self):
+        """What the creature's shell inherits. **An allow-list.**
+
+        Until 2026-09-13 this was `dict(os.environ, ...)`: the creature's bash
+        received the ENGINE's entire environment. Found by an outside review of
+        the public repo, and confirmed on the live laptop the same evening --
+        a creature-style command run from the body's own directory read
+        `~/keys/*.key` and listed the spine's directory, `config.yaml` included.
+
+        The input to this shell is bash written by free-tier third-party
+        models. This class's own docstring says it is "not a sandbox... for
+        running OUR fixtures, never untrusted input", and it has been running
+        untrusted input in production since deployment. That contradiction is
+        the finding; this is the cheap half of the repair.
+
+        What this DOES fix: every secret-shaped variable in the engine's
+        environment -- including any rung configured with `key_env` -- stops
+        being one `echo` away.
+
+        What it does NOT fix, and must not be read as fixing: the key FILES
+        stay readable by any process running as this user, because the engine
+        reads them per call and shares a uid with the shell it spawns. Closing
+        that needs `DockerBody` -- which the design has always named as the
+        real body -- or systemd `LoadCredential=` plus `InaccessiblePaths=` on
+        the key directory. That is a deployment decision and it is Tue's.
+
+        HOME points into the body, so `~` in a generated command resolves to
+        the creature's own tree rather than the host's.
+        """
+        env = {k: os.environ[k] for k in CHILD_ENV_KEEP if k in os.environ}
+        env.setdefault("PATH", "/usr/local/bin:/usr/bin:/bin")
+        env["HOME"] = self.root
+        env["MIND"] = self.mind
+        return env
+
     def responds(self):
         """Ask it to DO something. Never trust a status field."""
         try:
@@ -105,6 +146,8 @@ class LocalBody:
         # A relative script has neither failure: nothing to mangle, nothing to
         # spell. (stdin via `bash -s` was tried in between and hung.)
         name = ".cmd-%d.sh" % os.getpid()
+        # The environment the creature's shell gets is an ALLOW-LIST; see
+        # `child_env` for why, and for what it deliberately does not fix.
         # $MIND is derived by the SHELL from its own working directory, not
         # handed in from outside. Passing it through `env=` sets a host variable
         # that the shell may never inherit -- measured 2026-09-11: it arrived
@@ -122,8 +165,7 @@ class LocalBody:
             # command a moment ago. A relative name needs no translation at all.
             p = subprocess.run(
                 ["bash", name], cwd=self.mind, capture_output=True, text=True,
-                timeout=timeout,
-                env=dict(os.environ, MIND=self.mind, HOME=self.root))
+                timeout=timeout, env=self.child_env())
             out, err, code = p.stdout, p.stderr, p.returncode
         except subprocess.TimeoutExpired:
             # A timeout is the bound working, not an error to hide.
