@@ -80,6 +80,12 @@ def measure(rows):
         "cycles": k.get("wake", 0),
         "thinks": k.get("think", 0),
         "waits": k.get("loop_waiting", 0),
+        # EXPECTED vs FAULT, kept apart. On a free tier a declined rung is the
+        # normal case; pooling it with real faults makes a healthy engine look
+        # broken and sends the next reader hunting for a bug that is weather.
+        "rung_declined": k.get("rung_declined", 0),
+        "rung_broken": k.get("rung_broken", 0),
+        "think_deferred": k.get("think_deferred", 0),
         "commands": len(execs),
         "cmd_ok": ok,
         "cmd_failed": bad,
@@ -105,7 +111,10 @@ def fmt(m, title):
            % (m["commands"], m["cmd_ok"], m["cmd_failed"],
               100 * m["cmd_fail_rate"], 100 * m["cmd_distinct_rate"]),
            "verdicts %d   recovered-from-reasoning %d"
-           % (m["verdicts"], m["recovered"])]
+           % (m["verdicts"], m["recovered"]),
+           "rungs declined %d (expected)   BROKEN %d (needs a human)   "
+           "thinks deferred %d"
+           % (m["rung_declined"], m["rung_broken"], m["think_deferred"])]
     if m["by_rung"]:
         out.append("verdicts BY RUNG (an aggregate over rungs measures nothing):")
         for rung, counts in sorted(m["by_rung"].items()):

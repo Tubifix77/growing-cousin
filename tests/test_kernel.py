@@ -297,7 +297,11 @@ def test_observer_describes_every_kind_it_can_see():
         "cousin_noticed": {"text": "the disk is nearly full"},
         "context_written": {"wants": 3},
         "tools_changed": {"added": ["grep_tool"], "removed": []},
-        "rung_error": {"rung": "gemini", "reason": "quota (429)"},
+        "rung_declined": {"rung": "gemini", "reason": "quota (429)",
+                          "expected": True},
+        "rung_broken": {"rung": "groq", "reason": "credential rejected",
+                        "expected": False},
+        "think_deferred": {"where": "think", "detail": "LadderExhausted"},
         "rung_fell_through": {"served_by": "local", "past": "gemini(next)"},
         "loop_start": {"pause": 30, "max_cycles": None},
         "loop_end": {"cycles": 12, "reason": "asked to stop", "seconds": 900.0},
@@ -581,6 +585,72 @@ def test_forever_does_not_spin_on_failure():
     check("forever: recovery resets the failure count",
           state["n"] >= 5, "only %d attempts" % state["n"])
     shutil.rmtree(d, ignore_errors=True)
+
+
+def test_expected_refusals_are_not_called_errors():
+    """On a free tier, a rung with nothing to give is the WEATHER.
+
+    Tue, 2026-09-13: "we completely expect half our calls to llm api's will
+    return nothing... calling it rung_error and error is confusing, and this
+    might confuse you or another llm inspecting the log into thinking its an
+    issue to fix and not ignore."
+
+    That is the truncation-marker scar in a new place: a label that makes the
+    reader conclude the wrong thing. The reader here is a future session, and
+    the cost is a night spent fixing the weather.
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    b = bodymod.LocalBody(root=os.path.join(d, "body"))
+
+    def unreachable(_p):
+        raise backends.LadderExhausted("no rung answered", all_walled=False)
+
+    e = Engine(j, b, "brief", unreachable, unreachable,
+               os.path.join(d, "context.md"))
+    try:
+        e.run_cycle()
+    except backends.LadderExhausted:
+        pass
+    kinds = dict(j.kinds())
+    check("weather: an unreachable ladder is DEFERRED, not an error",
+          kinds.get("think_deferred") == 1 and not kinds.get("error"),
+          str(kinds))
+
+    # A genuine fault must still be loud, or the rename buries real problems.
+    def broken(_p):
+        raise RuntimeError("something is actually wrong")
+
+    j2 = Journal(os.path.join(d, "j2.jsonl"))
+    b2 = bodymod.LocalBody(root=os.path.join(d, "body2"))
+    e2 = Engine(j2, b2, "brief", broken, broken, os.path.join(d, "c2.md"))
+    try:
+        e2.run_cycle()
+    except RuntimeError:
+        pass
+    k2 = dict(j2.kinds())
+    check("weather: a REAL fault is still called an error",
+          k2.get("error") == 1 and not k2.get("think_deferred"), str(k2))
+
+    # And at the rung level: a credential the provider refuses needs a human,
+    # so it must not hide among the expected refusals.
+    class H(Exception):
+        def __init__(self, code):
+            self.code = code
+
+    j3 = Journal(os.path.join(d, "j3.jsonl"))
+    try:
+        backends.ladder([("bad", lambda _p: (_ for _ in ()).throw(H(401)))],
+                        journal=j3, sleep=lambda _s: None)("x")
+    except backends.LadderExhausted:
+        pass
+    k3 = dict(j3.kinds())
+    check("weather: a rejected credential is BROKEN, not merely declined",
+          k3.get("rung_broken") == 1 and not k3.get("rung_declined"), str(k3))
+    check("weather: and it is flagged as needing a human",
+          j3.read(kinds=["rung_broken"])[0].get("expected") is False)
+
+    b.destroy(); b2.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
 def test_the_same_rung_is_never_knocked_twice_without_a_gap():
@@ -952,8 +1022,11 @@ def test_an_exhausted_ladder_reaches_the_supervisor():
     check("route: run_cycle does not swallow an exhausted ladder",
           isinstance(raised, backends.LadderExhausted),
           "run_cycle returned %r instead of raising" % (raised,))
-    check("route: and it still journals the failure before re-raising",
-          len(j.read(kinds=["error"])) == 1, str(dict(j.kinds())))
+    # Journalled as DEFERRED rather than error: on a free tier a ladder with
+    # nothing to give is the weather, and calling it an error sends the next
+    # reader -- human or model -- hunting for a bug that is not there.
+    check("route: and it still journals the deferral before re-raising",
+          len(j.read(kinds=["think_deferred"])) == 1, str(dict(j.kinds())))
 
     # Now the whole route: the supervisor must WAIT, not spin.
     slept = []
@@ -1782,8 +1855,15 @@ def test_ladder_routes_and_records():
           rec.get("rung") == "second", str(rec)[:160])
     check("ladder: falling through is journalled, not silent",
           len(j.read(kinds=["rung_fell_through"])) == 1)
-    check("ladder: the rung error is journalled with its reason",
-          len(j.read(kinds=["rung_error"])) == 1)
+    check("ladder: a declined rung is journalled with its reason",
+          len(j.read(kinds=["rung_declined"])) == 1)
+    # DECLINED, not error. On a free tier half the calls are expected to return
+    # nothing, so "error" asserts something false -- it misleads a human and it
+    # misleads the next model inspecting the log into fixing the weather.
+    check("ladder: an expected refusal is NOT called an error",
+          not j.read(kinds=["rung_error"])
+          and j.read(kinds=["rung_declined"])[0].get("expected") is True,
+          str(dict(j.kinds())))
 
     # EVERY failure is counted, not just the first of its kind. Announcing once
     # was right for noise and wrong for measurement: it made the journal show
@@ -1804,7 +1884,7 @@ def test_ladder_routes_and_records():
             ask3("x")
         except backends.LadderExhausted:
             pass
-    errs = j3.read(kinds=["rung_error"])
+    errs = j3.read(kinds=["rung_declined"])
     # SIX, not three: a 500 is RETRY, so each of the three calls attempts twice.
     # Every ATTEMPT is a real request and every one is counted -- that is the
     # point, since the old announce-once recorded exactly one of them.
@@ -2354,6 +2434,7 @@ def main():
                test_observer_vitals_are_derived,
                test_forever_stops_when_asked,
                test_forever_does_not_spin_on_failure,
+               test_expected_refusals_are_not_called_errors,
                test_the_same_rung_is_never_knocked_twice_without_a_gap,
                test_a_spent_rung_is_remembered_not_rediscovered,
                test_the_cousin_is_never_sent_to_a_tool_that_does_not_exist,

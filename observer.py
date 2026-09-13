@@ -76,7 +76,12 @@ KIND_COLORS = {
     "context_written": "#6fd0b8",
     "trigger_fired": "#e8a33d",
     "tools_changed": "#9fc98a",
-    "rung_error": "#e08a60",
+    # Expected weather, not alarm. A free-tier rung declining is the normal
+    # case; colouring it like an error taught the eye to read a healthy engine
+    # as a broken one.
+    "rung_declined": "#7a6a58",
+    "rung_broken": "#e06c60",
+    "think_deferred": "#8a7a68",
     "rung_fell_through": "#d0a0d8",
     "loop_start": "#8fbf6f",
     "loop_end": "#8a7a68",
@@ -243,8 +248,11 @@ def describe(e):
         if removed:
             bits.append("- " + ", ".join(removed))
         return "  ".join(bits) or "(no change)"
-    if k == "rung_error":
-        return "%s: %s" % (e.get("rung"), e.get("reason"))
+    if k in ("rung_declined", "rung_broken"):
+        return "%s: %s%s" % (e.get("rung"), e.get("reason"),
+                             "" if e.get("expected", True) else "  (NEEDS A HUMAN)")
+    if k == "think_deferred":
+        return "no rung had anything to give -- waiting"
     if k == "rung_fell_through":
         return "served by %s, past %s" % (e.get("served_by"), e.get("past"))
     if k == "loop_start":

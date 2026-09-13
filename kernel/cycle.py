@@ -322,7 +322,14 @@ class Engine:
         try:
             reply, meta = self.ask_creature(context)
         except Exception as e:
-            self.j.append("error", where="think",
+            # A ladder with nothing to give is the free tier working as
+            # designed, not a fault. Journalling it as `error` told every
+            # later reader -- human or model -- that something was broken,
+            # which is how a night gets spent fixing the weather.
+            from . import backends as _b
+            expected = isinstance(e, _b.LadderExhausted)
+            self.j.append("think_deferred" if expected else "error",
+                          where="think",
                           detail="%s: %s" % (type(e).__name__, e))
             # RE-RAISED, not swallowed. Deciding what a failure MEANS is the
             # supervisor's job -- it is the thing that knows the difference

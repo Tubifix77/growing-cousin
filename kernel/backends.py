@@ -296,7 +296,7 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
     # the spine. See kernel/quota.py.
     qstate = {} if quota_state is None else quota_state
 
-    def announce(name, reason):
+    def announce(name, reason, verdict=NEXT):
         """Every failure is counted; the full text is written once.
 
         Announcing once was right for NOISE and wrong for MEASUREMENT: it made
@@ -314,7 +314,19 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
         first = key not in announced
         announced.add(key)
         if journal:
-            journal.append("rung_error", rung=name, reason=reason, first=first)
+            # **DECLINED, not ERROR.** Tue, 2026-09-13: on a free tier half the
+            # calls are expected to return nothing, so calling that an "error"
+            # asserts something false. It misleads a human reading the journal,
+            # and it misleads the next LLM inspecting it into fixing what it
+            # should be ignoring -- the truncation-marker scar again, where a
+            # label makes the reader conclude the wrong thing.
+            #
+            # A rung that DECLINED us is the normal weather. A rung that
+            # REJECTED us -- a credential the provider will not accept -- is a
+            # real fault a human has to clear, so it keeps a name that says so.
+            kind = "rung_broken" if verdict == WALL else "rung_declined"
+            journal.append(kind, rung=name, reason=reason, first=first,
+                           expected=(verdict != WALL))
 
     def ask(prompt):
         tried = []
@@ -357,7 +369,7 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
                     return text, meta
                 except Exception as e:
                     verdict, reason = classify_error(e)
-                    announce(name, reason)
+                    announce(name, reason, verdict)
                     # ONLY quota marks a rung spent. A 500 or a timeout is
                     # transient and says nothing about budget -- gemini
                     # produced ten non-quota failures in the same window and
