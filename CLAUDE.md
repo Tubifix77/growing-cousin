@@ -299,6 +299,39 @@ was measured, with what, and on what date.*
   neither. Tuning the transcript against whichever model happened to answer is
   optimising into noise.
 
+- **The parser contradicted the contract the creature is held to, and the
+  creature built a false belief about its USER out of the evidence we handed
+  it.** 2026-09-13. `CREATURE-PROMPT.md` says it twice — line 54, *"To DO
+  anything you MUST write executable ```bash blocks"*, and the prompt teaches
+  the tool header using a **bare** fence as an example that is plainly not a
+  command. `FENCE_RE` made the tag optional. So when the creature quoted a
+  tool's OUTPUT in a bare fence while reasoning about it — *"Tasks sorted by
+  priority (Goal: ...)"* — the framework ran it. Exit 2. **And in the next
+  reply it read that manufactured failure out of its own transcript and
+  concluded: *"This happened because the cousin probably copied the output of
+  a tool and tried to run it as a script."*** Eighth appearance of *the
+  framework manufactures work and the creature is billed for it*, and the
+  first time it has reached one agent's model of the other — a fabricated
+  complaint arriving by the back door, against the agent whose testimony this
+  design exists to keep honest. **Invariant: when the prompt names a marker,
+  the parser requires that marker. An optional tag is a second, unstated
+  contract, and only one of the two is in the creature's prompt.** Fixed by
+  requiring `bash`/`sh`; an untagged-only reply now classifies as
+  `untagged_fence` rather than `no_command` and is explicitly NOT counted as
+  commands lost, because a change that quietly stops doing something looks
+  exactly like a model that stopped asking for it. Measured across the
+  restart: exec `exit 2` **12 before, 0 after**.
+  **Two process failures made this cost more than it should have.** (1) I
+  reported the opposite an hour earlier — *"harness exonerated, the creature
+  emitted those blocks itself"* — reasoning from what `FENCE_RE` does rather
+  than from the contract the creature is given. Reading the implementation
+  told me what happened; only the prompt could say whether it was allowed.
+  (2) It was findable **only** because `raw` had started being journalled on
+  the think one cycle earlier. `chars` and `finish` had been the whole record
+  for the life of the kernel, and the cousin's verdict had kept its raw text
+  since 2026-09-12 — the asymmetry was the bug, and the top scar below says
+  so in general terms.
+
 - **A checker that cannot distinguish the thing it measures reports a
   clean-looking wrong number, never an error — and I built four in one evening
   while writing the tools meant to catch exactly that.** 2026-09-10, all found
