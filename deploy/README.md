@@ -88,3 +88,29 @@ out of four: **before believing a behavioural finding about either agent, prove
 the harness was not producing it.** Twice now, a creature that appeared to be
 building duplicate tools was actually a creature responding rationally to a
 framework that had broken its work.
+
+## What needs a restart, and what does not
+
+Asked 2026-09-13 and worth not re-deriving. The engine is one long-lived Python
+process: it imports `kernel/` once and reads its briefs and ladder specs once,
+in `main()`, before the loop starts.
+
+| changed | picked up | why |
+|---|---|---|
+| `kernel/*.py`, `run.py` | **restart** | imported once at startup |
+| `CREATURE-PROMPT.md`, `MANAGER-PROMPT.md` | **restart** | read once in `main()` (`run.py:156-158`) — the creature's identity is SERVED from memory every wake, not re-read |
+| `rungs.local.json`, `rungs.cousin.local.json` | **restart** | `load_spec` runs once (`run.py:178-179`) |
+| `deploy/*.service`, `*.timer` | **`daemon-reload` + restart** | and copy it to `~/.config/systemd/user/` first — editing the repo copy alone changes nothing |
+| `live/context.md` (the wants) | **live** | the cousin writes it, the kernel re-reads it every wake. This is the whole point of "the manager writes the context, the kernel serves it" |
+| `live/journal.jsonl` | **live** | append-only; `vitals.py`, `census.py` and the observer all read it while the engine runs |
+| `tools/own/*` | **live** | the creature's own world, discovered per cycle |
+| `*.md` docs, `tests/`, `LICENSE` | **never** | the engine does not read them |
+
+**Restarting is cheap but not free:** `systemctl --user restart` kills the cycle
+in flight and throws it away. `touch live/STOP` lets the current cycle finish
+first, which matters when a rung call is in progress and the free tier is thin.
+
+**Before claiming a change needs no restart, check.** On 2026-09-13 a "docs
+only" commit also touched `run.py`; comparing the two revisions' ASTs with
+docstrings stripped showed the only executable difference was an argparse help
+string, so it genuinely needed none — but that was verified rather than assumed.
