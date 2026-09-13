@@ -168,6 +168,9 @@ def main():
                     help="only the last N minutes")
     ap.add_argument("--compare", type=float, default=None,
                     help="compare the last N minutes against the N before them")
+    ap.add_argument("--jsonl", type=float, default=None, metavar="MINUTES",
+                    help="emit ONE json line covering the last N minutes, for "
+                         "appending to a time series")
     args = ap.parse_args()
 
     if not os.path.exists(args.journal):
@@ -178,6 +181,20 @@ def main():
         sys.stderr.write("journal is empty\n")
         return 2
     now = time.time()
+
+    if args.jsonl:
+        # One line per sample, so a night becomes a SERIES rather than a
+        # handful of glances. With a non-deterministic engine the series is
+        # the only thing that can separate a trend from an anecdote, and it
+        # has to be recorded continuously -- sampling only when someone looks
+        # is how a quiet regression survives a whole night.
+        sel = window(rows, now - args.jsonl * 60, now + 1)
+        m = measure(sel)
+        m.pop("wants", None)          # the texts live in the journal already
+        m["ts"] = round(now, 1)
+        m["window_min"] = args.jsonl
+        print(json.dumps(m, sort_keys=True))
+        return 0
 
     if args.compare:
         span = args.compare * 60

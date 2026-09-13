@@ -1,0 +1,14 @@
+[Unit]
+Description=Sample Growing Cousin vitals every 10 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+# Each sample covers the last 10 minutes, so consecutive samples tile the night
+# without overlapping. Overlapping windows would double-count a single good or
+# bad stretch and make a trend look stronger than it is.
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

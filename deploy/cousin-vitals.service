@@ -1,0 +1,21 @@
+[Unit]
+# Samples the engine's own behaviour into a time series.
+#
+# With a non-deterministic engine, a single window cannot tell a trend from an
+# anecdote -- so the record has to be CONTINUOUS rather than collected whenever
+# someone thinks to look. Sampling only on inspection is how a quiet regression
+# survives a whole night.
+Description=Growing Cousin vitals sample
+After=cousin-engine.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/growing-cousin
+# Read-only over the journal; appends one JSON line per sample and nothing else.
+ExecStart=/bin/sh -c '/usr/bin/python3 %h/growing-cousin/vitals.py %h/growing-cousin/live/journal.jsonl --jsonl 10 >> %h/growing-cousin/live/vitals.jsonl'
+
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/growing-cousin/live
+PrivateTmp=true
+NoNewPrivileges=true
