@@ -173,8 +173,13 @@ def main():
         qstate = backends.quotamod.load(qpath)
         ask_creature = backends.from_spec(spec, journal=j, quota_state=qstate,
                                           quota_path=qpath)
+        # The cousin's ladder REJECTS a reply with no verdict in it and tries
+        # the next rung. The creature's does not, and must not: a think with
+        # no command is a real answer.
+        from kernel import cousin as cousinmod
         ask_cousin = backends.from_spec(cousin_spec, journal=j,
-                                        quota_state=qstate, quota_path=qpath)
+                                        quota_state=qstate, quota_path=qpath,
+                                        reject=cousinmod.unusable_reply)
         spent = backends.quotamod.spent_rungs(qstate)
         if spent:
             print("resumed with rungs still spent: %s" % ", ".join(spent))

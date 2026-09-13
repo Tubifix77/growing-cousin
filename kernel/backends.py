@@ -277,7 +277,8 @@ RETRY_GAP_SECS = 6.0
 
 
 def ladder(rungs, journal=None, retries=1, quota_state=None,
-           quota_path=None, retry_gap=RETRY_GAP_SECS, sleep=time.sleep):
+           quota_path=None, retry_gap=RETRY_GAP_SECS, sleep=time.sleep,
+           reject=None):
     """`rungs` is [(name, ask), ...] tried in order.
 
     A walled rung is skipped for the rest of the session: a rejected credential
@@ -355,6 +356,37 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
                     text, meta = rung(prompt)
                     meta = dict(meta or {})
                     meta["rung"] = name
+                    # A REPLY IS NOT AUTOMATICALLY AN ANSWER. Growing Spine
+                    # reached this first and its `keychain/provider.py` says
+                    # why: deliberation returned as the answer "is not an
+                    # answer, so the caller treats it as a degenerate response
+                    # rather than as text", and the keychain then hops to the
+                    # next window. It also records what the cost was of not
+                    # doing so -- of 60 exec_skip cycles, 21 ended on an
+                    # unclosed fence, "commands were proposed and destroyed by
+                    # the budget, and the journal said the model proposed no
+                    # commands".
+                    #
+                    # Measured here 2026-09-13, 15:40-18:00: gemini served the
+                    # cousin 14 times and produced 0 usable verdicts, every one
+                    # cut at `finish=length` after spending 94% of its budget
+                    # on reasoning -- while groq went 2 for 2. The ladder
+                    # banked all 14 as successes, so it never fell through to a
+                    # rung that could answer. That is this project's own scar
+                    # written down and not acted on: such a call "registers as
+                    # a SUCCESS, so nothing walls the rung and nothing below it
+                    # is ever reached -- the manager is silently absent rather
+                    # than visibly broken."
+                    #
+                    # The predicate is the CALLER's, because only the caller
+                    # knows what a usable reply looks like. The creature's
+                    # ladder passes none: a think with no command is a real
+                    # answer.
+                    why = reject(text, meta) if reject else None
+                    if why:
+                        announce(name, "answered but unusable: %s" % why, NEXT)
+                        tried.append("%s(unusable)" % name)
+                        break
                     if qstate.get(name, {}).get("since") is not None:
                         quotamod.record_success(qstate, name)
                         if quota_path:
@@ -395,7 +427,8 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
 KINDS = {"ollama": ollama, "openai_chat": openai_chat}
 
 
-def from_spec(spec, journal=None, quota_state=None, quota_path=None):
+def from_spec(spec, journal=None, quota_state=None, quota_path=None,
+              reject=None):
     """Build a ladder from plain data: [{name, kind, model, ...}, ...].
 
     Rungs are CONFIGURATION, not code, so adding or dropping one is not a commit
@@ -419,7 +452,7 @@ def from_spec(spec, journal=None, quota_state=None, quota_path=None):
     if not rungs:
         raise ValueError("empty ladder spec")
     return ladder(rungs, journal=journal, quota_state=quota_state,
-                  quota_path=quota_path)
+                  quota_path=quota_path, reject=reject)
 
 
 def load_spec(path):

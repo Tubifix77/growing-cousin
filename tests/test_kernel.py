@@ -2474,6 +2474,69 @@ def test_the_creature_is_shown_its_own_library_every_wake():
           "used as: plan goal|add|list|done" in p, p[-300:] if p else "")
 
 
+def test_a_reply_with_no_verdict_falls_through_to_the_next_rung():
+    """A reply is not automatically an answer.
+
+    Growing Spine reached this first. Its `keychain/provider.py` returns a
+    reasoning-only completion as an ERROR -- "deliberation is not an answer...
+    so the keychain hops to the next window instead of handing musings to a
+    parser that will scan them" -- and records the cost of not doing it: of 60
+    exec_skip cycles, 21 ended on an unclosed fence, work "proposed and
+    destroyed by the budget" while the journal said none was proposed.
+
+    Measured here 2026-09-13, 15:40-18:00: gemini served the cousin 14 times
+    and produced 0 usable verdicts, every one cut at `finish=length` after
+    spending 94% of its budget on reasoning. groq went 2 for 2. The ladder
+    banked all 14 as successes and never fell through.
+
+    This project had already written that down: such a call "registers as a
+    SUCCESS, so nothing walls the rung and nothing below it is ever reached".
+    """
+    good = ("<<<COUSIN\nverdict: ACCEPTED\ntried: ran it\noutcome: fine\n"
+            "to_creature: it worked.\nwant: a date filter\nCOUSIN")
+    musing = "I have thought about this at considerable length and then stopped"
+
+    def rung(name, text, meta):
+        return (name, lambda _p: (text, dict(meta)))
+
+    j = Journal(os.path.join(tmpdir(), "journal.jsonl"))
+    ask = backends.ladder(
+        [rung("talker", musing, {"done_reason": "length",
+                                 "chars_before_strip": 8407,
+                                 "chars_stripped": 7935}),
+         rung("answerer", good, {"done_reason": "stop"})],
+        journal=j, reject=cousin.unusable_reply, sleep=lambda _s: None)
+
+    text, meta = ask("judge this")
+    check("fallthrough: the rung that could not answer is passed over",
+          meta.get("rung") == "answerer", meta.get("rung"))
+    check("fallthrough: and the usable verdict is what comes back",
+          "ACCEPTED" in text, text[:60])
+    declined = [r for r in j.read(kinds=["rung_declined"])]
+    check("fallthrough: the pass-over is journalled with WHY, as expected "
+          "weather rather than a broken rung",
+          declined and "unusable" in (declined[0].get("reason") or "")
+          and declined[0].get("expected") is True,
+          declined[0] if declined else "(none)")
+
+    # THE DISCRIMINATION: the creature's ladder passes no predicate, and a
+    # think with no command must still be a real answer there.
+    j2 = Journal(os.path.join(tmpdir(), "journal.jsonl"))
+    ask2 = backends.ladder([rung("talker", musing, {"done_reason": "stop"}),
+                            rung("answerer", good, {"done_reason": "stop"})],
+                           journal=j2, sleep=lambda _s: None)
+    t2, m2 = ask2("think")
+    check("fallthrough: with NO predicate the first rung still serves -- a "
+          "creature that only looked around has answered",
+          m2.get("rung") == "talker" and t2 == musing, m2.get("rung"))
+
+    # And a reply whose block is hidden by reasoning-stripping is NOT rejected:
+    # `visit` recovers it, so rejecting it would throw away a real verdict.
+    hidden = cousin.unusable_reply("", {"raw_text": good, "done_reason": "stop"})
+    check("fallthrough: a verdict hidden inside reasoning is not thrown away",
+          hidden is None, hidden)
+
+
 def test_an_unreadable_verdict_says_which_of_three_things_went_wrong():
     """One label for three faults is how a broken channel reads as weather.
 
@@ -2745,7 +2808,8 @@ def test_library_never_withholds_a_tool_that_failed():
 
 def main():
     t0 = time.time()
-    for fn in (test_an_unreadable_verdict_says_which_of_three_things_went_wrong,
+    for fn in (test_a_reply_with_no_verdict_falls_through_to_the_next_rung,
+               test_an_unreadable_verdict_says_which_of_three_things_went_wrong,
                test_a_want_is_discharged_by_the_visit_that_answers_it,
                test_quoted_text_in_a_bare_fence_is_not_a_command,
                test_the_creature_is_shown_its_own_library_every_wake,

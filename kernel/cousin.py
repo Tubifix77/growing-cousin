@@ -177,6 +177,30 @@ def why_unreadable(finish, before_strip, stripped):
     return "truncated-before-block"
 
 
+def unusable_reply(text, meta):
+    """Reason to reject this reply and try the next rung, or None to accept.
+
+    Handed to the COUSIN's ladder only. The creature's ladder passes nothing:
+    a think containing no command is a real answer, and rejecting it would
+    spend the whole ladder on a creature that had simply decided to look
+    around.
+
+    It runs the SAME parse and the SAME recovery path `visit` runs, rather than
+    a cheaper lookalike. A producer and a checker that agree only by eye drift,
+    and this file lost an afternoon to exactly that today when the context
+    writer and `wants()` stopped agreeing about a list format.
+    """
+    v = parse(text or "")
+    if v.verdict != UNKNOWN:
+        return None
+    raw_text = (meta or {}).get("raw_text") or ""
+    if raw_text and parse(raw_text).verdict != UNKNOWN:
+        return None            # stripping hid it; `visit` will recover it
+    return why_unreadable((meta or {}).get("done_reason"),
+                          (meta or {}).get("chars_before_strip"),
+                          (meta or {}).get("chars_stripped"))
+
+
 def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
           library=""):
     """One manager invocation, end to end. `ask(prompt) -> (text, meta)`."""
