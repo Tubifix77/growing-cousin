@@ -8,6 +8,11 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=%h/growing-cousin
+# StandardOutput=append: cannot CREATE the directory it writes into, so a run
+# started from a clean slate dies with 209/STDOUT before reaching any Python --
+# no log, and the log is the first thing anyone reads. Found 2026-09-13 by
+# archiving live/ for a reset, which is exactly when it would bite.
+ExecStartPre=/bin/mkdir -p %h/growing-cousin/live
 # --cycles 0 means no ceiling. Stop it with `touch %h/growing-cousin/live/STOP`,
 # which lets the current cycle finish; `systemctl stop` kills mid-cycle and
 # throws that cycle away.
