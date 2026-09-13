@@ -177,8 +177,25 @@ guess with authority it has not earned.
   run against a local model on a development box first (Tue's point, and it is
   why the 60-cycle local run was done before the move rather than after).
 
+- **SPINE IS PAUSED as of 2026-09-13 13:50 CEST** (Tue), to raise this engine's
+  cadence. It was `enabled` and had been up continuously since 2026-09-10
+  00:41; in its last hour it made 18 served calls, **every one to
+  `google_gemma / gemma-4-31b-it`** — exactly this engine's primary rung.
+
+  > Restore with `systemctl --user enable --now growing-spine`.
+
+  **Numbers taken while spine is paused are NOT comparable to numbers taken
+  before it**, in either direction. Any rate measured now is measured against a
+  free tier this engine has to itself, which is not the condition the project
+  is designed around. Say which era a figure comes from or do not quote it.
+
+  The parallel comparison is suspended, not abandoned: it was already void on
+  throughput (below), and nothing is being compared while the framework is
+  still being fixed every few minutes. It becomes meaningful again only when
+  both run untouched, side by side, which requires restarting spine first.
+
 - **Growing Spine is on the SAME API accounts, so the free tier is SHARED**
-  (Tue, 2026-09-12). This engine gets at most half of what it would with its own
+  (Tue, 2026-09-12). **Suspended 2026-09-13 — see above.** This engine gets at most half of what it would with its own
   account, and the two projects can starve each other. Three consequences, all
   binding: (1) a rate limit here may be the spine's traffic, not a real ceiling
   — never read a 429 as a measurement of this engine's cost; (2) **throughput is
