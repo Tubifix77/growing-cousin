@@ -2869,6 +2869,17 @@ def test_a_fence_inside_the_code_does_not_close_the_block():
           blocks and ('startswith("' + F + '")') in blocks[0],
           "the literal was cut")
 
+    # THE REGRESSION THIS TEST DID NOT HAVE, caught live 40 minutes after the
+    # anchor shipped. The model closed a reasoning tag and opened the block on
+    # the SAME LINE, so an anchored OPENER never matched and the creature's one
+    # command was dropped -- the framework discarding work, by a fix meant to
+    # stop the framework discarding work. Only the CLOSING fence is anchored.
+    glued = ("thinking out loud</thought>" + F + "bash\n"
+             'cat "$MIND/tools/own/plan"\n' + F + "\n")
+    check("fence: a block opened mid-line still runs",
+          think.parse_blocks(glued) == ['cat "$MIND/tools/own/plan"'],
+          think.parse_blocks(glued))
+
     # Two real blocks must still be two, or the anchor has made it greedy.
     two = (F + "bash\nls\n" + F + "\n\ntext\n\n" + F + "bash\npwd\n" + F + "\n")
     check("fence: two blocks are still two, not one greedy run",

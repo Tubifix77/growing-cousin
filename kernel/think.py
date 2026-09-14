@@ -59,7 +59,27 @@ import re
 # creature being billed for it, and the most expensive measured so far: a
 # tool that manipulates fences is exactly the tool this made impossible to
 # write.
-FENCE_RE = re.compile(r"^```(?:bash|sh)[ \t]*\n(.*?)^```", re.S | re.M)
+# **ONLY THE CLOSING FENCE IS ANCHORED**, and the asymmetry is the whole
+# point. Anchoring both ends was shipped an hour before this and lost a
+# real command within forty minutes:
+#
+#     ...</thought>```bash
+#     cat "$MIND/tools/own/plan"
+#     ```
+#
+# The model closed a reasoning tag and opened the block on the SAME LINE,
+# so `^` never matched, the block was dropped, and the creature lost the
+# one command it had proposed -- the framework discarding work again, by a
+# fix meant to stop the framework discarding work.
+#
+# The closing anchor is what fixes the original fault, and it needs no help
+# from the opener: a fence run inside the code being written sits mid-line
+# (`if text.startswith("```")`), so it cannot close a block, while a
+# genuine terminator always starts its own line. Opening mid-line is
+# harmless by comparison -- the worst case is a literal that reads exactly
+# like an opener AND is followed by a newline, in a reply that contains no
+# real block.
+FENCE_RE = re.compile(r"```(?:bash|sh)[ \t]*\n(.*?)^```", re.S | re.M)
 
 # A tagged marker ANYWHERE in the reply. If one is present and yet no block
 # was parsed, the creature marked work as an action and the channel did not
