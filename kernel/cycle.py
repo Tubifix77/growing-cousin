@@ -48,6 +48,7 @@ class Engine:
         self.cycles_since_visit = 0
         self.cycles_since_change = 0
         self.done_blocked = None       # testimony the creature must see next wake
+        self.served = {}               # what the last serve_context put on the page
 
     # ---------------------------------------------------------------- context
 
@@ -93,17 +94,37 @@ class Engine:
         # Placed directly before the wants, so what it HAS and what is still
         # ASKED FOR are read together. That adjacency is the whole anti-twin
         # pressure, and it costs nothing.
-        lib = librarymod.render(os.path.join(self.body.mind, "tools", "own"),
-                                self.j)
+        own = os.path.join(self.body.mind, "tools", "own")
+        names = trigmod.list_tools(own)
+        lib = librarymod.render(own, self.j)
         if lib:
             parts.append(lib)
+        wants = []
         if os.path.exists(self.context_path):
             with open(self.context_path, encoding="utf-8") as f:
                 managed = f.read().strip()
             if managed:
                 parts.append(managed)
+                wants = self.wants()
         if self.creature_brief:
             parts.append(self.creature_brief)
+        # WHAT WAS SERVED, AS FACTS, gathered here where it was served. Until
+        # 2026-09-15 the wake recorded one number -- how long the context was
+        # -- and length cannot say whether the library was on the page or
+        # whether a standing want reached the creature. The builder's library
+        # gap survived a day and the want channel was dead for the life of
+        # the kernel under a green gate (CLAUDE.md §5), both invisible because
+        # nothing recorded what the context HELD. A reader recomputing these
+        # from the directory would be a second account of the same event, and
+        # two accounts drift; the kernel says what it served, once.
+        self.served = {
+            "library_shown": min(len(names), librarymod.LIBRARY_LIMIT),
+            "library_total": len(names),
+            "wants_served": len(wants),
+            "window": self.HISTORY_OUTPUT_CHARS,
+            "refusal_served": bool(self.done_blocked),
+            "memory_served": bool(mem),
+        }
         return "\n\n---\n\n".join(p for p in parts if p)
 
     def record_want(self, want):
@@ -425,7 +446,10 @@ class Engine:
         context = self.serve_context()
         self.done_blocked = None
 
-        self.j.append("wake", context_chars=len(context))
+        # The served facts ride on the wake, so `wake.library_shown == 0` while
+        # tools exist, or `wants_served == 0` while a want stands, is a fault a
+        # monitor can see in the journal rather than a belief about the code.
+        self.j.append("wake", context_chars=len(context), **self.served)
         try:
             reply, meta = self.ask_creature(context)
         except Exception as e:

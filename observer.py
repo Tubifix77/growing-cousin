@@ -78,6 +78,9 @@ KIND_COLORS = {
     # the direction colour family so the eye groups it with what wrote it.
     "want_retired": "#4f9c8a",
     "trigger_fired": "#e8a33d",
+    # Deployment facts: which engine this is, and whether its bounds held.
+    "engine_start": "#b8c9e8",
+    "selfcheck": "#e8c9b8",
     "tools_changed": "#9fc98a",
     # Expected weather, not alarm. A free-tier rung declining is the normal
     # case; colouring it like an error taught the eye to read a healthy engine
@@ -203,7 +206,27 @@ def describe(e):
     k = e.get("kind", "?")
 
     if k == "wake":
-        return "context %s chars" % e.get("context_chars", "?")
+        bits = ["context %s chars" % e.get("context_chars", "?")]
+        if "library_shown" in e:
+            shown, total = e.get("library_shown"), e.get("library_total")
+            bits.append("library %s%s" % (shown, ("/%s" % total)
+                                          if total != shown else ""))
+        if "wants_served" in e:
+            bits.append("wants %s" % e.get("wants_served"))
+        return ", ".join(bits)
+    if k == "engine_start":
+        return "engine %s%s  python %s  rungs %s" % (
+            (e.get("engine") or "?")[:7],
+            " (UNCOMMITTED CHANGES)" if e.get("dirty") else "",
+            e.get("python") or "?",
+            " -> ".join(e.get("rungs") or []) or "?")
+    if k == "selfcheck":
+        bad = sorted(f for f, v in e.items() if v is False)
+        if bad:
+            return "SELFCHECK DISPROVED: %s" % ", ".join(bad)
+        unproven = e.get("unproven") or []
+        return "selfcheck: nothing disproven%s" % (
+            (" (could not test: %s)" % ", ".join(unproven)) if unproven else "")
     if k == "think":
         return "%s replied %s chars (%s)" % (
             e.get("model") or "?", e.get("chars", "?"), e.get("finish") or "?")

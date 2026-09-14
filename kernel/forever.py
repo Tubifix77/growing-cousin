@@ -200,6 +200,10 @@ class Supervisor:
 
         if max_cycles is not None and ran >= max_cycles and reason == "asked to stop":
             reason = "reached %d cycles" % max_cycles
+        # The FLAG goes into the journal beside the prose. A reader deciding
+        # "did it stop or give up" by matching the reason string would be the
+        # exact checker-agreeing-by-eye this flag was created to replace.
         self._log("loop_end", cycles=ran, reason=reason,
+                  fault=self.ended_in_fault,
                   seconds=round(self._now() - started, 1))
         return ran, reason

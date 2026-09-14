@@ -120,6 +120,143 @@ class PathBody(bodymod.LocalBody):
         return bodymod.LocalBody.run(self, cmd, timeout=timeout)
 
 
+def engine_identity(repo, spec=None, cousin_spec=None):
+    """Which engine is writing this journal, so every window can name its
+    instrument.
+
+    CLAUDE.md §0: *every production figure must name its run* -- and within a
+    run, its engine, because the code changed roughly twenty times inside run
+    2. Yet the journal's only start record carried `pause` and `max_cycles`,
+    so attributing an hour to a commit meant lining up systemd's start times
+    against `git log` by hand, which is how a rate gets quoted for the wrong
+    code. Recorded once per start, as fields: the commit, whether the tree was
+    dirty, the caps in force, the rungs by name.
+
+    `unknown` is an honest answer, and `None` for dirty means *could not
+    tell*, never *clean*. Git runs with optional locks off: the deployed unit
+    mounts the repo read-only, and a status that cannot write its index must
+    still answer.
+    """
+    import platform
+    import subprocess
+    sha, dirty = "unknown", None
+    try:
+        r = subprocess.run(["git", "-C", repo, "rev-parse", "HEAD"],
+                           capture_output=True, text=True, timeout=10)
+        if r.returncode == 0 and r.stdout.strip():
+            sha = r.stdout.strip()
+        s = subprocess.run(["git", "-C", repo, "--no-optional-locks", "status",
+                            "--porcelain", "--untracked-files=no"],
+                           capture_output=True, text=True, timeout=10)
+        if s.returncode == 0:
+            dirty = bool(s.stdout.strip())
+    except Exception:
+        pass
+    from kernel import cycle as cyclemod
+    from kernel import journal as journalmod
+
+    def names(rungs):
+        return [r.get("name", r.get("model", "?")) for r in (rungs or [])]
+
+    return {
+        "engine": sha,
+        "dirty": dirty,
+        "python": platform.python_version(),
+        # From the constants, never retyped: a producer and a checker that
+        # each carry their own copy of a number drift.
+        "caps": {"exec_stdout": journalmod.EXEC_STDOUT_CHARS,
+                 "exec_stderr": journalmod.EXEC_STDERR_CHARS,
+                 "exec_cmd": journalmod.EXEC_CMD_CHARS,
+                 "history_output": cyclemod.Engine.HISTORY_OUTPUT_CHARS,
+                 "history_total": cyclemod.Engine.HISTORY_TOTAL_CHARS,
+                 "think_raw": cyclemod.THINK_RAW_CHARS},
+        "rungs": names(spec),
+        "cousin_rungs": names(cousin_spec),
+    }
+
+
+def record_engine_start(journal, identity, **facts):
+    """One record, its own kind, at every start. `facts` are this run's own:
+    root, pause, forever."""
+    return journal.append("engine_start", **dict(identity, **facts))
+
+
+SELFCHECK_CANARY = ".cousin-selfcheck-canary"
+
+
+def selfcheck(body, journal=None, home=None):
+    """Prove the bounds this deployment relies on by their EFFECT, at every
+    start, through the same shell the creature gets. Records; never vetoes.
+
+    CLAUDE.md §5, 2026-09-13: `ProtectSystem=strict`, `ProtectHome=read-only`
+    and `ReadWritePaths` were present, parsed and live in the unit for its
+    whole life and did NOTHING, because a user unit needs `PrivateUsers=yes`
+    for any of them to take effect. Two caps were in series and the one that
+    was tuned was not the one that acted. Both were found by testing the
+    effect, once, by hand. **A directive read back off a unit proves it was
+    PARSED, never that it WORKS** -- so this tests the effects at every start
+    and writes the answer where a monitor can read it.
+
+    Three answers per effect, never two: True (proven), False (DISPROVEN) or
+    None (not testable here -- no spine on a dev box, a body that did not
+    answer). `ok` means *nothing was disproven*; it is never a claim that
+    everything was proven, and `unproven` lists what could not be.
+
+    It never refuses to start. A preflight that vetoes on a check is the scar
+    one entry up (a transient at 22:00 costing the night); a disproven bound
+    is for the monitor to shout about and a human to fix, with the engine
+    running exactly as it did before anyone knew.
+
+    It touches nothing of the spine's: the sibling check is a READ attempt
+    that is supposed to fail. The home canary is created only where no
+    sandbox stops it, and removed in the same command.
+    """
+    import shlex
+    home = home or os.path.expanduser("~")
+    out = {}
+
+    def sh(cmd):
+        try:
+            r = body.run(cmd, timeout=20)
+        except Exception as e:
+            return None, "", str(e)
+        if r.setup_failed:
+            return None, r.stdout or "", r.stderr or ""
+        return r.code, r.stdout or "", r.stderr or ""
+
+    code, so, _ = sh("echo alive")
+    out["body_answers"] = bool(code == 0 and "alive" in so)
+    if out["body_answers"]:
+        canary = shlex.quote(bash_path(os.path.join(home, SELFCHECK_CANARY)))
+        code, so, _ = sh("if touch %s 2>/dev/null; then echo WROTE; rm -f %s; "
+                         "else echo BLOCKED; fi" % (canary, canary))
+        out["home_write_blocked"] = (None if code is None
+                                     else ("BLOCKED" in so and "WROTE" not in so))
+        spine = shlex.quote(bash_path(os.path.join(home, "growing-spine")))
+        code, so, _ = sh("if ls %s >/dev/null 2>&1; then echo READABLE; "
+                         "elif test -e %s; then echo BLOCKED; else echo ABSENT; fi"
+                         % (spine, spine))
+        out["spine_unreadable"] = (None if (code is None or "ABSENT" in so)
+                                   else ("BLOCKED" in so))
+        code, so, _ = sh("command -v tool-edit >/dev/null 2>&1 && echo HAND")
+        out["hand_on_path"] = None if code is None else ("HAND" in so)
+        code, so, _ = sh("command -v python3 >/dev/null 2>&1 && echo PY")
+        out["python3_on_path"] = None if code is None else ("PY" in so)
+    else:
+        for k in ("home_write_blocked", "spine_unreadable", "hand_on_path",
+                  "python3_on_path"):
+            out[k] = None
+    from kernel import cycle as cyclemod
+    from kernel import journal as journalmod
+    out["caps_ordered"] = (journalmod.EXEC_STDOUT_CHARS
+                           >= cyclemod.Engine.HISTORY_OUTPUT_CHARS)
+    out["unproven"] = sorted(k for k, v in out.items() if v is None)
+    out["ok"] = not any(v is False for v in out.values())
+    if journal is not None:
+        journal.append("selfcheck", **out)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cycles", type=int, default=10)
@@ -233,6 +370,29 @@ def main():
     if not body.responds():
         sys.stderr.write("REFUSED: the body does not answer a probe.\n")
         return 3
+
+    # The first record of a run says WHICH ENGINE is running, so every figure
+    # read out of this journal later can name its instrument. Then the bounds
+    # this deployment relies on are tested by their effect and recorded --
+    # never enforced here; see `selfcheck`.
+    ident = engine_identity(HERE, spec, cousin_spec if spec else None)
+    record_engine_start(j, ident, root=os.path.abspath(args.root),
+                        pause=args.pause, forever=bool(args.forever))
+    print("engine %s%s  python %s"
+          % (ident["engine"][:12],
+             " (UNCOMMITTED CHANGES)" if ident["dirty"] else "",
+             ident["python"]))
+    sc = selfcheck(body, journal=j)
+    disproven = sorted(k for k, v in sc.items() if v is False)
+    if disproven:
+        sys.stderr.write("SELFCHECK DISPROVED: %s. Starting anyway -- this is "
+                         "for the monitor to report and a human to fix; a "
+                         "start that refuses on a check is the preflight scar "
+                         "again.\n" % ", ".join(disproven))
+    else:
+        print("selfcheck: nothing disproven%s"
+              % ((" (could not test: %s)" % ", ".join(sc["unproven"]))
+                 if sc["unproven"] else ""))
 
     # The creature's identity is SERVED, never written into the managed file.
     # Conflating them meant the cousin could not write direction without

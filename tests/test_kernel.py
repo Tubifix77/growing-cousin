@@ -307,8 +307,16 @@ def test_observer_describes_every_kind_it_can_see():
         "think_deferred": {"where": "think", "detail": "LadderExhausted"},
         "rung_fell_through": {"served_by": "local", "past": "gemini(next)"},
         "loop_start": {"pause": 30, "max_cycles": None},
-        "loop_end": {"cycles": 12, "reason": "asked to stop", "seconds": 900.0},
+        "loop_end": {"cycles": 12, "reason": "asked to stop", "seconds": 900.0,
+                     "fault": False},
         "error": {"where": "cycle", "detail": "RuntimeError: x"},
+        "engine_start": {"engine": "aad203f" * 6, "dirty": False,
+                         "python": "3.11.2", "caps": {"exec_stdout": 2400},
+                         "rungs": ["gemini", "groq"]},
+        "selfcheck": {"body_answers": True, "home_write_blocked": True,
+                      "spine_unreadable": True, "hand_on_path": True,
+                      "python3_on_path": True, "caps_ordered": True,
+                      "unproven": [], "ok": True},
     }
     bad = []
     for kind, fields in samples.items():
@@ -3475,9 +3483,166 @@ def test_the_module_list_matches_the_kernel():
                   not wrong, line.strip()[:110])
 
 
+def test_the_journal_names_the_engine_that_wrote_it():
+    """Every production figure must name its run -- and the journal could not.
+
+    2026-09-14: `loop_start` carried `pause` and `max_cycles`. The engine was
+    restarted twenty-three times during run 2, and the only way to say which
+    code produced a given hour was to line up systemd's start times against
+    `git log` by hand. A window that cannot name its instrument is a number
+    that gets quoted later as the real rung's -- the fault CLAUDE.md §0 exists
+    to prevent, one level down.
+    """
+    import run as runmod
+    from kernel import cycle as cyclemod
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ident = runmod.engine_identity(repo, spec=[{"name": "a"}, {"model": "m"}],
+                                   cousin_spec=[{"name": "c"}])
+    sha = ident["engine"]
+    check("identity: the engine is a commit, or says it cannot tell",
+          sha == "unknown" or re.fullmatch(r"[0-9a-f]{40}", sha) is not None,
+          sha)
+    check("identity: dirty is True, False or None -- never a guess",
+          ident["dirty"] in (True, False, None), repr(ident["dirty"]))
+    caps = ident["caps"]
+    check("identity: every cap the kernel enforces is named, from the constants",
+          caps["exec_stdout"] == EXEC_STDOUT_CHARS
+          and caps["history_output"] == Engine.HISTORY_OUTPUT_CHARS
+          and caps["think_raw"] == cyclemod.THINK_RAW_CHARS, str(caps))
+    check("identity: rungs are named by name, falling back to model",
+          ident["rungs"] == ["a", "m"] and ident["cousin_rungs"] == ["c"],
+          str(ident))
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    runmod.record_engine_start(j, ident, root=d, pause=30, forever=True)
+    rec = j.read(kinds=["engine_start"])
+    check("identity: engine_start is its own kind with structured fields",
+          len(rec) == 1 and rec[0].get("engine") == sha
+          and rec[0].get("caps") == caps and rec[0].get("root") == d
+          and rec[0].get("forever") is True, str(rec)[:240])
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_wake_records_what_was_served():
+    """A promise the context does not keep is invisible unless the journal
+    says what the context HELD.
+
+    The builder's library gap survived a day (CLAUDE.md §5) and the want
+    channel was dead for the life of the kernel with a green gate over it,
+    because `wake` recorded one number: how long the context was. Length
+    cannot say whether the library was on the page or whether a standing want
+    reached the creature. These are facts about what the kernel served,
+    gathered where it served them -- never recomputed by a reader, which
+    would be a second account of the same event, and two accounts drift.
+    """
+    e, j, b, d = build_engine(["thinking, no commands", "thinking again"], [])
+    own = os.path.join(b.mind, "tools", "own")
+    e.run_cycle()
+    w0 = j.read(kinds=["wake"])[-1]
+    check("served: an empty library is recorded as zero shown, zero total",
+          w0.get("library_shown") == 0 and w0.get("library_total") == 0, str(w0))
+    check("served: no standing want is recorded as zero served",
+          w0.get("wants_served") == 0, str(w0))
+    _write_tool(own, "plan", does="tracks what to do next", call="plan list")
+    e.record_want("a way to see yesterday's tasks")
+    e.run_cycle()
+    w = j.read(kinds=["wake"])[-1]
+    check("served: the wake says how many tools were on the page",
+          w.get("library_shown") == 1 and w.get("library_total") == 1, str(w))
+    check("served: and that the standing want reached the creature",
+          w.get("wants_served") == 1, str(w))
+    check("served: and which output window the history was cut to",
+          w.get("window") == Engine.HISTORY_OUTPUT_CHARS, str(w))
+    check("served: the length is still there for the observer",
+          (w.get("context_chars") or 0) > 0, str(w))
+    b.destroy()
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_selfcheck_proves_effects_and_never_vetoes():
+    """A directive read back off a unit proves it was PARSED, never that it
+    WORKS (CLAUDE.md §5, twice in one evening). So the engine tests the
+    effects it depends on at every start, through the same shell the creature
+    gets, and RECORDS the result. It does not refuse to start on one: a
+    preflight that vetoes on a check is the scar one entry up. Three answers
+    per effect, never two -- proven, DISPROVEN, or not testable here.
+    """
+    import run as runmod
+    d = tmpdir()
+    home = os.path.join(d, "home")
+    os.makedirs(home)
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    b = runmod.PathBody(os.path.join(d, "body"))
+    b.bin = runmod.install_hands(b)
+    out = runmod.selfcheck(b, journal=j, home=home)
+    keys = {"body_answers", "home_write_blocked", "spine_unreadable",
+            "hand_on_path", "python3_on_path", "caps_ordered", "ok",
+            "unproven"}
+    check("selfcheck: every effect has a field", keys <= set(out), str(out))
+    check("selfcheck: an unsandboxed dev box is reported as UNPROTECTED, not "
+          "as fine", out.get("home_write_blocked") is False, str(out))
+    check("selfcheck: it leaves no canary behind",
+          not os.path.exists(os.path.join(home, runmod.SELFCHECK_CANARY)))
+    check("selfcheck: a spine that is not here is 'cannot tell', never "
+          "'protected'", out.get("spine_unreadable") is None, str(out))
+    check("selfcheck: our hands are on the creature's PATH",
+          out.get("hand_on_path") is True, str(out))
+    check("selfcheck: the caps are ordered journal >= history",
+          out.get("caps_ordered") is True, str(out))
+    check("selfcheck: ok means nothing was DISPROVEN, so an open home is not ok",
+          out.get("ok") is False, str(out))
+    rec = j.read(kinds=["selfcheck"])
+    check("selfcheck: recorded under its own kind, with the verdict as a field",
+          len(rec) == 1 and rec[0].get("ok") is False
+          and rec[0].get("home_write_blocked") is False, str(rec)[:200])
+    # A sibling that CAN be read is a breach, reported as one -- not skipped.
+    os.makedirs(os.path.join(home, "growing-spine"))
+    out2 = runmod.selfcheck(b, journal=None, home=home)
+    check("selfcheck: a readable sibling is reported as a breach",
+          out2.get("spine_unreadable") is False, str(out2))
+    # A body that does not answer is a recorded fact, never a crash.
+    b._alive = False
+    out3 = runmod.selfcheck(b, journal=j, home=home)
+    check("selfcheck: a dead body is recorded, and the rest is 'cannot tell'",
+          out3.get("body_answers") is False and out3.get("ok") is False
+          and out3.get("hand_on_path") is None, str(out3))
+    check("selfcheck: nothing tested a dead body left in the journal as proven",
+          len(j.read(kinds=["selfcheck"])) == 2)
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_loop_end_says_whether_it_gave_up():
+    """The flag the supervisor keeps goes into the journal beside the prose,
+    so a reader tells a stop from a give-up without parsing the reason string
+    -- the rule `ended_in_fault` was created under, applied to the record."""
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    def boom():
+        raise RuntimeError("gone")
+    s = forever.Supervisor(boom, os.path.join(d, "nope"), journal=j,
+                           sleep=lambda _x: None, is_wait=lambda _e: False)
+    s.loop(max_cycles=50)
+    end = j.read(kinds=["loop_end"])[-1]
+    check("loop_end: a give-up is journalled as fault=True",
+          end.get("fault") is True, str(end))
+    j2 = Journal(os.path.join(d, "j2.jsonl"))
+    s2 = forever.Supervisor(lambda: None, os.path.join(d, "nope"), journal=j2,
+                            sleep=lambda _x: None)
+    s2.loop(max_cycles=2)
+    end2 = j2.read(kinds=["loop_end"])[-1]
+    check("loop_end: finishing is journalled as fault=False",
+          end2.get("fault") is False, str(end2))
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def main():
     t0 = time.time()
-    for fn in (test_a_fence_inside_the_code_does_not_close_the_block,
+    for fn in (test_the_journal_names_the_engine_that_wrote_it,
+               test_a_wake_records_what_was_served,
+               test_the_selfcheck_proves_effects_and_never_vetoes,
+               test_loop_end_says_whether_it_gave_up,
+               test_a_fence_inside_the_code_does_not_close_the_block,
                test_a_usage_refusal_is_not_counted_as_a_failure,
                test_the_creature_is_told_to_repair_rather_than_delete_or_panic,
                test_a_tool_that_never_worked_says_so_to_both_inhabitants,
