@@ -2826,6 +2826,94 @@ def test_an_unreadable_verdict_says_which_of_three_things_went_wrong():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_tool_that_never_worked_says_so_to_both_inhabitants():
+    """A broken floor was being shown to both agents as a sound one.
+
+    Until 2026-09-14 the library line read "its user ran this 31 times; the
+    last run exited 1" -- true, and useless. A tool that has NEVER ONCE worked
+    rendered identically to one that works and failed once. Measured live the
+    same day: `plan` returned 0 on its first probe and non-zero on the thirty
+    after it; `integrate-subagent-orchestrator-with-plan` had failed eight
+    times and succeeded twice and read as "the last run exited 0". Across the
+    run, 39 of 148 probes exited 0.
+
+    That is this project's oldest fault -- a display that cannot distinguish
+    the thing it measures -- committed inside the column built to make exactly
+    this visible, which is why the assertion is on the RECORD and not on the
+    wording.
+
+    The brief's second test now leans on this evidence, so the evidence has to
+    arrive: a rule cannot reason about what the harness never put on the page
+    (§5, the library scar).
+    """
+    d = tmpdir()
+    own = os.path.join(d, "own")
+    _write_tool(own, "floor", does="stores the things")
+    _write_tool(own, "storey", does="reads what floor stored")
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    for code in (2, 2, 2):
+        j.append("cousin_probe", tool="floor", exit_code=code,
+                 stdout="", stderr="boom")
+    for code in (0, 1):
+        j.append("cousin_probe", tool="storey", exit_code=code,
+                 stdout="ok", stderr="")
+
+    out = library.render(own, j)
+    check("floor: a tool that never worked is not shown as merely 'last failed'",
+          "NEVER WORKED" in out, out)
+    check("floor: and the mixed one reports BOTH halves of its record",
+          "1 worked and 1 failed" in out, out)
+    check("floor: a clean record still reads as clean",
+          "NEVER WORKED" not in out.split("- storey")[1], out)
+
+    hist = library.use_history(j)
+    check("floor: the record counts successes, not just attempts",
+          hist["floor"]["runs"] == 3 and hist["floor"]["ok"] == 0,
+          hist.get("floor"))
+
+    # The evidence must reach the CREATURE too -- it is the one that would
+    # otherwise keep building storeys on it.
+    e, j2, b, d2 = build_engine(["thinking"], [])
+    own2 = os.path.join(b.mind, "tools", "own")
+    _write_tool(own2, "floor", does="stores the things")
+    for _ in range(3):
+        j2.append("cousin_probe", tool="floor", exit_code=2,
+                  stdout="", stderr="boom")
+    check("floor: the creature is shown it every wake, not just the cousin",
+          "NEVER WORKED" in e.serve_context(), e.serve_context()[-400:])
+    b.destroy(); shutil.rmtree(d2, ignore_errors=True)
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_brief_tests_whether_the_handover_could_be_completed():
+    """The guardrail is prose, because in this engine guardrails are prose.
+
+    Growing Spine would have built this as a framework gate. Here the 99% that
+    was Python is the cousin's brief, so the rule against accepting a storey
+    built on a floor that fails belongs in the brief -- and per §1 a change to
+    it is a behaviour change that needs a test that fails without it.
+
+    This asserts the invariant is STATED and that its escape hatch is stated
+    with it: a rule that could refuse everything downstream of one broken tool
+    would stall the creature completely, which is the "right in isolation,
+    harmful in company" scar.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    brief = io.open(os.path.join(root, "MANAGER-PROMPT.md"),
+                    encoding="utf-8").read()
+    tests = brief.split("## The five tests", 1)[1].split("## How you speak", 1)[0]
+    check("brief: the second test asks whether the handover could be COMPLETED, "
+          "not only whether the tool starts",
+          "help you" in tests and "leans on" in tests, tests[:200])
+    check("brief: it is framed as the cousin's own experience, never a "
+          "diagnosis of the creature's code",
+          "not a diagnosis" in tests, tests[:200])
+    check("brief: and it carries its own limit, so one broken tool cannot "
+          "refuse everything downstream of it",
+          "did its job" in tests, tests[:200])
+
+
 def test_a_want_survives_until_the_creature_has_had_a_turn():
     """Direction was being discarded before its recipient ever saw it.
 
@@ -3061,8 +3149,12 @@ def test_library_marks_a_tool_its_user_has_never_run():
     out2 = library.render(own, j)
     check("library column: once its user runs it, that replaces never-run",
           "NEVER run" not in out2 and "ran this once" in out2, out2)
-    check("library column: and carries the exit code it really saw",
-          "exited 0" in out2, out2)
+    # Updated 2026-09-14 with the record change: a single clean run now reads
+    # as "it worked", which carries the same fact as "exited 0" and survives
+    # the case this assertion could not see -- a tool that has run many times
+    # and never once succeeded.
+    check("library column: and reports that the run actually succeeded",
+          "it worked" in out2 and "NEVER WORKED" not in out2, out2)
 
     j.append("cousin_probe", tool="taskprio", exit_code=1,
              stdout="", stderr="boom")
@@ -3202,7 +3294,9 @@ def test_the_module_list_matches_the_kernel():
 
 def main():
     t0 = time.time()
-    for fn in (test_a_want_survives_until_the_creature_has_had_a_turn,
+    for fn in (test_a_tool_that_never_worked_says_so_to_both_inhabitants,
+               test_the_brief_tests_whether_the_handover_could_be_completed,
+               test_a_want_survives_until_the_creature_has_had_a_turn,
                test_no_document_hard_codes_the_gate_count,
                test_the_module_list_matches_the_kernel,
                test_the_creatures_shell_does_not_inherit_the_engines_secrets,

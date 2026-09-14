@@ -81,27 +81,48 @@ def use_history(journal):
         name = (r.get("tool") or "").strip()
         if not name:
             continue
-        rec = out.setdefault(name, {"runs": 0, "last_code": None})
+        rec = out.setdefault(name, {"runs": 0, "ok": 0, "last_code": None})
         rec["runs"] += 1
+        if r.get("exit_code") == 0:
+            rec["ok"] += 1
         rec["last_code"] = r.get("exit_code")
     return out
 
 
 def status(rec):
-    """One line of fact. No adjectives -- a count and an exit code.
+    """One line of fact. No adjectives -- counts and an exit code.
 
-    "Never run" is the load-bearing case and is stated plainly rather than
-    dressed up, because the whole point of the column is that an untouched tool
-    should be impossible to miss while reading past it.
+    **THE RECORD, NOT THE LAST EVENT.** Until 2026-09-14 this said "its user
+    ran this 31 times; the last run exited 1", which is true and useless: a
+    tool that has NEVER ONCE worked rendered identically to one that works and
+    failed once. Measured the same day, on the live library: `plan` returned 0
+    on its first probe and non-zero on the thirty after it, and read as though
+    it were fine; `integrate-subagent-orchestrator-with-plan` had failed eight
+    times and succeeded twice, and read as "the last run exited 0".
+
+    That is the oldest fault in this project -- a display that cannot
+    distinguish the thing it measures -- committed in the column built to make
+    exactly this visible. Both inhabitants read this line every wake, so both
+    were being shown a broken floor as a sound one.
+
+    "Never run" and "never worked" are the two load-bearing cases and both are
+    stated plainly, because a tool nobody has used and a tool nobody has
+    succeeded with are different problems with different answers.
     """
     if not rec or not rec.get("runs"):
         return "its user has NEVER run this"
-    code = rec.get("last_code")
-    n = rec["runs"]
+    n, ok = rec["runs"], rec.get("ok", 0)
     times = "once" if n == 1 else "%d times" % n
-    if code is None:
-        return "its user ran this %s" % times
-    return "its user ran this %s; the last run exited %d" % (times, code)
+    code = rec.get("last_code")
+    tail = "" if code is None else "; the last exited %d" % code
+    if ok == 0:
+        return ("its user ran this %s and it has NEVER WORKED for them%s"
+                % (times, tail))
+    if ok == n:
+        return ("its user ran this %s and it worked" % times if n == 1
+                else "its user ran this %s and it worked every time" % times)
+    return ("its user ran this %s, %d worked and %d failed%s"
+            % (times, ok, n - ok, tail))
 
 
 def render(tools_dir, journal=None, exclude=None, limit=LIBRARY_LIMIT,

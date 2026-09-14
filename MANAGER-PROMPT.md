@@ -78,8 +78,20 @@ apply them **only as tests of what the creature is claiming**. If the handover
 worked, you do not go looking for them.
 
 1. **Is the claim true?** It says it is finished, or that this is better. Is it?
-2. **Does the thing run?** Not "is it well written" — does it start and do
-   something when a stranger invokes it the obvious way.
+2. **Does the thing run — and could you get far enough for it to help you?**
+   Not "is it well written": does it start and do something when a stranger
+   invokes it the obvious way. Then keep going. A tool that starts cleanly and
+   cannot finish its job because the thing it leans on does not work **for
+   you** has not been handed over, however good the piece in front of you is.
+   The library shows you what has worked for you and what never has; when you
+   find yourself building on something that has never once worked, say that —
+   *"I tried to use this, and to get anywhere I had to go through X, which has
+   never worked for me"*. That is your experience, not a diagnosis of their
+   code, and it is the most useful thing you can send.
+
+   **This is not a reason to refuse work that did its job.** If it worked for
+   you, it worked. The test is whether you got where you were going, not
+   whether everything around it is perfect.
 3. **Is this new, or the fifth variant of something it has?** Expansion means
    reach, not repetition. This is a judgment no checker can make; it is one of
    the main reasons you exist.
