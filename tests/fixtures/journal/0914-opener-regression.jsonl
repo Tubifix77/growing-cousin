@@ -1,0 +1,17 @@
+{"ts": 1789414324.3825605, "kind": "wake", "context_chars": 24934}
+{"ts": 1789414325.2599273, "kind": "rung_declined", "rung": "gemini/gemma-4-31b-it", "reason": "transient upstream (HTTP 500)", "first": false, "expected": true}
+{"ts": 1789414351.8753884, "kind": "rung_declined", "rung": "gemini/gemma-4-31b-it", "reason": "transient upstream (HTTP 500)", "first": false, "expected": true}
+{"ts": 1789414352.4760017, "kind": "rung_declined", "rung": "openrouter/gemma-4-31b-it:free", "reason": "quota or rate limit (HTTP 429)", "first": false, "expected": true}
+{"ts": 1789414352.6551847, "kind": "rung_declined", "rung": "groq/gpt-oss-120b", "reason": "quota or rate limit (HTTP 429)", "first": false, "expected": true}
+{"ts": 1789414353.8682895, "kind": "rung_declined", "rung": "cloudflare/llama-3.3-70b", "reason": "quota or rate limit (HTTP 429)", "first": false, "expected": true}
+{"ts": 1789414353.875982, "kind": "think_deferred", "where": "think", "detail": "LadderExhausted: no rung answered; tried gemini/gemma-4-31b-it(retry), openrouter/gemma-4-31b-it:free(next), groq/gpt-oss-120b(next), cloudflare/llama-3.3-70b(next)"}
+{"ts": 1789414353.879052, "kind": "loop_waiting", "consecutive": 8, "seconds": 150, "detail": "no rung answered; tried gemini/gemma-4-31b-it(retry), openrouter/gemma-4-31b-it:free(next), groq/gpt-oss-120b(next), cloudflare/llama-3.3-70b(next)"}
+{"ts": 1789414504.053786, "kind": "wake", "context_chars": 24934}
+{"ts": 1789414555.8039212, "kind": "think", "chars": 2770, "model": "gemma-4-31b-it", "rung": "gemini/gemma-4-31b-it", "finish": "stop", "raw": "[dropped from fixture]", "raw_chars": 2770}
+{"ts": 1789414555.8090863, "kind": "exec_skip", "reason": "unclosed_fence", "detail": "a ```bash marker is present but no complete block starts a line; commands were LOST, not absent", "lost": true}
+{"ts": 1789414585.9634063, "kind": "wake", "context_chars": 24929}
+{"ts": 1789414699.5146255, "kind": "think", "chars": 6138, "model": "gemma-4-31b-it", "rung": "gemini/gemma-4-31b-it", "finish": "length", "raw": "[dropped from fixture]", "raw_chars": 6138}
+{"ts": 1789414699.5208046, "kind": "exec_skip", "reason": "truncated", "detail": "the reply hit the token ceiling; commands were LOST, not absent", "lost": true}
+{"ts": 1789414729.688233, "kind": "wake", "context_chars": 24957}
+{"ts": 1789414760.5063589, "kind": "rung_declined", "rung": "gemini/gemma-4-31b-it", "reason": "transient upstream (HTTP 500)", "first": true, "expected": true}
+{"ts": 1789414797.0592177, "kind": "rung_declined", "rung": "groq/gpt-oss-120b", "reason": "answered but unusable: no-block", "first": true, "expected": true}
