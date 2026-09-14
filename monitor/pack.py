@@ -36,10 +36,23 @@ from . import derive
 # Key shapes for the providers this engine uses, plus the general one: a
 # long run of base64-ish characters. Scanned over text decoded leniently, so
 # a key inside a JSON string is still a key.
+#
+# EVERY PREFIX IS ANCHORED ON A NON-WORD BOUNDARY. The first version was not,
+# and refused the first live pack on 216 "keys" that were all the creature's
+# tool `subta|sk-log-filter-by-parent` -- a checker that cannot tell a tool
+# name from a credential, the oldest fault in CLAUDE.md §5, in the tool built
+# to keep credentials out of the public repo. `sk-` keys are alphanumeric
+# after the prefix; the hyphenated forms are named explicitly.
 SECRET_RE = re.compile(
-    r"AIza[0-9A-Za-z_\-]{30,}|gsk_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9\-]{20,}|"
-    r"hf_[A-Za-z0-9]{20,}|xai-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{30,}|"
-    r"-----BEGIN [A-Z ]*PRIVATE KEY-----|[A-Za-z0-9+/]{48,}={0,2}")
+    r"(?<![A-Za-z0-9_\-])(?:"
+    r"AIza[0-9A-Za-z_\-]{30,}|gsk_[A-Za-z0-9]{20,}|"
+    r"sk-(?:proj|ant|or-v1)-[A-Za-z0-9_\-]{20,}|sk-[A-Za-z0-9]{20,}|"
+    r"hf_[A-Za-z0-9]{20,}|xai-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{30,})"
+    r"|-----BEGIN [A-Z ]*PRIVATE KEY-----"
+    r"|(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{48,}={0,2}(?![A-Za-z0-9+/])")
+# A run of 48+ hex digits is a hash, not a key: sha256 is 64 of them and the
+# creature's tools print hashes. Only mixed-case or +/ runs count.
+HEX_RE = re.compile(r"^[0-9a-f]+$|^[0-9A-F]+$")
 
 # What goes in, relative to the root. Directories are taken whole. A file
 # over PER_FILE_CAP is listed in the manifest as skipped -- never packed
@@ -89,10 +102,23 @@ def scan_secrets(paths):
             with io.open(ap, encoding="utf-8", errors="replace") as f:
                 for i, line in enumerate(f, 1):
                     for m in SECRET_RE.finditer(line):
-                        hits.append((rel, i, m.group(0)[:10] + "…"))
+                        s = m.group(0)
+                        if HEX_RE.match(s.rstrip("=")):
+                            continue
+                        hits.append((rel, i, s[:10] + "…"))
         except OSError:
             continue
     return hits
+
+
+def describe_hits(hits, limit=5):
+    """The refusal message: where, and WHICH shapes, so a false positive is
+    diagnosable from the message alone -- the first live refusal showed five
+    of 216 locations and nothing about what they had in common."""
+    shapes = collections.Counter(h[2][:4] for h in hits)
+    where = "; ".join("%s:%d %s" % h for h in hits[:limit])
+    return "%d key-shaped string(s) -- by shape: %s -- first: %s" % (
+        len(hits), ", ".join("%s… x%d" % (s, n) for s, n in shapes.most_common()), where)
 
 
 def journal_summary(path):
@@ -120,8 +146,7 @@ def build(root, out_dir, run, repo_head=None, now=None):
     paths = candidates(root)
     hits = scan_secrets(paths)
     if hits:
-        raise PackRefused("%d key-shaped string(s): %s" % (
-            len(hits), "; ".join("%s:%d %s" % h for h in hits[:5])))
+        raise PackRefused(describe_hits(hits))
 
     # Hash first, write second: the manifest inside the tarball must already
     # know every member.

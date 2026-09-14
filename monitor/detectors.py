@@ -450,7 +450,12 @@ def selfcheck_disproven(ctx):
                       (" (untestable here: %s)" % ", ".join(unproven)) if unproven else ""))
 
 
-CODE_PATHS = ("kernel/", "run.py", "hands/", "deploy/", "rungs.example.json")
+# What the ENGINE process imports or reads at start (deploy/README.md's
+# restart table). The monitor's own unit and the docs are not on this list:
+# changing them owes the engine nothing, and a restart_owed that fires on a
+# README edit is a wolf-crier.
+CODE_PATHS = ("kernel/", "run.py", "hands/", "deploy/cousin-engine.service",
+              "CREATURE-PROMPT.md", "MANAGER-PROMPT.md")
 
 
 def restart_owed(ctx):

@@ -3982,18 +3982,45 @@ def test_the_evidence_pack_is_hashed_and_refuses_secrets():
     check("pack: a manifest that lies is caught by verify",
           any("differs" in p for p in pack.verify(tar_path, man_path)),
           pack.verify(tar_path, man_path))
-    # A key-shaped string anywhere in the evidence refuses the whole pack.
-    os.makedirs(os.path.join(root, "body", "mind", "data"), exist_ok=True)
-    with open(os.path.join(root, "body", "mind", "data", "notes.txt"), "w") as f:
-        f.write("found this: AIza" + "Q" * 35 + "\n")
-    before = set(os.listdir(out))
+    # THE FALSE POSITIVE THAT REFUSED THE FIRST LIVE PACK: 216 "keys" that
+    # were the creature's tool `subta|sk-log-filter-by-parent`, plus hashes.
+    # A checker that cannot tell a tool name from a credential is CLAUDE.md
+    # §5's oldest fault, here in the tool meant to keep credentials out of a
+    # public repo. Tool names, hex hashes and ordinary prose must pass.
+    own = os.path.join(root, "body", "mind", "tools", "own")
+    with open(os.path.join(own, "subtask-log-filter-by-parent"), "w") as f:
+        f.write("#!/usr/bin/env python3\n# does: subtask-log-filter-by-parent-task-id "
+                "filters the subtask-log-filter-by-parent output\n"
+                "print('%s')\n" % ("a" * 20 + "0123456789abcdef" * 4))
+    out2 = os.path.join(d, "evidence2")
     try:
-        pack.build(root, out, "run-u", now=1.0)
-        refused = False
-    except pack.PackRefused:
-        refused = True
-    check("pack: anything key-shaped refuses the pack", refused, "")
-    check("pack: and nothing was written by the refused attempt",
+        pack.build(root, out2, "run-v", now=2.0)
+        ok = True
+    except pack.PackRefused as e:
+        ok = False
+        why = str(e)
+    check("pack: a tool named subtask-log-filter-by-parent is NOT a key",
+          ok, "" if ok else why[:200])
+    check("pack: and a 64-hex hash is a hash, not a key",
+          not pack.scan_secrets([("h", os.path.join(own, "subtask-log-filter-by-parent"))]),
+          pack.scan_secrets([("h", os.path.join(own, "subtask-log-filter-by-parent"))]))
+
+    # A key-shaped string anywhere in the evidence refuses the whole pack --
+    # each provider shape this engine uses, at a word boundary.
+    os.makedirs(os.path.join(root, "body", "mind", "data"), exist_ok=True)
+    before = set(os.listdir(out))
+    for shape in ("AIza" + "Q" * 35, "gsk_" + "Ab1" * 8, "sk-" + "Zy9" * 8,
+                  "sk-proj-" + "Q7" * 12, "hf_" + "Kx3" * 8):
+        with open(os.path.join(root, "body", "mind", "data", "notes.txt"), "w") as f:
+            f.write("found this: %s in a file\n" % shape)
+        try:
+            pack.build(root, out, "run-u", now=1.0)
+            refused = False
+        except pack.PackRefused as e:
+            refused = "by shape" in str(e)
+        check("pack: a %s… key refuses the pack, and the message names the shape"
+              % shape[:4], refused, shape[:12])
+    check("pack: and nothing was written by any refused attempt",
           set(os.listdir(out)) == before, sorted(set(os.listdir(out)) - before))
     shutil.rmtree(d, ignore_errors=True)
 
