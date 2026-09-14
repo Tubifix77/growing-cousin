@@ -327,6 +327,37 @@ guess with authority it has not earned.
   creature told its tools are on PATH and never told which is being handed a
   promise the context does not keep.
 
+- **NO RESET YET — and the trigger that would start one is named** (2026-09-14).
+  Twenty hours on one unmodified build produced **29 tools added and one
+  removed** (a temp file), a library of 31 with ~11 near-duplicate stems
+  (`archive-*` ×7, `plan-*` ×7, `subtask-log*` ×4), every twin **accepted**.
+  That is a flat pile rather than compounding capability — the failure spine's
+  own composition prompt is written against — and it is the headline finding of
+  run 2.
+
+  Two candidate causes, and only one was actionable without guessing.
+  **Rejected by measurement:** *the creature cannot read what it must extend*
+  (window 2400 < several tools). It edits 7 KB files freely —
+  `subagent-orchestrator` eleven times, `plan` four — so the window is friction,
+  not a wall. **Acted on:** the direction channel was discarding 29 of 50 wants
+  before the creature had a turn, so it was chasing a target that moved every
+  visit. Fixed in `17d8951`.
+
+  **The reset is HELD deliberately, because resetting now would confound the
+  two.** A clean library *and* a fixed want channel, changed together, tells us
+  nothing about which mattered. Worse, it would hide the more interesting
+  question: the creature merged `prioritize` into `plan` and deleted `taskprio`
+  on 2026-09-13, so digging out of its own pile is a capability it has shown.
+
+  > **Trigger, and it is a measurement, not a feeling:** if after ~6 hours on
+  > `17d8951` adds-per-want is still near 1.0 **and** removals are still zero,
+  > the direction channel was not the cause and the brief is — at which point
+  > run 3 starts from empty *with* a brief change, the cause having been
+  > isolated. If consolidation resumes at all, no reset.
+
+  Until that fires, the brief is not to be touched: two changes at once and
+  neither is measurable.
+
 - **Free tier only, permanently.** "We get what is available without paying
   anything ever." A rung behind a paywall is defunct by definition; removing one
   needs no decision. Rung count and concentration are *outcomes*, not targets.
