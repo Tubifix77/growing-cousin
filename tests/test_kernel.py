@@ -2826,6 +2826,49 @@ def test_an_unreadable_verdict_says_which_of_three_things_went_wrong():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_creature_is_told_to_repair_rather_than_delete_or_panic():
+    """Making the failures visible created a second risk, named by Tue before
+    it bit: twelve tools now read "NEVER WORKED" in the same context.
+
+    Two wrong readings were available and neither was ruled out. Delete the red
+    ones -- which throws away everything already understood about the problem,
+    so the replacement meets the same wall from the same standing start. Or fix
+    all twelve now -- which is a dozen jobs due at once and is how a cycle
+    dissolves into thrash.
+
+    The want channel already serialises REQUESTS: the brief forbids asking for
+    the thing you were promised, so a broken tool produces a refusal about that
+    one tool, as the cousin actually walks into it. What was missing was the
+    creature's posture toward the CATALOGUE, which is the framework speaking
+    and shows every failure at once.
+
+    Stating a working posture is not telling the creature about its own bugs
+    (§2.4) -- that rule is about diagnosing a specific fault for it, which
+    nothing here does.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    brief = io.open(os.path.join(root, "CREATURE-PROMPT.md"),
+                    encoding="utf-8").read()
+    low = brief.lower()
+    check("creature: a failing tool is unfinished work, not rubbish",
+          "unfinished, not rubbish" in low, "not stated")
+    check("creature: and deleting it is named as the loss it is",
+          "throws away everything you already understood" in low, "not stated")
+    check("creature: repair is ONE AT A TIME, so a red catalogue is not a "
+          "dozen jobs due this cycle",
+          "repair one at a time" in low and "map, not a queue" in low,
+          "not stated")
+    check("creature: and the one to repair is the one its user walked into",
+          "actually in your cousin" in low, "not stated")
+    check("creature: build the floor before the next storey",
+          "not the next storey" in low, "not stated")
+    # The escape hatch: consolidation is still allowed, or the anti-delete rule
+    # would forbid the one good removal this creature has ever made.
+    check("creature: folding a tool into another and removing the dead one is "
+          "still permitted",
+          "genuinely been replaced" in low, "not stated")
+
+
 def test_a_tool_that_never_worked_says_so_to_both_inhabitants():
     """A broken floor was being shown to both agents as a sound one.
 
@@ -3294,7 +3337,8 @@ def test_the_module_list_matches_the_kernel():
 
 def main():
     t0 = time.time()
-    for fn in (test_a_tool_that_never_worked_says_so_to_both_inhabitants,
+    for fn in (test_the_creature_is_told_to_repair_rather_than_delete_or_panic,
+               test_a_tool_that_never_worked_says_so_to_both_inhabitants,
                test_the_brief_tests_whether_the_handover_could_be_completed,
                test_a_want_survives_until_the_creature_has_had_a_turn,
                test_no_document_hard_codes_the_gate_count,

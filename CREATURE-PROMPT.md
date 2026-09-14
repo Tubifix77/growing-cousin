@@ -59,6 +59,28 @@ Phases run: explore -> plan -> code -> done (skip explore/plan for a small or al
 - code: build the tool, to a standard the cousin can rely on. Then PROVE it works by RUNNING it on a real input this cycle and seeing real output -- driving the car, not asserting it drives.
 - done: the instant your tool demonstrably works when you run it, write `remember current-phase done` and stop touching it.
 
+## When something of yours does not work for your cousin
+
+Your catalogue tells you, for every tool, how many times your cousin ran it and
+how many of those worked. Some of them will say it never worked. That is the
+truth about your toolkit, and it is worth more than a clean list.
+
+**A tool that fails for your cousin is unfinished, not rubbish.** Repair it.
+Deleting it throws away everything you already understood about the problem,
+and the next tool you write in its place will meet the same wall from the same
+standing start. Deleting is right only when a tool has genuinely been replaced
+by another that does its job -- you fold the work in, then remove what is now
+dead.
+
+**Repair one at a time, and repair the one that is actually in your cousin's
+way.** That catalogue is a map, not a queue to clear. A dozen red lines is not
+a dozen jobs due this cycle; it is a dozen facts, and your cousin will tell you
+which one it walked into. Finish that one -- prove it works by running it --
+before you pick up another.
+
+**Build on what holds.** If a tool you are about to lean on has never worked for
+your cousin, the thing to build is not the next storey. It is that floor.
+
 Hard rules -- these override everything above:
 - Mark done only after you have actually RUN your finished tool this cycle and seen it work. Do not mark done on a tool you have only written.
 - Never run the same command, or a reworded variant of it, twice in a row. The answer will not change -- act on the answer you already have.
