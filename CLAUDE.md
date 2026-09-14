@@ -495,6 +495,79 @@ was measured, with what, and on what date.*
   since 2026-09-12 — the asymmetry was the bug, and the top scar below says
   so in general terms.
 
+- **THE FENCE THAT ATE NINE HOURS, and then my fix ate a command forty minutes
+  later.** 2026-09-14, and it is two scars in one because the second is what
+  the first teaches.
+
+  `FENCE_RE` closed a command block on ANY run of three backticks, non-greedy.
+  The creature wrote `subagent-orchestrator`, whose job is stripping markdown
+  fences off an LLM reply, so its source contains a `startswith` against a
+  fence literal. That inner run closed the bash block early, the heredoc never
+  terminated, and the file landed cut mid-string: *SyntaxError: unterminated
+  string literal*, line 68. **Twelve SyntaxErrors across twelve rewrites
+  between 19:46 and 04:35.** Each time the creature read a syntax error in its
+  own file and rewrote the tool; each time we cut it at the same character. It
+  could not see the cut, because the transcript shows what RAN -- and what ran
+  was the truncated command. **A tool that manipulates fences is exactly the
+  tool this made impossible to write**, which is why it went round twelve
+  times instead of being noticed once.
+
+  The fix anchored BOTH fence ends to column 0. Within forty minutes the
+  regression watch caught the cost: a reply ending `...</thought>` immediately
+  followed by the opener ON THE SAME LINE meant `^` never matched, and a real
+  command was dropped as `unclosed_fence`. **Only the CLOSING fence needs
+  anchoring** -- a fence inside code sits mid-line and so cannot close a block,
+  while a genuine terminator always starts its own line. The asymmetry was
+  there to be seen and I did not look for it.
+
+  **Invariant: when you change a parser the creature speaks through, assume the
+  change has a cost and go looking for it in the next hour.** The watch found
+  it in forty minutes; without the watch it would have been another nine-hour
+  silence. And the classifier that reports these must ask by OUTCOME -- a
+  tagged marker present with no block parsed means work was LOST -- never by
+  counting delimiters, which mistook a fence inside a string for an unbalanced
+  block and a mid-line opener for "no command".
+
+- **I measured the creature with an instrument that could not see what it was
+  measuring, twice in one evening, and wrote both readings into doctrine before
+  checking.** 2026-09-14.
+
+  First: *"26% probe success -- the creature is building storeys on a broken
+  floor."* Re-counted over 153 probes: **39 exited 0, 97 were the tool
+  CORRECTLY refusing incomplete input, ~12 were real failures.** `evidence()`
+  invokes every tool BARE, so a tool whose call-line takes an argument can
+  never exit 0 -- and the brief tells the cousin in as many words that refusing
+  incomplete input and saying what you need is the tool doing its job. `plan`
+  read as "1 worked and 30 failed" because it asked for an argument thirty
+  times.
+
+  Second: *"subagent-orchestrator has a repeated Python error."* It compiles
+  clean, its `--help` exits 0, and its twelve SyntaxErrors were all historical.
+  What it has never had is one invocation WITH arguments from its user.
+
+  Both readings were built on the harness's own behaviour, and both were
+  written into CLAUDE.md, the cousin's brief and the creature's prompt before
+  anyone checked. **The top scar in this file says to prove the harness was not
+  producing a finding before believing it. I did not, twice, in one hour, while
+  actively citing that scar.** `cousin_probe` now records `bare`, and the
+  run-record counts worked / asked-for-arguments / really-FAILED apart.
+
+- **The anti-twin rule fails on JUDGEMENT, not on missing evidence -- and that
+  is now isolated.** 2026-09-14, 23:06. The cousin's want named
+  `list-parent-tasks` as the example of what it needed. That tool already
+  existed in the library the creature is shown every wake. The creature wrote a
+  new tool, `obtain-parent-task-id`. The cousin then **ACCEPTED it after
+  actually running it and getting real output** -- so this is not the
+  bare-call problem, and not the 2026-09-12 problem of a judge shown only one
+  side. The library was on the page, the run-record was on the page, the rule
+  was in the brief, and the verdict still went the wrong way.
+
+  Run 2 in total: **40 tools added, 3 removed, 38 in the library, with
+  `archive-*` x9, `plan-*` x8 and `subtask-*` x5.** That is a flat pile rather
+  than compounding capability. It is the open question this project now turns
+  on, it is a BRIEF matter, and it is frozen until it can be measured properly
+  rather than patched at midnight.
+
 - **A SETTING THAT IS PRESENT, PARSED AND LIVE CAN STILL DO NOTHING — twice in
   one evening, and only testing the EFFECT found either.** 2026-09-13.
   (1) `StartLimitIntervalSec`/`StartLimitBurst` were written into `[Service]`,
@@ -796,7 +869,50 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    on a rung like that produces confident garbage instead of an obvious failure.
    Record the model per verdict from day one.
 
-## 7. State — 2026-09-13, run 2 (deployed; the loop closes, throughput is the limit)
+## 7. State — 2026-09-14, run 2 at 35 hours (the loop works; the judgement is the question)
+
+**Measured over run 2 entire, 2026-09-13 12:48 to 2026-09-14 23:48 (35.0 h).
+The engine changed roughly twenty times inside that window, so these are
+totals, never rates of anything:**
+
+| | |
+|---|---|
+| wakes / thinks / commands | 935 / 755 / 944 |
+| cousin probes | 179 |
+| verdicts | 133 |
+| wants | 63 |
+| tools added / removed | 40 / 3 |
+| library now | 38 |
+| `rung_broken` (needed a human) | **0** |
+
+**Verdicts split by rung, because the ladder is not one instrument:**
+
+| rung | accepted | returned | unknown |
+|---|---|---|---|
+| `gemini/gemma-4-31b-it` | 57 | 31 | 19 |
+| `cloudflare/llama-3.3-70b` | 2 | 18 | 0 |
+| `groq/gpt-oss-120b` | 4 | 2 | 0 |
+
+Gemini accepts 57 of 107; cloudflare accepts 2 of 20. **An aggregate over that
+ladder measures neither**, and the difference is not yet explained.
+
+**What works.** The loop closes repeatedly and unattended: the creature builds,
+the cousin runs and judges, the want reaches the creature, it builds that. It
+survived eleven hours overnight with no intervention. The one genuine repair
+this session was proven by the creature running the tool with real arguments
+before marking it done.
+
+**What does not.** The library is a flat pile -- 38 tools, `archive-*` x9,
+`plan-*` x8, `subtask-*` x5 -- and the cousin accepts the duplicates while
+being shown both the library and each tool's run record (§5). That is the
+project's open question and it is a brief matter, frozen pending measurement.
+
+**Open, and Tue's:** the creature's shell shares a uid with the engine so the
+key files remain readable (`DockerBody` or `LoadCredential` closes it); whether
+the 2400-character output window should grow; and no production evidence pack
+is committed, so nothing here is checkable by anyone who was not present.
+
+### Previous state — 2026-09-13, run 2 opening (deployed; the loop closes, throughput is the limit)
 
 **Run 2 began 12:48 CEST from nothing** — no journal, no context, no memory, no
 tools — after run 1 was archived as contaminated (§0). Everything below this
