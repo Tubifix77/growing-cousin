@@ -36,12 +36,24 @@ keeps it that way.
 against the directory rather than typed: see
 `test_the_module_list_matches_the_kernel`.
 
-### Handover — written 2026-09-14 23:55, read this before touching anything
+### Handover — updated 2026-09-15 ~01:30, read this before touching anything
 
-**The engine is running and does not need you.** `aad203f` code, started 21:39
-CEST; observer and `cousin-vitals.timer` up; `rung_broken` has been 0 all
-session. Docs-only commits since then, so no restart is owed. If it gives up it
-now exits non-zero and systemd restarts it, bounded to 5 starts per 30 minutes.
+**Read `live/monitor/status.md` on the laptop before deriving anything by
+hand.** A monitor exists as of 2026-09-15 (`monitor/`, `ARCHITECTURE.md` §15):
+`cousin-monitor.timer` regenerates that page every five minutes — alarms first,
+each with the scar it would have caught and a runbook line; then what it
+**cannot** tell; then counts per window, every one naming the engine commit
+that produced it. `live/monitor/alarms.jsonl` gets a line only when a finding
+enters or leaves ALARM, so `tail` it to see what changed since you last looked.
+Every detector was proven by replay on the real journal slice where its scar
+happened (`tests/fixtures/journal/`). **Tue's standing instruction
+(2026-09-15): no Claude-side monitor. Let it run; he asks for a check in the
+morning.** The page says which commit is running and whether a restart is
+owed; do not work it out from `git log` and systemd by hand again.
+
+**The engine is running and does not need you.** If it gives up it exits
+non-zero and systemd restarts it, bounded to 5 starts per 30 minutes; the page's
+`gave_up` and `engine_silent` findings say so if that ever stops being true.
 
 **Frozen, and the condition to unfreeze it.** `MANAGER-PROMPT.md` and
 `CREATURE-PROMPT.md` are NOT to be edited. Three prompt changes shipped on
@@ -59,7 +71,9 @@ against held-out cases, which `trial/` could carry and currently does not.
 | "`subagent-orchestrator` is broken" | it compiles clean, `--help` exits 0. Its SyntaxErrors were the fence bug, since fixed. |
 | "the creature is idle" | count `exec_start` and `exec_skip`; do not infer activity from probe or verdict counts. |
 | "nothing is being produced" | count tool writes BOTH ways — `tool-edit NAME` **and** `cat > tools/own/NAME`. A tool-edit-only count undersells by half. |
-| "the tier is broken" | a flat think count with `loop_waiting` climbing is weather. Never restart to clear it. |
+| "the tier is broken" | a flat think count with `loop_waiting` climbing is weather. Never restart to clear it. The page's `ladder_dry` line says so, with times. |
+| "is it healthy?" / "what happened overnight?" | `cat live/monitor/status.md`, then `tail live/monitor/alarms.jsonl`. Grepping the journal by hand is how the tool-write count was undersold by half. |
+| "`plan` has 30 real failures" | 36 of `subagent-orchestrator`'s 43 probes and 30 of `plan`'s 31 predate the `bare` flag and are **unqualified**, not failures. The library now says so to both inhabitants; it used to say FAILED. |
 
 **Habits this session had to learn the hard way**, all cheap and all mine:
 
@@ -71,11 +85,22 @@ against held-out cases, which `trial/` could carry and currently does not.
 - **Python with escapes never goes through a bash heredoc.** Write a file in
   the scratchpad and run it; `\b` became a literal backspace byte otherwise.
 - **After changing a parser the creature speaks through, hunt for the cost in
-  the next hour.** The regression watch earned its keep twice in one evening.
+  the next hour.** The regression watch earned its keep twice in one evening —
+  and is now automatic: `deploy_regression` writes
+  `live/monitor/regression/<sha>-<start>.md` an hour after every start.
+- **Stop and start the engine in SEPARATE remote commands.** 2026-09-15 00:24:
+  one ssh command did `touch STOP`, waited for the cycle, then `rm STOP &&
+  start` — and the tool's timeout killed it between the wait and the start,
+  leaving the engine stopped with a STOP file for ninety seconds. Nothing
+  would have restarted it. Stop; confirm; start; confirm — four calls.
 
-**Nothing in `live/` is committed**, so no figure in §7 is checkable by anyone
-who was not present. The review's suggested per-run evidence pack is still the
-fix and is still not built.
+**Nothing in `live/` is committed** — but the per-run evidence pack now exists:
+`python3 -m monitor pack --root live --out ~/growing-cousin-evidence --run run-2`
+writes a tarball and a manifest that hashes every file and counts every journal
+kind; the **manifest** is committed under `evidence/`, the tarball stays on the
+laptop, and the pack refuses to exist if anything key-shaped is inside. Where
+the tarball may live beyond the laptop is Tue's decision. Until a pack for run
+2 is committed, no figure in §7 is checkable by anyone who was not present.
 
 **The gate's authority moved to the laptop (2026-09-12).** The Windows box
 fails the liveness assertion intermittently under the suite's process churn —
@@ -609,6 +634,21 @@ was measured, with what, and on what date.*
   on, it is a BRIEF matter, and it is frozen until it can be measured properly
   rather than patched at midnight.
 
+- **The record was corrected and the display was not, so both inhabitants
+  kept being shown a broken floor for a day after the misreading was found.**
+  2026-09-15. `cousin_probe` gained `bare` on 2026-09-14 (f52ac78) and the
+  run-record started counting usage refusals apart — for probes written AFTER
+  that. Every probe from the first day and a half has no flag, and
+  `library.status()` computed `failed = runs - ok - asked`, so all of them
+  read as real failures: `subagent-orchestrator` "7 worked and 36 FAILED",
+  `plan` "1 worked and 30 FAILED", served to the creature and the cousin every
+  wake. Found by the monitor's library table on its first live render, which
+  had an *unqualified* column because the detector rule is three states, never
+  two. **Invariant: when a field is added to make a distinction, every reader
+  of the old records must have a third answer — cannot tell — or the fix
+  applies only to the future while the display keeps lying about the past.**
+  Fixed the same hour; the listing now says "unknown outcome" for those.
+
 - **A SETTING THAT IS PRESENT, PARSED AND LIVE CAN STILL DO NOTHING — twice in
   one evening, and only testing the EFFECT found either.** 2026-09-13.
   (1) `StartLimitIntervalSec`/`StartLimitBurst` were written into `[Service]`,
@@ -911,6 +951,15 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    Record the model per verdict from day one.
 
 ## 7. State — 2026-09-14, run 2 at 35 hours (the loop works; the judgement is the question)
+
+> **2026-09-15 addendum.** The figures below are now *derivable* rather than
+> typed: `python3 -m monitor status --root live` prints them per window with
+> the engine commit beside each, and `live/monitor/status.md` is regenerated
+> every five minutes on the laptop. The next rewrite of this section should be
+> pasted from that page, not composed from memory — the outside review's
+> finding was that these sections drift fastest in the sessions that work
+> hardest. First live render, 00:38: 0 alarms, 4 cannot-tell, 3 informational;
+> `selfcheck` proved all six deployment effects; run 2 stands at 37 tools.
 
 **Measured over run 2 entire, 2026-09-13 12:48 to 2026-09-14 23:48 (35.0 h).
 The engine changed roughly twenty times inside that window, so these are

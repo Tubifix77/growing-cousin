@@ -82,10 +82,17 @@ def use_history(journal):
         if not name:
             continue
         rec = out.setdefault(name, {"runs": 0, "ok": 0, "asked": 0,
-                                    "last_code": None})
+                                    "unqualified": 0, "last_code": None})
         rec["runs"] += 1
         if r.get("exit_code") == 0:
             rec["ok"] += 1
+        elif "bare" not in r:
+            # RECORDED BEFORE THE FLAG EXISTED (f52ac78, 2026-09-14). Without
+            # it a refusal and a failure are the same non-zero exit, so the
+            # honest count is a third bucket: neither. Counting these as
+            # failures re-creates, for every probe of the first day and a
+            # half, exactly the misreading the flag was added to end.
+            rec["unqualified"] += 1
         elif r.get("bare"):
             # CALLED WITH NO ARGUMENTS, by a tool whose own call-line says it
             # takes some. Refusing that and saying what it needs is the tool
@@ -119,14 +126,19 @@ def status(rec):
     if not rec or not rec.get("runs"):
         return "its user has NEVER run this"
     n, ok, asked = rec["runs"], rec.get("ok", 0), rec.get("asked", 0)
+    unq = rec.get("unqualified", 0)
     times = "once" if n == 1 else "%d times" % n
     code = rec.get("last_code")
-    failed = n - ok - asked
+    failed = n - ok - asked - unq
     # A bare call that got a usage message back is not a failure, so it is
     # never reported as one. It is still worth saying, because "your user
     # keeps reaching for this without knowing how to call it" is real.
     note = "" if not asked else (", and %s asked for arguments"
                                  % ("once" if asked == 1 else "%d times" % asked))
+    if unq:
+        # Neither a failure nor a success: the record cannot say which.
+        note += (", and %s from before the call was recorded (unknown "
+                 "outcome)" % ("once" if unq == 1 else "%d times" % unq))
     if failed == 0 and ok == 0:
         return "its user ran this %s%s, never getting further" % (times, note)
     if failed == 0:

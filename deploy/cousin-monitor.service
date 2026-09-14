@@ -1,0 +1,34 @@
+[Unit]
+# Derives status and alarms from the journal and writes them where a reader
+# who was not present can see them: live/monitor/status.md, status.json,
+# alarms.jsonl. Built 2026-09-15 after a session in which the journal held
+# the facts for every fault and nobody derived a signal from them.
+Description=Growing Cousin monitor (status page + edge-triggered alarms)
+After=cousin-engine.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/growing-cousin
+# `+` runs this ONE step outside the sandbox below, so the directory exists
+# before ReadWritePaths needs it. Inside the sandbox live/ is read-only and
+# the mkdir would fail -- the same 209/STDOUT shape the engine unit hit.
+ExecStartPre=+/bin/mkdir -p %h/growing-cousin/live/monitor
+ExecStart=/usr/bin/python3 -m monitor status --root %h/growing-cousin/live --repo %h/growing-cousin
+
+# Exit 1 means an alarm needs a human, and the unit is then `failed` until
+# the next run clears it -- so `systemctl --user --failed` says exactly when
+# to look. The timer keeps firing regardless. Nothing else is a failure.
+
+# READ-ONLY OVER THE EVIDENCE, structurally. The monitor may write only its
+# own directory; the journal, the context and the creature's tools are
+# mounted read-only for it. PrivateUsers=yes is what makes any of this take
+# effect in a user unit (CLAUDE.md §5, 2026-09-13) -- the gate additionally
+# asserts that a run writes nothing outside live/monitor even WITHOUT the
+# sandbox, so the two protections are independent.
+PrivateUsers=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/growing-cousin/live/monitor
+InaccessiblePaths=%h/growing-spine
+PrivateTmp=true
+NoNewPrivileges=true

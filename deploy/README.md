@@ -55,9 +55,10 @@ to be independent systems that happen to share a box.
 
 ```bash
 mkdir -p ~/.config/systemd/user
-cp deploy/*.service ~/.config/systemd/user/
+cp deploy/*.service deploy/*.timer ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now cousin-engine cousin-observer
+systemctl --user enable --now cousin-vitals.timer cousin-monitor.timer
 loginctl enable-linger "$USER"      # so it survives logout
 ```
 
@@ -68,7 +69,11 @@ loginctl enable-linger "$USER"      # so it survives logout
 | stop after the current cycle | `touch ~/growing-cousin/live/STOP` |
 | start again | `rm ~/growing-cousin/live/STOP && systemctl --user start cousin-engine` |
 | watch | `journalctl --user -u cousin-engine -f` or the observer window |
+| **is it healthy? read this first** | `cat ~/growing-cousin/live/monitor/status.md` |
+| what changed since I last looked | `tail ~/growing-cousin/live/monitor/alarms.jsonl` |
+| regenerate the page now | `cd ~/growing-cousin && python3 -m monitor status --root live` |
 | what it has been doing | `python3 census.py ~/growing-cousin/live/journal.jsonl` |
+| the evidence pack for a run | `python3 -m monitor pack --root live --out ~/growing-cousin-evidence --run run-2` |
 
 **Stop with the file, not with `systemctl stop`.** The file lets the cycle in
 flight finish; `systemctl stop` kills it mid-cycle and throws that work away.
@@ -81,9 +86,33 @@ undo a deliberate stop.
 asked to stop and when a run of consecutive failures ended it; restarting either
 would defeat the bound. A crash loop here is billed to the spine's quota.
 
+## Reading the monitor
+
+`cousin-monitor.timer` runs `python3 -m monitor status` every five minutes and
+writes **`live/monitor/`** — for the helper on the other end of an ssh session
+and for the next session that should re-derive nothing:
+
+| file | what it is |
+|---|---|
+| `status.md` | the page: alarms first, then what it cannot tell, weather, counts per window **each naming its engine**, the library with its run record, the latest wants / verdicts / skips |
+| `status.json` | the same, for a program |
+| `alarms.jsonl` | one line when a finding **enters** or **leaves** ALARM — nothing between. `tail` it to see what changed since you last looked |
+| `regression/<sha>-<start>.md` | written **once** per engine start, an hour in: the hour after against the hour before, on the correctness indicators |
+| `state.json` | the runner's memory (last states, since-when); derived, delete it and it rebuilds |
+
+Every finding is one of **OK / ALARM / CANNOT_TELL / INFO** — a detector with
+too few events says so rather than reporting OK. Only an ALARM that needs a
+human makes the run exit 1, so `systemctl --user --failed` says exactly when to
+look. The unit is read-only over everything but `live/monitor` (`PrivateUsers=yes`
+makes that real), and nothing it produces is shown to either inhabitant.
+
+Each detector is proven against a slice of the real journal where its scar
+happened — `tests/fixtures/journal/`, replay one with
+`python3 -m monitor replay tests/fixtures/journal/<name>.jsonl`.
+
 ## If something looks wrong
 
-Read `CLAUDE.md` §1 first. The short version, and it has been right four times
+Read `live/monitor/status.md`, then `CLAUDE.md` §1. The short version, and it has been right four times
 out of four: **before believing a behavioural finding about either agent, prove
 the harness was not producing it.** Twice now, a creature that appeared to be
 building duplicate tools was actually a creature responding rationally to a
@@ -104,6 +133,7 @@ in `main()`, before the loop starts.
 | `live/context.md` (the wants) | **live** | the cousin writes it, the kernel re-reads it every wake. This is the whole point of "the manager writes the context, the kernel serves it" |
 | `live/journal.jsonl` | **live** | append-only; `vitals.py`, `census.py` and the observer all read it while the engine runs |
 | `tools/own/*` | **live** | the creature's own world, discovered per cycle |
+| `monitor/*.py` | **live** (next timer run) | the monitor is a `oneshot`; every run imports afresh. `vitals.py` and `census.py` likewise |
 | `*.md` docs, `tests/`, `LICENSE` | **never** | the engine does not read them |
 
 **Restarting is cheap but not free:** `systemctl --user restart` kills the cycle

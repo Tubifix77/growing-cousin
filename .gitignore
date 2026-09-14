@@ -17,3 +17,6 @@ live-run.log
 live-local/
 live-local.log
 live/vitals.jsonl
+
+# Evidence packs: the manifest is committed, the tarball never is (raw model output).
+evidence/*.tar.gz

@@ -1,0 +1,15 @@
+[Unit]
+Description=Regenerate Growing Cousin status every 5 minutes
+
+[Timer]
+OnBootSec=3min
+# Five minutes is two to four gemma cycles: often enough that an alarm is
+# raised within one wait of the event, rare enough that a night is ~290 runs
+# of a two-second job. The vitals timer samples every 10; the two are not
+# aligned on purpose, so a regression cannot fall between both.
+OnUnitActiveSec=5min
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

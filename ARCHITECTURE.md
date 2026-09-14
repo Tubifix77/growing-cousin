@@ -718,3 +718,46 @@ That is *don't assert without checking* implemented in free, deterministic code,
 and it is the exact shape of the cousin's own mute-refusal bound. Keep it as it
 is. Not everything in the framework is a hand-written approximation of judgement;
 this one is a measurement, and measurements stay.
+
+## 15. Monitoring — the layer that reports outward
+
+Added 2026-09-15, after a session in which the journal held the facts for
+every fault and nobody derived a signal from them: fourteen unusable verdicts
+read as weather for four hours, the same `SyntaxError` twelve times over nine
+hours, a want channel discarding direction, a give-up that exited 0. The
+instruments that existed — `observer.py`, `vitals.py`, `census.py` — were a
+window for a desk, a time series, and a check on one agent. None of them said
+*something changed, look here*, and none wrote anything a helper on the other
+end of an ssh session could read without re-deriving it.
+
+Spine's answer to the same problem is `scripts/spine_health.py` with hourly and
+daily timers; this engine takes the **lessons** from it and none of the code
+(§2.6 of `CLAUDE.md`): floors declared with the measurement behind them, never
+learned; absence of evidence is not a zero; a stale number is never shown as
+live; the exit code reserved for *a human is needed*; read the journal, never
+`journalctl`; and **who receives this** — us, never either inhabitant.
+
+Five layers, of which the kernel owns the first:
+
+| layer | where | what |
+|---|---|---|
+| **RECORD** | `kernel/` | one kind per event with structured fields. Added 2026-09-15: `engine_start` (commit, dirty, caps, rungs — so every window can name its instrument), served facts on `wake` (`library_shown/total`, `wants_served`, `window`), `selfcheck` at every start (the sandbox and PATH tested by their EFFECT, recorded, never a veto), `loop_end.fault` |
+| **DERIVE** | `monitor/derive.py` | counts and ratios of counts, split by rung; a ratio over few events is labelled an anecdote |
+| **DETECT** | `monitor/detectors.py` | one detector per scar. Each returns OK / ALARM / CANNOT_TELL / INFO — never a boolean, because a detector that cannot see enough must say so rather than report OK. Floors are declared in the source with the measurement behind each |
+| **PRESENT** | `monitor/status.py` | `live/monitor/status.md` + `.json` regenerated every five minutes; `alarms.jsonl` written only on a change of state; `regression/<sha>-<start>.md` written once per engine start, an hour in |
+| **PROVE** | `tests/fixtures/journal/` | slices of the real journal where each scar happened. The gate asserts each detector fires there no later than the moment a human could have known — and no earlier — and stays quiet on a healthy hour |
+
+Two rules make it an observation surface rather than part of the system under
+test. **It writes only its own directory**, asserted by the gate on the code and
+made impossible by the unit (`deploy/cousin-monitor.service`, read-only over
+`live/` with `PrivateUsers=yes`). **Nothing it produces reaches either
+inhabitant** — the creature is never told about its own bugs (§2.4), and a
+repeated-failure alarm is precisely a bug we may have manufactured.
+
+`python3 -m monitor pack` writes the per-run **evidence pack**: the journal,
+the vitals series, the alarm log, the regression reports, the engine log and a
+snapshot of the creature's tools, with a manifest that hashes every file and
+counts every journal kind. The manifest is committed under `evidence/`; the
+tarball is not, and the pack refuses to exist if anything key-shaped is inside.
+That closes the gap an outside review named on 2026-09-13: a figure in
+`CLAUDE.md` §7 can now be traced to bytes.

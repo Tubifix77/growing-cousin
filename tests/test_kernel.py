@@ -2964,10 +2964,21 @@ def test_a_usage_refusal_is_not_counted_as_a_failure():
     for _ in range(3):
         j2.append("cousin_probe", tool="needy", exit_code=2,
                   stdout="", stderr="usage: needy <id>")
-    check("bare: with no flag recorded, a refusal counts as a failure -- which "
-          "is why the flag has to be written at probe time, not guessed later",
-          library.use_history(j2)["needy"].get("asked", 0) == 0,
-          library.use_history(j2).get("needy"))
+    h2 = library.use_history(j2)["needy"]
+    check("bare: with no flag recorded, a refusal cannot be told from a "
+          "failure -- which is why the flag has to be written at probe time, "
+          "not guessed later",
+          h2.get("asked", 0) == 0, h2)
+    # And the record SAYS it cannot tell, rather than calling it a failure:
+    # every probe of the first day and a half predates the flag, and a
+    # display that counted them as failures would show both inhabitants a
+    # broken library that was never measured to be one.
+    check("bare: a probe recorded before the flag is UNQUALIFIED, never a failure",
+          h2.get("unqualified", 0) == 3, h2)
+    out2 = library.render(own, j2)
+    check("bare: and the listing says the outcome is unknown, not FAILED",
+          "unknown outcome" in out2 and "FAILED" not in out2
+          and "NEVER WORKED" not in out2, out2)
 
     shutil.rmtree(d, ignore_errors=True)
 
@@ -3041,11 +3052,13 @@ def test_a_tool_that_never_worked_says_so_to_both_inhabitants():
     _write_tool(own, "storey", does="reads what floor stored")
     j = Journal(os.path.join(d, "journal.jsonl"))
 
+    # `bare=False`: called properly and failed. A probe without the flag is
+    # UNQUALIFIED, not a failure -- see test_a_usage_refusal_is_not_counted.
     for code in (2, 2, 2):
-        j.append("cousin_probe", tool="floor", exit_code=code,
+        j.append("cousin_probe", tool="floor", exit_code=code, bare=False,
                  stdout="", stderr="boom")
     for code in (0, 1):
-        j.append("cousin_probe", tool="storey", exit_code=code,
+        j.append("cousin_probe", tool="storey", exit_code=code, bare=False,
                  stdout="ok", stderr="")
 
     out = library.render(own, j)
@@ -3069,7 +3082,7 @@ def test_a_tool_that_never_worked_says_so_to_both_inhabitants():
     own2 = os.path.join(b.mind, "tools", "own")
     _write_tool(own2, "floor", does="stores the things")
     for _ in range(3):
-        j2.append("cousin_probe", tool="floor", exit_code=2,
+        j2.append("cousin_probe", tool="floor", exit_code=2, bare=False,
                   stdout="", stderr="boom")
     check("floor: the creature is shown it every wake, not just the cousin",
           "NEVER WORKED" in e.serve_context(), e.serve_context()[-400:])
@@ -3347,7 +3360,7 @@ def test_library_marks_a_tool_its_user_has_never_run():
     check("library column: and reports that the run actually succeeded",
           "it worked" in out2 and "NEVER WORKED" not in out2, out2)
 
-    j.append("cousin_probe", tool="taskprio", exit_code=1,
+    j.append("cousin_probe", tool="taskprio", exit_code=1, bare=False,
              stdout="", stderr="boom")
     out3 = library.render(own, j)
     check("library column: the LAST run is what is reported, not the best one",
@@ -3396,8 +3409,8 @@ def test_library_never_withholds_a_tool_that_failed():
     own = os.path.join(d, "own")
     _write_tool(own, "archive", does="stores a note")
     j = Journal(os.path.join(d, "journal.jsonl"))
-    j.append("cousin_probe", tool="archive", exit_code=127, stdout="",
-             stderr="not found")
+    j.append("cousin_probe", tool="archive", exit_code=127, bare=False,
+             stdout="", stderr="not found")
 
     out = library.render(own, j)
     check("library column: a tool its user could not run is STILL listed",
@@ -3636,9 +3649,403 @@ def test_loop_end_says_whether_it_gave_up():
     shutil.rmtree(d, ignore_errors=True)
 
 
+FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "fixtures", "journal")
+
+
+def _fixture(name):
+    from monitor import derive
+    rows = derive.load_fixture(os.path.join(FIXTURES, name + ".jsonl"))
+    assert rows, "fixture %s is empty or missing" % name
+    return rows
+
+
+def _first_raise(timeline, prefix):
+    for c in timeline:
+        if c["name"].startswith(prefix) and c["to"] == "ALARM":
+            return c
+    return None
+
+
+def test_monitor_detectors_fire_where_the_scars_happened():
+    """Each detector replayed over the real journal slice where its scar
+    occurred, asserting it fires no later than the moment a human could
+    first have known -- and no earlier, because a detector that fires on two
+    events is a wolf-crier nobody reads. Then the control: a healthy hour
+    must raise nothing a human has to look at.
+    """
+    from monitor import detectors, status as monstatus
+
+    # A. 2026-09-13: gemini served 14 UNKNOWN in a row; read as weather for
+    #    four hours. The fourth arrived 16:22. Same slice: a want retired at
+    #    17:42 with no tool write since it was issued.
+    rows = _fixture("0913-gemini-unusable-and-want-unacted")
+    tl = monstatus.replay(rows, step=1)
+    unk = [r for r in rows if r["kind"] == "cousin_verdict"
+           and (r.get("rung") or "").startswith("gemini")
+           and r.get("verdict") == "UNKNOWN"]
+    hit = _first_raise(tl, "unusable_verdicts[gemini")
+    check("replay: unusable_verdicts fires on gemini's run of UNKNOWNs",
+          hit is not None, str([c["name"] for c in tl])[:300])
+    check("replay: no later than the FOURTH unknown (16:22; noticed ~19:40)",
+          hit is not None and hit["ts"] <= float(unk[3]["ts"]) + 1,
+          hit and "%.0fs after" % (hit["ts"] - float(unk[3]["ts"])))
+    check("replay: and not before it -- n<4 is 'cannot tell', never an alarm",
+          hit is not None and hit["ts"] >= float(unk[3]["ts"]) - 1,
+          hit and "%.0fs before" % (float(unk[3]["ts"]) - hit["ts"]))
+    ret = [r for r in rows if r["kind"] == "want_retired"
+           and r.get("because") != "superseded"]
+    hit2 = _first_raise(tl, "want_retired_unacted")
+    check("replay: want_retired_unacted fires on the want discarded unacted",
+          hit2 is not None and ret and abs(hit2["ts"] - float(ret[0]["ts"])) <= 1,
+          str(hit2)[:200])
+
+    # B. 2026-09-13: fifteen identical SyntaxErrors across rewrites of
+    #    subagent-orchestrator, all our parser's cut. Third at 20:00; the
+    #    twelfth was noticed at 04:35.
+    rows = _fixture("0913-fence-syntaxerror")
+    tl = monstatus.replay(rows, step=1)
+    se = [r for r in rows if r["kind"] == "exec_end"
+          and "SyntaxError" in (r.get("stderr") or "")]
+    hit = _first_raise(tl, "repeated_failure[subagent-orchestrator]")
+    check("replay: repeated_failure fires on the THIRD identical SyntaxError "
+          "across rewrites", hit is not None and len(se) >= 3
+          and abs(hit["ts"] - float(se[2]["ts"])) <= 1,
+          str(hit)[:200] if hit else str([c["name"] for c in tl])[:200])
+    check("replay: and not on the second -- two failures is a creature debugging",
+          hit is not None and hit["ts"] > float(se[1]["ts"]), str(hit)[:120])
+
+    # C. 2026-09-14: the anchored opener dropped a real command 40 minutes
+    #    after the fence fix.
+    rows = _fixture("0914-opener-regression")
+    tl = monstatus.replay(rows, step=1)
+    uf = [r for r in rows if r["kind"] == "exec_skip"
+          and r.get("reason") == "unclosed_fence"]
+    hit = _first_raise(tl, "commands_lost_parser")
+    check("replay: commands_lost_parser fires the moment a tagged fence "
+          "yields no block", hit is not None and uf
+          and abs(hit["ts"] - float(uf[0]["ts"])) <= 1, str(hit)[:200])
+
+    # D. The control.
+    rows = _fixture("0914-healthy-hour")
+    tl = monstatus.replay(rows, step=1)
+    raised = [c for c in tl if c["to"] == "ALARM" and c.get("human")]
+    check("replay: a healthy hour raises NOTHING a human must look at",
+          not raised, str([(c["name"], c["msg"][:60]) for c in raised])[:400])
+    ctx = detectors.Context(rows, now=float(rows[-1]["ts"]))
+    fs = detectors.run_all(ctx)
+    check("replay: every detector reports a state on the control -- none is "
+          "silent", len(fs) >= len(detectors.ALL)
+          and all(f.state in (detectors.OK, detectors.ALARM, detectors.INFO,
+                              detectors.CANNOT_TELL) for f in fs),
+          str([(f.name, f.state) for f in fs])[:300])
+    check("replay: what it cannot know it SAYS it cannot know (pre-43eb8af "
+          "fields)", any(f.state == detectors.CANNOT_TELL
+                          and f.name == "served_context_contract" for f in fs),
+          str([(f.name, f.state) for f in fs if f.name == "served_context_contract"]))
+
+
+def _tree_digest(root, skip):
+    import hashlib
+    out = {}
+    for dp, dn, fn in os.walk(root):
+        if os.path.abspath(dp).startswith(os.path.abspath(skip)):
+            continue
+        for n in fn:
+            p = os.path.join(dp, n)
+            with open(p, "rb") as f:
+                out[os.path.relpath(p, root)] = hashlib.sha1(f.read()).hexdigest()
+    return out
+
+
+def _monitor_root(fixture, d):
+    root = os.path.join(d, "live")
+    own = os.path.join(root, "body", "mind", "tools", "own")
+    os.makedirs(own)
+    shutil.copy(os.path.join(FIXTURES, fixture + ".jsonl"),
+                os.path.join(root, "journal.jsonl"))
+    with open(os.path.join(root, "context.md"), "w", encoding="utf-8") as f:
+        f.write("## asked\n\n1. a thing\n")
+    with open(os.path.join(root, "quota.json"), "w", encoding="utf-8") as f:
+        f.write('{"gemini/x": {"last_success": 1}}')
+    with open(os.path.join(own, "plan"), "w", encoding="utf-8") as f:
+        f.write("#!/bin/sh\n# does: x\necho hi\n")
+    return root
+
+
+def test_monitor_writes_only_its_own_directory():
+    """An observation surface that can alter the evidence is part of the
+    system under test. The monitor may write `live/monitor/` and nothing
+    else -- asserted here on the code, and made impossible by the unit."""
+    from monitor import status as monstatus
+    d = tmpdir()
+    root = _monitor_root("0914-healthy-hour", d)
+    rows = _fixture("0914-healthy-hour")
+    mon = os.path.join(root, "monitor")
+    before = _tree_digest(root, mon)
+    md, data, rc = monstatus.run_once(root, repo=None, now=float(rows[-1]["ts"]))
+    after = _tree_digest(root, mon)
+    check("monitor: nothing outside live/monitor changed", before == after,
+          str(set(before.items()) ^ set(after.items()))[:300])
+    have = set(os.listdir(mon)) if os.path.isdir(mon) else set()
+    check("monitor: status.md, status.json and state.json were written",
+          {"status.md", "status.json", "state.json"} <= have, str(have))
+    check("monitor: a healthy hour exits 0 -- no human needed", rc == 0, rc)
+    check("monitor: the page says the engine is UNKNOWN when the journal "
+          "never said (pre-43eb8af), rather than guessing",
+          "unknown" in md.split("## Alarms")[0], md[:400])
+    check("monitor: every counts window names its engine",
+          all("engines" in w and w["engines"] for w in data["windows"]),
+          str([w.get("engines") for w in data["windows"]]))
+    check("monitor: the library record uses the kernel's own classification "
+          "(unqualified is a column, not a failure)",
+          all("unqualified" in r for r in data["library"]["record"]),
+          str(data["library"]["record"][:2]))
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_monitor_alarms_are_edge_triggered():
+    """A line on RAISE and a line on CLEAR, nothing between -- the parent's
+    *surface on a change of state, never continuously*, applied to us. A
+    monitor that writes the same alarm every five minutes trains its reader
+    to skip it."""
+    from monitor import status as monstatus
+    d = tmpdir()
+    root = _monitor_root("0914-opener-regression", d)
+    rows = _fixture("0914-opener-regression")
+    now = float(rows[-1]["ts"])
+    alarms = os.path.join(root, "monitor", "alarms.jsonl")
+
+    def lines():
+        if not os.path.exists(alarms):
+            return []
+        return [json.loads(l) for l in open(alarms, encoding="utf-8") if l.strip()]
+
+    md, data, rc = monstatus.run_once(root, repo=None, now=now)
+    first = [l for l in lines() if l["name"] == "commands_lost_parser"]
+    check("edge: the parser alarm is RAISED once, with its evidence",
+          len(first) == 1 and first[0]["to"] == "ALARM" and first[0]["evidence"],
+          str(first)[:200])
+    check("edge: and a raised alarm makes the run exit 1", rc == 1, rc)
+    monstatus.run_once(root, repo=None, now=now + 60)
+    monstatus.run_once(root, repo=None, now=now + 120)
+    check("edge: two more runs with the alarm still standing write NOTHING",
+          len([l for l in lines() if l["name"] == "commands_lost_parser"]) == 1,
+          str(lines())[:300])
+    monstatus.run_once(root, repo=None, now=now + 2 * 3600)
+    cl = [l for l in lines() if l["name"] == "commands_lost_parser"]
+    check("edge: when the hour passes the alarm is CLEARED, once",
+          len(cl) == 2 and cl[1]["from"] == "ALARM" and cl[1]["to"] != "ALARM",
+          str(cl)[:300])
+    st = json.load(open(os.path.join(root, "monitor", "state.json"), encoding="utf-8"))
+    check("edge: the state remembers since-when, per finding",
+          "since" in st and "commands_lost_parser" in st["since"], str(st)[:200])
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_monitor_page_names_its_engine_and_windows():
+    """Every figure names its run and its engine (CLAUDE.md §0) -- the page
+    included, or the next reader quotes an hour for the wrong commit."""
+    from monitor import status as monstatus
+    d = tmpdir()
+    root = _monitor_root("0914-healthy-hour", d)
+    rows = _fixture("0914-healthy-hour")
+    start = {"ts": float(rows[0]["ts"]) - 1, "kind": "engine_start",
+             "engine": "abcdef0123456789abcdef0123456789abcdef01", "dirty": False,
+             "rungs": ["r"]}
+    with open(os.path.join(root, "journal.jsonl"), "w", encoding="utf-8") as f:
+        for r in [start] + rows:
+            f.write(json.dumps(r) + "\n")
+    md, data, rc = monstatus.run_once(root, repo=None, now=float(rows[-1]["ts"]))
+    check("page: the running engine's commit is on the first lines",
+          "abcdef0" in md.split("## Alarms")[0], md[:400])
+    labels = [w["label"] for w in data["windows"]]
+    check("page: a 'since start' window exists once a start is known",
+          any(l.startswith("since start") for l in labels), labels)
+    check("page: and that window names the engine that produced it",
+          any("abcdef0" in w["engines"] for w in data["windows"]
+              if w["label"].startswith("since start")),
+          str([(w["label"], w["engines"]) for w in data["windows"]]))
+    check("page: restart_owed cannot tell without a repo and SAYS so",
+          any(f["name"] == "restart_owed" and f["state"] == "CANNOT_TELL"
+              for f in data["findings"]),
+          str([f for f in data["findings"] if f["name"] == "restart_owed"]))
+    check("page: the unsplit accept rate is nowhere on it",
+          "accept rate" not in md.lower(), "")
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_deploy_regression_compares_the_hour_after_a_start():
+    """The habit automated: after a change ships, the hour after is held
+    against the hour before on the correctness indicators, and the table is
+    written ONCE. 2026-09-14 a hand-run watch found two parser costs within
+    the hour; without it each would have been another nine-hour silence."""
+    from monitor import detectors, status as monstatus
+    rows = _fixture("0914-healthy-hour")
+    t0 = float(rows[-1]["ts"]) + 30
+    start = {"ts": t0, "kind": "engine_start", "engine": "b" * 40, "dirty": False,
+             "rungs": ["r"]}
+    shift = t0 - float(rows[0]["ts"]) + 5
+    after = [dict(r, ts=float(r["ts"]) + shift) for r in rows]
+
+    def journal(d, extra):
+        root = _monitor_root("0914-healthy-hour", d)
+        allrows = sorted(rows + [start] + after + extra, key=lambda r: float(r["ts"]))
+        with open(os.path.join(root, "journal.jsonl"), "w", encoding="utf-8") as f:
+            for r in allrows:
+                f.write(json.dumps(r) + "\n")
+        return root
+
+    # Pending: the hour is not up.
+    d = tmpdir()
+    root = journal(d, [])
+    md, data, rc = monstatus.run_once(root, repo=None, now=t0 + 600)
+    f = [x for x in data["findings"] if x["name"] == "deploy_regression"][0]
+    check("regression: before the hour is up it says WHEN it will compare",
+          f["state"] == "INFO" and "compared" in f["msg"], f["msg"])
+    check("regression: and writes no report yet",
+          not os.path.isdir(os.path.join(root, "monitor", "regression")), "")
+
+    # Control: the same hour twice -> nothing crossed, report written once.
+    md, data, rc = monstatus.run_once(root, repo=None, now=t0 + 3660)
+    f = [x for x in data["findings"] if x["name"] == "deploy_regression"][0]
+    check("regression: an identical hour crosses no floor", f["state"] == "INFO"
+          and "no correctness indicator" in f["msg"], f["msg"])
+    regdir = os.path.join(root, "monitor", "regression")
+    files = os.listdir(regdir) if os.path.isdir(regdir) else []
+    check("regression: the comparison is written even when nothing moved",
+          len(files) == 1 and files[0].startswith("bbbbbbb-"), files)
+    check("regression: and names both engines in the page",
+          "## Deploy regression -- engine `bbbbbbb` against `unknown`" in md, md[:200])
+    monstatus.run_once(root, repo=None, now=t0 + 3700)
+    check("regression: a second run does not rewrite it",
+          len(os.listdir(regdir)) == 1, os.listdir(regdir))
+    shutil.rmtree(d, ignore_errors=True)
+
+    # The parser fault appears in the hour after: three tagged fences with no
+    # block. That is the 2026-09-14 anchor regression's exact shape.
+    d = tmpdir()
+    faults = [{"ts": t0 + 600 * (i + 1), "kind": "exec_skip", "reason": "unclosed_fence",
+               "lost": True, "detail": "marker present, no block"} for i in range(3)]
+    root = journal(d, faults)
+    md, data, rc = monstatus.run_once(root, repo=None, now=t0 + 3660)
+    f = [x for x in data["findings"] if x["name"] == "deploy_regression"][0]
+    check("regression: unclosed_fence appearing where there was none is WORSE",
+          f["state"] == "ALARM" and "unclosed_fence" in f["msg"], f["msg"])
+    check("regression: a regression needs a human, so the run exits 1", rc == 1, rc)
+    rep = open(os.path.join(root, "monitor", "regression",
+                            os.listdir(os.path.join(root, "monitor", "regression"))[0]),
+               encoding="utf-8").read()
+    check("regression: the report carries the table and the verdict",
+          "| unclosed_fence" in rep and "ALARM" in rep, rep[:300])
+    shutil.rmtree(d, ignore_errors=True)
+
+    # Too few cycles on one side is CANNOT TELL, never OK.
+    ctx = detectors.Context([start] + after[:6], now=t0 + 3660)
+    f = detectors.deploy_regression(ctx)
+    check("regression: too few cycles is 'cannot tell', not a clean bill",
+          f.state == detectors.CANNOT_TELL and "too few" in f.msg, f.msg)
+
+
+def test_the_evidence_pack_is_hashed_and_refuses_secrets():
+    """No figure in §7 was checkable by anyone not present, for two days
+    after an outside review said so. A pack is the journal and its
+    instruments with a manifest that hashes every file, so a quoted number
+    can be traced to bytes. And it REFUSES to exist if anything key-shaped
+    is inside -- the repo is public and the creature can `cat` a key file."""
+    from monitor import pack
+    d = tmpdir()
+    root = _monitor_root("0914-healthy-hour", d)
+    os.makedirs(os.path.join(root, "monitor", "regression"))
+    with open(os.path.join(root, "monitor", "regression", "x.md"), "w") as f:
+        f.write("# a report\n")
+    out = os.path.join(d, "evidence")
+    tar_path, man_path, man = pack.build(root, out, "run-t", repo_head="abc",
+                                         now=float(_fixture("0914-healthy-hour")[-1]["ts"]))
+    check("pack: tarball and manifest are written side by side",
+          os.path.isfile(tar_path) and os.path.isfile(man_path), (tar_path, man_path))
+    paths = {f["path"] for f in man["files"]}
+    check("pack: the journal, the tools and the regression reports are inside",
+          {"journal.jsonl", "context.md", "quota.json", "body/mind/tools/own/plan",
+           "monitor/regression/x.md"} <= paths, sorted(paths))
+    check("pack: every file carries a sha256 and the manifest counts the kinds",
+          all(len(f["sha256"]) == 64 for f in man["files"])
+          and man["journal"]["kinds"].get("wake") == 19, str(man["journal"])[:200])
+    check("pack: the manifest hashes the tarball itself",
+          len(man.get("tarball_sha256", "")) == 64, man.get("tarball_sha256"))
+    check("pack: verify finds nothing wrong with a fresh pack",
+          pack.verify(tar_path, man_path) == [], pack.verify(tar_path, man_path))
+    # Tamper with the manifest: a changed hash must be caught.
+    m2 = json.load(open(man_path, encoding="utf-8"))
+    m2["files"][0]["sha256"] = "0" * 64
+    json.dump(m2, open(man_path, "w", encoding="utf-8"))
+    check("pack: a manifest that lies is caught by verify",
+          any("differs" in p for p in pack.verify(tar_path, man_path)),
+          pack.verify(tar_path, man_path))
+    # A key-shaped string anywhere in the evidence refuses the whole pack.
+    os.makedirs(os.path.join(root, "body", "mind", "data"), exist_ok=True)
+    with open(os.path.join(root, "body", "mind", "data", "notes.txt"), "w") as f:
+        f.write("found this: AIza" + "Q" * 35 + "\n")
+    before = set(os.listdir(out))
+    try:
+        pack.build(root, out, "run-u", now=1.0)
+        refused = False
+    except pack.PackRefused:
+        refused = True
+    check("pack: anything key-shaped refuses the pack", refused, "")
+    check("pack: and nothing was written by the refused attempt",
+          set(os.listdir(out)) == before, sorted(set(os.listdir(out)) - before))
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_monitor_unit_is_read_only_over_the_evidence():
+    """The unit is what makes 'writes only its own directory' impossible to
+    violate rather than merely untested. Directives are asserted by SECTION
+    and by VALUE, because a StartLimit in the wrong section once passed a
+    test that only looked for the string (CLAUDE.md §5)."""
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    unit = open(os.path.join(here, "deploy", "cousin-monitor.service"),
+                encoding="utf-8").read()
+    timer = open(os.path.join(here, "deploy", "cousin-monitor.timer"),
+                 encoding="utf-8").read()
+    sections, cur = {}, None
+    for line in unit.splitlines():
+        s = line.strip()
+        if s.startswith("[") and s.endswith("]"):
+            cur = s
+            sections.setdefault(cur, [])
+        elif s and not s.startswith("#") and cur:
+            sections[cur].append(s)
+    svc = sections.get("[Service]", [])
+    check("unit: PrivateUsers=yes is in [Service], or nothing below it works",
+          "PrivateUsers=yes" in svc, svc)
+    check("unit: home is read-only and the system strict",
+          "ProtectHome=read-only" in svc and "ProtectSystem=strict" in svc, svc)
+    rw = [l for l in svc if l.startswith("ReadWritePaths=")]
+    check("unit: the ONLY writable path is live/monitor",
+          rw and all(l.endswith("/live/monitor") for l in rw), rw)
+    check("unit: the spine is unreachable from it",
+          any(l.startswith("InaccessiblePaths=") and "growing-spine" in l
+              for l in svc), svc)
+    check("unit: it runs the monitor's status command, read-only flags none",
+          any(l.startswith("ExecStart=") and "-m monitor status" in l for l in svc),
+          svc)
+    check("unit: the mkdir runs OUTSIDE the sandbox (+), or the read-only live/ "
+          "refuses it", any(l.startswith("ExecStartPre=+") for l in svc), svc)
+    check("timer: every five minutes, persistent",
+          "OnUnitActiveSec=5min" in timer and "Persistent=true" in timer, timer)
+
+
 def main():
     t0 = time.time()
-    for fn in (test_the_journal_names_the_engine_that_wrote_it,
+    for fn in (test_monitor_detectors_fire_where_the_scars_happened,
+               test_monitor_writes_only_its_own_directory,
+               test_monitor_alarms_are_edge_triggered,
+               test_monitor_page_names_its_engine_and_windows,
+               test_the_monitor_unit_is_read_only_over_the_evidence,
+               test_deploy_regression_compares_the_hour_after_a_start,
+               test_the_evidence_pack_is_hashed_and_refuses_secrets,
+               test_the_journal_names_the_engine_that_wrote_it,
                test_a_wake_records_what_was_served,
                test_the_selfcheck_proves_effects_and_never_vetoes,
                test_loop_end_says_whether_it_gave_up,

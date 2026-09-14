@@ -267,7 +267,7 @@ verified at its call site: the creature's own `run_cycle`, `_maybe_retrospective
 | Creature-facing guards | about twenty | **zero** | **the deleted 99%** |
 | Who composes a warning | Python | the cousin, or nobody | different |
 | Triggers | intervals and cycle counts | done-claim, tool-write, stall, heartbeat | different |
-| Health tripwires reporting outward | flatline, tier check, health script | observer, vitals | **same principle** |
+| Health tripwires reporting outward | flatline, tier check, health script | observer, vitals, **monitor** (a detector per scar, replayed on the real journal slice where it happened) | **same principle** |
 
 **In one line:** spine encodes the judgement about the creature's work in Python
 and imagines the user; cousin deletes the Python, states the judgement in prose,
@@ -307,6 +307,21 @@ blue-black — both will be open on the same desk.
 ```bash
 python observer.py ./live                       # the window
 python observer.py ./live --selftest            # verify an install, no display
+```
+
+**The monitor is the window for someone who was not there.** `python3 -m monitor
+status` derives a page from the journal — alarms first, each with the scar it
+would have caught and its runbook line; then what it *cannot* tell; then counts
+per window, every one naming the engine commit that produced it. A detector has
+three states, never two, and each is proven by replay against a slice of the
+real journal where its scar happened (`tests/fixtures/journal/`). Deployed as a
+five-minute timer that may write only `live/monitor/`; `alarms.jsonl` gets a
+line only when a state changes. `python3 -m monitor pack` writes a hashed
+evidence pack per run so a quoted figure can be traced to bytes.
+
+```bash
+python3 -m monitor status --root ./live          # write live/monitor/*, print the page
+python3 -m monitor replay tests/fixtures/journal/0913-fence-syntaxerror.jsonl
 ```
 
 ## Where it runs
