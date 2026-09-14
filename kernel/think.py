@@ -33,7 +33,40 @@ import re
 # of the other.
 #
 # The creature was following its contract exactly. The parser was not.
-FENCE_RE = re.compile(r"```(?:bash|sh)[ \t]*\n(.*?)```", re.S)
+# **ANCHORED TO COLUMN 0, both ends.** A fence opens or closes a block only
+# when it starts a line -- which is what markdown means by a fence, and what
+# the creature's own prompt shows it.
+#
+# Without the anchor the closing match was non-greedy against ANY run of
+# three backticks, including one inside the code the creature was writing.
+# Measured 2026-09-13/14 on the live run: it wrote `subagent-orchestrator`,
+# whose job is stripping markdown fences off an LLM reply, so its source
+# contains a startswith() against a fence literal. That inner run closed the
+# bash block early, the heredoc never terminated, and the file landed cut
+# mid-string:
+#
+#     File ".../subagent-orchestrator", line 68
+#         if text.startswith("
+#     SyntaxError: unterminated string literal
+#
+# **Twelve SyntaxErrors across twelve rewrites over nine hours.** Each time
+# the creature read a syntax error in its own file and rewrote the tool;
+# each time we cut it at the same character. It could not see the cut,
+# because the transcript shows what RAN -- and what ran was the truncated
+# command.
+#
+# Eleventh appearance of the framework damaging the creature's work and the
+# creature being billed for it, and the most expensive measured so far: a
+# tool that manipulates fences is exactly the tool this made impossible to
+# write.
+FENCE_RE = re.compile(r"^```(?:bash|sh)[ \t]*\n(.*?)^```", re.S | re.M)
+
+# A tagged marker ANYWHERE in the reply. If one is present and yet no block
+# was parsed, the creature marked work as an action and the channel did not
+# deliver it -- whether the fence never closed, or the opener sat mid-line
+# where it cannot anchor. Either way the work was PROPOSED AND LOST, and
+# saying 'no command' about it is the exact lie this module exists against.
+TAGGED_MARKER_RE = re.compile(r"```(?:bash|sh)\b")
 
 # Any fence at all, tagged or not -- used ONLY to explain an absence, never to
 # execute. A reply whose only fences are untagged used to run and now does not,
@@ -74,9 +107,19 @@ def classify_no_blocks(text, finish_reason=None, completion_tokens=None):
     if finish_reason == "length":
         return "truncated", (
             "the reply hit the token ceiling; commands were LOST, not absent")
-    if text.count("```") % 2 == 1:
+    # Asked by OUTCOME, not by counting backticks. This function is only
+    # reached when `parse_blocks` returned nothing, so a tagged marker still
+    # present means the creature proposed work the channel did not deliver.
+    #
+    # Counting parity was the first attempt and it was worse: a fence inside
+    # a string literal made a healthy reply look unbalanced, and a mid-line
+    # opener -- which cannot anchor, so never runs -- came back as
+    # "no_command", which is the framework blaming the model for work it
+    # threw away itself.
+    if TAGGED_MARKER_RE.search(text):
         return "unclosed_fence", (
-            "the reply ends on an unclosed fence; commands were LOST, not absent")
+            "a ```bash marker is present but no complete block starts a line; "
+            "commands were LOST, not absent")
     if ANY_FENCE_RE.search(text):
         # Fenced text, but nothing marked as an action. Its own reason, so a
         # reader can tell "said nothing" from "quoted something and ran

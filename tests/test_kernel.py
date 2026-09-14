@@ -2826,6 +2826,65 @@ def test_an_unreadable_verdict_says_which_of_three_things_went_wrong():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_fence_inside_the_code_does_not_close_the_block():
+    """The framework cut the creature's command at a backtick run in its source.
+
+    `FENCE_RE` closed on ANY run of three backticks, non-greedy. Measured
+    2026-09-13/14 on the live run: the creature wrote `subagent-orchestrator`,
+    whose job is stripping markdown fences off an LLM reply, so its source
+    contains a startswith() against a fence literal. That inner run closed the
+    bash block early, the heredoc never terminated, and the file landed cut
+    mid-string -- "SyntaxError: unterminated string literal", line 68.
+
+    **Twelve SyntaxErrors across twelve rewrites over nine hours.** Each time
+    the creature read a syntax error in its own file and rewrote the tool; each
+    time we cut it at the same character. It could not see the cut: the
+    transcript shows what RAN, and what ran was the truncated command.
+
+    A tool that manipulates fences is exactly the tool this made impossible to
+    write, which is why it went round twelve times instead of being noticed.
+    """
+    F = chr(96) * 3
+    reply = (
+        "I will write the tool.\n\n"
+        + F + "bash\n"
+        "cat > tools/own/orch <<'EOF'\n"
+        "def strip(text):\n"
+        '    if text.startswith("' + F + '"):\n'
+        "        text = text[3:]\n"
+        "    return text\n"
+        "EOF\n"
+        "chmod +x tools/own/orch\n"
+        + F + "\n")
+
+    blocks = think.parse_blocks(reply)
+    check("fence: exactly one command block, not a fragment of one",
+          len(blocks) == 1, len(blocks))
+    check("fence: the heredoc SURVIVES to its terminator",
+          blocks and "EOF" in blocks[0], repr(blocks[0][-60:]) if blocks else None)
+    check("fence: and the command after it survives too",
+          blocks and blocks[0].rstrip().endswith("chmod +x tools/own/orch"),
+          repr(blocks[0][-40:]) if blocks else None)
+    check("fence: the fence literal the creature was writing is intact",
+          blocks and ('startswith("' + F + '")') in blocks[0],
+          "the literal was cut")
+
+    # Two real blocks must still be two, or the anchor has made it greedy.
+    two = (F + "bash\nls\n" + F + "\n\ntext\n\n" + F + "bash\npwd\n" + F + "\n")
+    check("fence: two blocks are still two, not one greedy run",
+          think.parse_blocks(two) == ["ls", "pwd"], think.parse_blocks(two))
+
+    # An unclosed fence is still LOST work, counted on LINE-START runs so that
+    # a fence inside a string is not mistaken for an unbalanced block.
+    reason, _ = think.classify_no_blocks("text\n\n" + F + "bash\nls\n")
+    check("fence: a genuinely unclosed block is still reported as LOST",
+          reason == "unclosed_fence" and think.commands_were_lost(reason), reason)
+    balanced = 'print("' + F + '")\n'
+    check("fence: a fence inside a line is NOT an unclosed block",
+          think.classify_no_blocks(balanced)[0] != "unclosed_fence",
+          think.classify_no_blocks(balanced)[0])
+
+
 def test_a_usage_refusal_is_not_counted_as_a_failure():
     """The run-record was reporting a healthy library as a broken one.
 
@@ -3407,7 +3466,8 @@ def test_the_module_list_matches_the_kernel():
 
 def main():
     t0 = time.time()
-    for fn in (test_a_usage_refusal_is_not_counted_as_a_failure,
+    for fn in (test_a_fence_inside_the_code_does_not_close_the_block,
+               test_a_usage_refusal_is_not_counted_as_a_failure,
                test_the_creature_is_told_to_repair_rather_than_delete_or_panic,
                test_a_tool_that_never_worked_says_so_to_both_inhabitants,
                test_the_brief_tests_whether_the_handover_could_be_completed,
