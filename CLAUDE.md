@@ -55,6 +55,17 @@ owed; do not work it out from `git log` and systemd by hand again.
 non-zero and systemd restarts it, bounded to 5 starts per 30 minutes; the page's
 `gave_up` and `engine_silent` findings say so if that ever stops being true.
 
+**The monitor's first alarm, for the morning read:** at 00:50 on 2026-09-15 it
+raised `commands_lost[gemini/gemma-4-31b-it]` — 3 of the last 20 thinks cut at
+`finish=length` with the command lost, exactly the declared 15% floor (run 2's
+baseline was 3.4%). Real truncations, not a parser fault (`commands_lost_parser`
+was OK). Two readings are possible and `alarms.jsonl` decides between them: if
+it raises and clears every few hours, **the floor is the question** — n=20 is
+one truncation wide at 15% — and the fix is hysteresis in the detector, not
+anything in the creature; if it stands, the creature's 3072-token budget is
+being hit more often than in run 2's first day, which is a tuning question and
+needs several windows split by rung before anyone touches the budget.
+
 **Frozen, and the condition to unfreeze it.** `MANAGER-PROMPT.md` and
 `CREATURE-PROMPT.md` are NOT to be edited. Three prompt changes shipped on
 2026-09-14 (repair-not-delete, handover-completes, record display) and none has
@@ -99,8 +110,11 @@ against held-out cases, which `trial/` could carry and currently does not.
 writes a tarball and a manifest that hashes every file and counts every journal
 kind; the **manifest** is committed under `evidence/`, the tarball stays on the
 laptop, and the pack refuses to exist if anything key-shaped is inside. Where
-the tarball may live beyond the laptop is Tue's decision. Until a pack for run
-2 is committed, no figure in §7 is checkable by anyone who was not present.
+the tarball may live beyond the laptop is Tue's decision. **The first one is
+committed: `evidence/run-2-20260915-0054.manifest.json`** — run 2 at 36 hours,
+72 files, every one hashed, `python3 -m monitor verify` passing; the tarball is
+`~/growing-cousin-evidence/run-2-20260915-0054.tar.gz` on the laptop. A figure
+in §7 can now be traced to bytes by anyone holding that tarball.
 
 **The gate's authority moved to the laptop (2026-09-12).** The Windows box
 fails the liveness assertion intermittently under the suite's process churn —
