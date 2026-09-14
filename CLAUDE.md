@@ -349,11 +349,40 @@ guess with authority it has not earned.
   question: the creature merged `prioritize` into `plan` and deleted `taskprio`
   on 2026-09-13, so digging out of its own pile is a capability it has shown.
 
-  > **Trigger, and it is a measurement, not a feeling:** if after ~6 hours on
-  > `17d8951` adds-per-want is still near 1.0 **and** removals are still zero,
-  > the direction channel was not the cause and the brief is — at which point
-  > run 3 starts from empty *with* a brief change, the cause having been
-  > isolated. If consolidation resumes at all, no reset.
+  > **Trigger, RE-CUT 2026-09-14 within the hour, because the first version
+  > measured the wrong thing.** It was adds-per-want and removals — a count of
+  > tools. Then the tools were actually read, and the count turned out not to
+  > be the problem.
+
+  **What reading them showed.** The architecture is good: all seven `archive-*`
+  tools share one store (`data/archive.json`) rather than reimplementing it,
+  nearly every tool calls two to four others, and there is exactly one stub
+  marker in 31 files — and it is a comment. `subagent-orchestrator` decomposes
+  a task via an LLM, `preview-subtasks` shows that decomposition without
+  running it, `archive-synthesize` merges entries. The creature is building
+  itself an agent framework, and the twin-stem count badly misrepresented it.
+
+  **The execution is what is broken. Cousin probes: 39 exit-0, 109 non-zero —
+  three quarters of the time its user runs one of these tools, it fails.** And
+  the shape is worse than the ratio: `plan`, the centre of the system, went
+  `0` once and then non-zero on **thirty consecutive probes**; the entire
+  subtask-log family (`subtask-log-viewer`, `view-subtask-logs`,
+  `summarize-subtask-logs`) has **never once returned 0**; `subagent-orchestrator`
+  is 7 zeros in 43.
+
+  So this is not a creature making twins. **It is a creature building storeys
+  onto a floor that returns errors to the only person standing on it** — and a
+  cousin accepting enough of that to keep the wants coming. Consolidation
+  cannot fix that; nothing above `plan` means anything while `plan` fails.
+
+  > **The trigger is now the probe success rate.** If after ~6 hours on
+  > `17d8951` the exit-0 share of `cousin_probe` has not risen materially above
+  > the 26% baseline measured here, the direction channel was not the binding
+  > constraint and run 3 starts from empty *with* a brief change. If it climbs,
+  > no reset — the creature repairing its own floor is the result worth having.
+
+  Tool counts stay recorded but are no longer the decision variable: a library
+  that doubles while nothing runs is worse than one that does not grow at all.
 
   Until that fires, the brief is not to be touched: two changes at once and
   neither is measurable.
