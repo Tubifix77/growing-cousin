@@ -1,0 +1,414 @@
+{
+ "created": 1789426452.588857,
+ "created_str": "2026-09-15 00:54:12",
+ "files": [
+  {
+   "bytes": 6412,
+   "path": "body/mind/data/archive.json",
+   "sha256": "e940e92b29ac5176490117cd99413069d0ffd2455b7f24e7a2667b896c7318e3"
+  },
+  {
+   "bytes": 975,
+   "path": "body/mind/data/plan.json",
+   "sha256": "e70c9af44a017e3d42a90089d97fd2750b9a40b2fcd220fb36bd50316f701b02"
+  },
+  {
+   "bytes": 36,
+   "path": "body/mind/data/progress_status.log",
+   "sha256": "393f0afb68acb1e59e47664f51c68183623cd9bb0e458d59f82e9f61ee07e5cd"
+  },
+  {
+   "bytes": 170,
+   "path": "body/mind/data/subagent-orchestrator-logs.json",
+   "sha256": "ca351ab1fc6977c0fce3676f093a93899f0bce546b041e18af1ecbc823d6a542"
+  },
+  {
+   "bytes": 98,
+   "path": "body/mind/data/subagent-orchestrator-state.json",
+   "sha256": "7613a393cee111cc51b68fed9f14c14d8c964667e23ed780eddfa3c44323bbd2"
+  },
+  {
+   "bytes": 2607,
+   "path": "body/mind/data/subagent_orchestrator_spec.md",
+   "sha256": "0df9feea7ec81bb3c6778a136b3eca92494af4c27df1037f11b47ca76a6f83d9"
+  },
+  {
+   "bytes": 518,
+   "path": "body/mind/data/subtask_logs.json",
+   "sha256": "1017fe9d666d87b3549b0f849c67acfa9feaa7ba496fc0908787a34796215c3a"
+  },
+  {
+   "bytes": 22,
+   "path": "body/mind/data/task-progress.json",
+   "sha256": "175b75a329a57c7a6f73174ade3237294f1e309575c969f706abf7a8c7f8005a"
+  },
+  {
+   "bytes": 1026,
+   "path": "body/mind/state/memory.json",
+   "sha256": "68eafd7c97f5b2631c92da8e2b8e0c9dd9a7c6be155a0c05faa053077c7a1feb"
+  },
+  {
+   "bytes": 10880,
+   "path": "body/mind/tools/own/__pycache__/subagent-orchestratorcpython-311.pyc",
+   "sha256": "1f8014fcb73c564d03142ee6e31408f2707785368aed7c5b7d93e097648cae06"
+  },
+  {
+   "bytes": 3843,
+   "path": "body/mind/tools/own/archive",
+   "sha256": "0ecd818c47e1c92ce41d192d0c2a06f2df3c4bf1a4390ea2644543c79a567623"
+  },
+  {
+   "bytes": 3030,
+   "path": "body/mind/tools/own/archive-context",
+   "sha256": "784be7e1c341e594e9ea61d3a8661659a61da3be3504dad649a04a01e658c37e"
+  },
+  {
+   "bytes": 2687,
+   "path": "body/mind/tools/own/archive-date-search",
+   "sha256": "8e28ae89a50d0f6abb48248d5ebaa4aa67557c8c6a95f3dff5db3900cb47b3e4"
+  },
+  {
+   "bytes": 139,
+   "path": "body/mind/tools/own/archive-date-search.bak",
+   "sha256": "9bba5892ea9cf50c3739067c03482a2862d3fa41de8b3544091c9c3a0047b6d3"
+  },
+  {
+   "bytes": 1288,
+   "path": "body/mind/tools/own/archive-get",
+   "sha256": "a933becbcfc76ce085797b66769e6cbc3c8b56a047d4351038eac887dd9754c3"
+  },
+  {
+   "bytes": 115,
+   "path": "body/mind/tools/own/archive-get.bak",
+   "sha256": "82d028beff57bd380ce67d111f5e68b9c95f977bd1d2a20ea8c399c89560f4fb"
+  },
+  {
+   "bytes": 901,
+   "path": "body/mind/tools/own/archive-list",
+   "sha256": "7148516feb843e58e97e32a23e1c313912d7ec15bd3bda36a756cba7f39a8555"
+  },
+  {
+   "bytes": 118,
+   "path": "body/mind/tools/own/archive-list.bak",
+   "sha256": "5e782dd62687704fa2fed0083bb7823070b109547f496383970ca9e44121885e"
+  },
+  {
+   "bytes": 2978,
+   "path": "body/mind/tools/own/archive-query",
+   "sha256": "b959ce5f3ec251b5e13abb286e4801856035d2aa72fe999fbcd9f2e7c26925e2"
+  },
+  {
+   "bytes": 121,
+   "path": "body/mind/tools/own/archive-query.bak",
+   "sha256": "ade6bdf9aecf111d167eeeb48933df6a45d6364e89c494829bb3e097565f0e66"
+  },
+  {
+   "bytes": 1441,
+   "path": "body/mind/tools/own/archive-save",
+   "sha256": "83546502ef3009ad589c864d89fb94e0ea80b3f4c7b9c14ae2c46b88d1b6d2a0"
+  },
+  {
+   "bytes": 118,
+   "path": "body/mind/tools/own/archive-save.bak",
+   "sha256": "d27c184fc7ee36abcb3110ec9b9d216fa094764752cefc6542d61d67c3f6a579"
+  },
+  {
+   "bytes": 1594,
+   "path": "body/mind/tools/own/archive-search",
+   "sha256": "3a8d56aa68042219752c33ae028a64a328507b7465caf077925a6d0b7543f7e4"
+  },
+  {
+   "bytes": 124,
+   "path": "body/mind/tools/own/archive-search.bak",
+   "sha256": "4e2bf41e46f06cab42d97b2b96d40380ca15ed13c262e2c687efd530589b77c9"
+  },
+  {
+   "bytes": 4750,
+   "path": "body/mind/tools/own/archive-synthesize",
+   "sha256": "4a0bb6643eb81e75d7f19d13fa5d7dbe3ab3848617180b53683c5b0812da3695"
+  },
+  {
+   "bytes": 1789,
+   "path": "body/mind/tools/own/fetch",
+   "sha256": "38813ae8749099892d169cae04db74426d042f8763c44afab46ce89ce7c75882"
+  },
+  {
+   "bytes": 2666,
+   "path": "body/mind/tools/own/integrate-subagent-orchestrator",
+   "sha256": "c558608fd63545237a9d511a60854bca697dbcfb68816bafef892891eea3d9c7"
+  },
+  {
+   "bytes": 1924,
+   "path": "body/mind/tools/own/integrate-subagent-orchestrator-with-plan",
+   "sha256": "d3f00a09b7e337cf32156a460a190e2500bf7c8b417d46fcd06e200c180264fd"
+  },
+  {
+   "bytes": 1787,
+   "path": "body/mind/tools/own/integrate-subagent-orchestrator-with-plan.bak",
+   "sha256": "f7b952ec4dce52fe3e1be1999486e709d20e658e75caf04001d1701f875b8e31"
+  },
+  {
+   "bytes": 2436,
+   "path": "body/mind/tools/own/integrate-subagent-orchestrator.bak",
+   "sha256": "050c5ca3c2601e86508746260e8919ce000c5165854217874b5963450efd93e0"
+  },
+  {
+   "bytes": 1092,
+   "path": "body/mind/tools/own/json-pretty",
+   "sha256": "7e58b9a73eafd391bb77ec15c8c8da1f44b06ab6e2c4ba403488a2b695b70605"
+  },
+  {
+   "bytes": 1428,
+   "path": "body/mind/tools/own/list-parent-tasks",
+   "sha256": "05c9f840adf49affc57891b14333cbe099537e34e81a6ff7ccfb0274cc5526e7"
+  },
+  {
+   "bytes": 1361,
+   "path": "body/mind/tools/own/list-subtasks",
+   "sha256": "7a9feabb4b5e7f38b33aaa34c10900b7788118b7539edc7841f81cd44c65eeb9"
+  },
+  {
+   "bytes": 121,
+   "path": "body/mind/tools/own/list-subtasks.bak",
+   "sha256": "ef23c60d7e5eb492339674b28057e0f8746ab7079f34b3af734440a5c7e99989"
+  },
+  {
+   "bytes": 1150,
+   "path": "body/mind/tools/own/obtain-parent-task-id",
+   "sha256": "6b92f3d2bd7b50bbefc278f556bf2c2de092874220f482486bc26f3a6cc91a46"
+  },
+  {
+   "bytes": 145,
+   "path": "body/mind/tools/own/obtain-parent-task-id.bak",
+   "sha256": "03f5e8546468510308311d196d5ef86bd2dbb17ee09117d8f6e7af530089213d"
+  },
+  {
+   "bytes": 1343,
+   "path": "body/mind/tools/own/path",
+   "sha256": "cdd510115f3ea3913e23cdd8d677fab2f7c68a32821fe34d30e1da8360000bd6"
+  },
+  {
+   "bytes": 5365,
+   "path": "body/mind/tools/own/plan",
+   "sha256": "fb8ece1a1669121547e85460942245737892f37d0ec6dbfeabb2ae26c323c1b0"
+  },
+  {
+   "bytes": 885,
+   "path": "body/mind/tools/own/plan-clear-goal",
+   "sha256": "adbeed4393e256fdceae56aab2e8dbde09c56ca30938821af3641111b4d07262"
+  },
+  {
+   "bytes": 1765,
+   "path": "body/mind/tools/own/plan-export-subtasks",
+   "sha256": "5eaf3c6906660ea2b0a34eb70490a064143907a762146b96b7d28e74985a017c"
+  },
+  {
+   "bytes": 2286,
+   "path": "body/mind/tools/own/plan-export-subtasks-filter",
+   "sha256": "1e26a39b6d538d12944d65515294946a4dc765d3cd01e40851077fa087e48a26"
+  },
+  {
+   "bytes": 2644,
+   "path": "body/mind/tools/own/plan-import-from-archive",
+   "sha256": "d7ffdee7c101b9b2a37b3dc532fcc4b7c42118997f2d2fec2ccfdd27dc78db30"
+  },
+  {
+   "bytes": 1536,
+   "path": "body/mind/tools/own/plan-import-subtasks",
+   "sha256": "de889fb8c580e800f236ea3bedc08ab734dec7e14361e82339f2dce9843a6c81"
+  },
+  {
+   "bytes": 744,
+   "path": "body/mind/tools/own/plan-list-goals",
+   "sha256": "66555e1d29e689d6cbe61e7e933ca2f8de6f64bba78288400be7217c723383ee"
+  },
+  {
+   "bytes": 1083,
+   "path": "body/mind/tools/own/plan-set-goal",
+   "sha256": "31552eb6775c3fc6aae19e0742c9c49970468b42dd0256578e7ea5c131f4b598"
+  },
+  {
+   "bytes": 4716,
+   "path": "body/mind/tools/own/plan.bak",
+   "sha256": "7ff0325e135ca93fddbbeab445b512760683cb594209e4945e0298830f6c9989"
+  },
+  {
+   "bytes": 5867,
+   "path": "body/mind/tools/own/preview-subtasks",
+   "sha256": "c87fa5cf6664c58f9137a092afdc5ddeebedb38bd4a42e05b910ca9d40b857f3"
+  },
+  {
+   "bytes": 4224,
+   "path": "body/mind/tools/own/preview-subtasks.bak",
+   "sha256": "d3d5807981420a56120afff8f643e050ffbbcaa07e17574529385b74a64b609d"
+  },
+  {
+   "bytes": 922,
+   "path": "body/mind/tools/own/process-all-tasks",
+   "sha256": "08a540ce2c3f8f1ea728de61fdc43f1e8c20374c6c0bc9576304a6a5f41067e5"
+  },
+  {
+   "bytes": 133,
+   "path": "body/mind/tools/own/process-all-tasks.bak",
+   "sha256": "652d03c22f02297dc796ff180084396d22daa5f7e4ae030aa2abfbbd1d92bd44"
+  },
+  {
+   "bytes": 790,
+   "path": "body/mind/tools/own/progress-reporter",
+   "sha256": "18fd85a2365c2dba6b6057ec0f6bb8f8138f7079c0e06dda49b87d308f50c665"
+  },
+  {
+   "bytes": 485,
+   "path": "body/mind/tools/own/progress-reporter.bak",
+   "sha256": "4cde7af7d5fa0523b8b939de596c36d237f0c3460f2b55c2171f62bd8a37c39f"
+  },
+  {
+   "bytes": 1846,
+   "path": "body/mind/tools/own/progress-summary",
+   "sha256": "9df1b29d19852e475f0f0432262c4196aede18e5d8c814b23fef40078c3a06d9"
+  },
+  {
+   "bytes": 2424,
+   "path": "body/mind/tools/own/progress-summary.bak",
+   "sha256": "c558a1c1fbd52950f4fb4eba87f23ef696de188ae76580c290a01d7efd45c16c"
+  },
+  {
+   "bytes": 7223,
+   "path": "body/mind/tools/own/subagent-orchestrator",
+   "sha256": "439d5cedd8acb5b8281480906767ce673c3a51a4c3dd15119468b77fb33d1175"
+  },
+  {
+   "bytes": 4523,
+   "path": "body/mind/tools/own/subagent-orchestrator.bak",
+   "sha256": "5a8c6470d7f4e460b2627737dc7685c0cde2466d478343780695240efd4d5881"
+  },
+  {
+   "bytes": 2290,
+   "path": "body/mind/tools/own/subtask-log-filter",
+   "sha256": "5744fe74c3ef775f2abf3744c40820458d7d7e89d4f9cab774b6026d0c056f21"
+  },
+  {
+   "bytes": 3095,
+   "path": "body/mind/tools/own/subtask-log-filter-by-parent",
+   "sha256": "15089b7672778fbf4690588557bc81fb2d9ef2e5d0dba928a0f7f5eb80d76515"
+  },
+  {
+   "bytes": 2957,
+   "path": "body/mind/tools/own/subtask-log-filter-by-parent.bak",
+   "sha256": "d89058416961af9f29f1bab7938cab5b380a903753135288f5dffe5598e1329c"
+  },
+  {
+   "bytes": 2699,
+   "path": "body/mind/tools/own/subtask-log-filter-by-statuscode",
+   "sha256": "46ccb4b99a1c46b4550429cca54ff30e74ad2d56cbf73e67ee03e148ac456ba6"
+  },
+  {
+   "bytes": 2306,
+   "path": "body/mind/tools/own/subtask-log-table",
+   "sha256": "ab8a0fe3413a246b57ac58e61d97879186d0e3e78898e9088f648f018ed3755e"
+  },
+  {
+   "bytes": 1439,
+   "path": "body/mind/tools/own/subtask-log-viewer",
+   "sha256": "4844e9d2981129d2347dac149018afa7252b104af503846bd844cd798b1b57e9"
+  },
+  {
+   "bytes": 3552,
+   "path": "body/mind/tools/own/summarize-subtask-logs",
+   "sha256": "e5baec41eb53e2467758fea485cefdfe30fa53ff085ca7b4fd151c4e7915957d"
+  },
+  {
+   "bytes": 2230,
+   "path": "body/mind/tools/own/view-subtask-logs",
+   "sha256": "fffcbc879238f29b57b4dece7f60c20405f79b691cbe2af18392f7c0f90bd7f4"
+  },
+  {
+   "bytes": 224,
+   "path": "context.md",
+   "sha256": "576b136f86e69f4dfa4f2846ce4f7f825585682c6eaa8b86020891f599c18627"
+  },
+  {
+   "bytes": 73351,
+   "path": "engine.log",
+   "sha256": "ba8234bc0827cb3800e32bc47286d2bb7dbf706ea85e3c5458cf1b451a7c1200"
+  },
+  {
+   "bytes": 3741312,
+   "path": "journal.jsonl",
+   "sha256": "b5cdc901d021282c248bcc2400e506cee113059e9b1331b83ef006aafbc29e79"
+  },
+  {
+   "bytes": 248,
+   "path": "monitor/alarms.jsonl",
+   "sha256": "eab65922748ee14be5d4fa2baab2e0cafd1941bb89571f1cc97a783139a0d5f6"
+  },
+  {
+   "bytes": 19052,
+   "path": "monitor/status.json",
+   "sha256": "e37ce614bbac585d9d3aa3db4c456e86fb461e5cc95ef3045d35c237c9d1e235"
+  },
+  {
+   "bytes": 7913,
+   "path": "monitor/status.md",
+   "sha256": "b3372584b5cb5d4c5f034d17fbe0a0cbbd9b88a2676b4234843eebe17ef1bdac"
+  },
+  {
+   "bytes": 619,
+   "path": "quota.json",
+   "sha256": "a3a1cdd95538da8568f1ab22ca5e925a83495b67172c09870106dddf7ac89272"
+  },
+  {
+   "bytes": 78830,
+   "path": "vitals.jsonl",
+   "sha256": "df19b5d12209ae536e935766fecae58e2b97cc4f6949eafd57edf7238c86acc5"
+  }
+ ],
+ "journal": {
+  "bad_lines": 0,
+  "engines": [
+   "43eb8afa62c845db82e4c3e7b690d7462b082179"
+  ],
+  "events": 7227,
+  "first_ts": 1789296513.822504,
+  "kinds": {
+   "context_written": 63,
+   "cousin_noticed": 16,
+   "cousin_probe": 185,
+   "cousin_unusable": 19,
+   "cousin_verdict": 134,
+   "cousin_want": 63,
+   "engine_start": 1,
+   "error": 6,
+   "exec_end": 953,
+   "exec_skip": 33,
+   "exec_start": 953,
+   "loop_end": 1,
+   "loop_start": 24,
+   "loop_waiting": 222,
+   "preflight_failed": 13,
+   "rung_declined": 1884,
+   "rung_error": 67,
+   "rung_fell_through": 228,
+   "rung_recovered": 81,
+   "selfcheck": 1,
+   "think": 766,
+   "think_deferred": 165,
+   "tools_changed": 43,
+   "trigger_fired": 229,
+   "visit_deferred": 51,
+   "visit_unanswered": 19,
+   "wake": 951,
+   "want_retired": 56
+  },
+  "last_ts": 1789426366.6720948,
+  "loop_starts": 24
+ },
+ "repo_head": "48319fcd2a29a749ec2fadead3246e2831cb100b",
+ "root": "/home/boas/growing-cousin/live",
+ "run": "run-2",
+ "secret_scan": "0 key-shaped strings in 72 files",
+ "skipped": [],
+ "tarball": "run-2-20260915-0054.tar.gz",
+ "tarball_sha256": "8072adbc27587d99df01cb28abb4937eaf1e64c3551da284e5ccdfb9c693f889",
+ "total_bytes": 4054811
+}
