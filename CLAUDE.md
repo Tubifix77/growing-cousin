@@ -36,6 +36,47 @@ keeps it that way.
 against the directory rather than typed: see
 `test_the_module_list_matches_the_kernel`.
 
+### Handover — written 2026-09-14 23:55, read this before touching anything
+
+**The engine is running and does not need you.** `aad203f` code, started 21:39
+CEST; observer and `cousin-vitals.timer` up; `rung_broken` has been 0 all
+session. Docs-only commits since then, so no restart is owed. If it gives up it
+now exits non-zero and systemd restarts it, bounded to 5 starts per 30 minutes.
+
+**Frozen, and the condition to unfreeze it.** `MANAGER-PROMPT.md` and
+`CREATURE-PROMPT.md` are NOT to be edited. Three prompt changes shipped on
+2026-09-14 (repair-not-delete, handover-completes, record display) and none has
+a before/after yet. The brief's third test is known to be failing on judgement
+(§5) — **that is the next real question, and it needs a measurement regime,
+not a midnight patch.** Unfreeze when there is a way to score a brief change
+against held-out cases, which `trial/` could carry and currently does not.
+
+**Do not re-derive these; they are settled and each cost real time:**
+
+| trap | the answer |
+|---|---|
+| "probe exit codes show the tools are broken" | the harness probes BARE; a usage refusal is the tool working. Read `bare` on `cousin_probe`. |
+| "`subagent-orchestrator` is broken" | it compiles clean, `--help` exits 0. Its SyntaxErrors were the fence bug, since fixed. |
+| "the creature is idle" | count `exec_start` and `exec_skip`; do not infer activity from probe or verdict counts. |
+| "nothing is being produced" | count tool writes BOTH ways — `tool-edit NAME` **and** `cat > tools/own/NAME`. A tool-edit-only count undersells by half. |
+| "the tier is broken" | a flat think count with `loop_waiting` climbing is weather. Never restart to clear it. |
+
+**Habits this session had to learn the hard way**, all cheap and all mine:
+
+- **Re-arm a monitor in the same turn as the check**, before writing the
+  report. Claiming a re-arm that never happened has occurred twice.
+- **Never put a backtick in a shell string.** A monitor died on
+  *unexpected EOF while looking for matching* — the same fault class being
+  fixed in the creature's channel that hour.
+- **Python with escapes never goes through a bash heredoc.** Write a file in
+  the scratchpad and run it; `\b` became a literal backspace byte otherwise.
+- **After changing a parser the creature speaks through, hunt for the cost in
+  the next hour.** The regression watch earned its keep twice in one evening.
+
+**Nothing in `live/` is committed**, so no figure in §7 is checkable by anyone
+who was not present. The review's suggested per-run evidence pack is still the
+fix and is still not built.
+
 **The gate's authority moved to the laptop (2026-09-12).** The Windows box
 fails the liveness assertion intermittently under the suite's process churn —
 `code=124 timed out after 15s` spawning bash, once a Windows `Katastrofal fejl
