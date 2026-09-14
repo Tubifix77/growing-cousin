@@ -702,7 +702,18 @@ class Engine:
             # whether its testimony describes an event that actually happened --
             # and a fabricated complaint is the exact fault this design exists
             # to prevent, committed by the agent meant to catch it.
+            # `bare` is the honest qualifier on the exit code, and without it
+            # the record LIES. 2026-09-14: of 153 probes, 39 exited 0 and 97
+            # were the tool correctly refusing incomplete input -- the brief
+            # counts that as the tool doing its job. Only ~12 were real
+            # failures. The probe always invokes the tool with NO ARGUMENTS,
+            # so a tool that requires one can never exit 0, and a run-record
+            # that counts those as failures reports a healthy library as a
+            # broken one. I built exactly that display two hours before
+            # measuring this, and read a creature "building storeys on a
+            # broken floor" out of a number the harness manufactures.
             self.j.append("cousin_probe", tool=target, exit_code=r.code,
+                          bare=needs_args,
                           stdout=capped(r.stdout, EXEC_STDOUT_CHARS),
                           stderr=capped(r.stderr, EXEC_STDERR_CHARS))
             transcript = "$ %s\nexit %d\n%s%s" % (

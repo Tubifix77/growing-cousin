@@ -375,11 +375,34 @@ guess with authority it has not earned.
   cousin accepting enough of that to keep the wants coming. Consolidation
   cannot fix that; nothing above `plan` means anything while `plan` fails.
 
-  > **The trigger is now the probe success rate.** If after ~6 hours on
-  > `17d8951` the exit-0 share of `cousin_probe` has not risen materially above
-  > the 26% baseline measured here, the direction channel was not the binding
-  > constraint and run 3 starts from empty *with* a brief change. If it climbs,
-  > no reset — the creature repairing its own floor is the result worth having.
+  > **RETRACTED THE SAME EVENING, and the retraction is the finding.** The
+  > trigger above was the exit-0 share of `cousin_probe`, against a "26%
+  > baseline". That number is an artifact of the harness. `evidence()` invokes
+  > every tool **bare, with no arguments**, so a tool whose call-line takes an
+  > argument can never exit 0 — and the brief tells the cousin explicitly that
+  > a tool refusing incomplete input and saying what it needs has done its job.
+  >
+  > Re-counted over 153 probes: **39 exited 0, 97 were the tool correctly
+  > asking for its arguments, and about 12 were real failures.** So ~89% of
+  > probes behaved properly and the "broken floor" was mostly the probe's own
+  > empty hands. `plan` read as "1 worked and 30 failed" because it asked for
+  > an argument thirty times.
+  >
+  > This is §5's top scar, committed by me twice in two hours: I built the
+  > display that counted refusals as failures, then read a creature "building
+  > storeys on a broken floor" out of it and wrote that into doctrine and two
+  > prompts before checking whether the harness produced it. `cousin_probe`
+  > now records `bare`, and the run-record counts a usage refusal as its own
+  > thing — the framework already knew, it simply never wrote it down.
+  >
+  > **What survives:** `subagent-orchestrator` has a real, repeated Python
+  > error, and that is a genuine broken floor worth watching. What does not
+  > survive is the claim that the library at large is failing its user.
+  >
+  > **The reset trigger is therefore withdrawn, not re-cut.** There is no
+  > measured crisis to reset over: the twins are real but the failure rate was
+  > not. Run 3 becomes a deliberate clean-start when the framework is settled,
+  > which is the reason it was always worth doing — not a rescue.
 
   Tool counts stay recorded but are no longer the decision variable: a library
   that doubles while nothing runs is worse than one that does not grow at all.

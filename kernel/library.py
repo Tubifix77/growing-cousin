@@ -81,10 +81,17 @@ def use_history(journal):
         name = (r.get("tool") or "").strip()
         if not name:
             continue
-        rec = out.setdefault(name, {"runs": 0, "ok": 0, "last_code": None})
+        rec = out.setdefault(name, {"runs": 0, "ok": 0, "asked": 0,
+                                    "last_code": None})
         rec["runs"] += 1
         if r.get("exit_code") == 0:
             rec["ok"] += 1
+        elif r.get("bare"):
+            # CALLED WITH NO ARGUMENTS, by a tool whose own call-line says it
+            # takes some. Refusing that and saying what it needs is the tool
+            # working, not failing -- the brief says so explicitly -- and
+            # counting it as a failure is the framework inventing a complaint.
+            rec["asked"] += 1
         rec["last_code"] = r.get("exit_code")
     return out
 
@@ -111,18 +118,27 @@ def status(rec):
     """
     if not rec or not rec.get("runs"):
         return "its user has NEVER run this"
-    n, ok = rec["runs"], rec.get("ok", 0)
+    n, ok, asked = rec["runs"], rec.get("ok", 0), rec.get("asked", 0)
     times = "once" if n == 1 else "%d times" % n
     code = rec.get("last_code")
-    tail = "" if code is None else "; the last exited %d" % code
-    if ok == 0:
-        return ("its user ran this %s and it has NEVER WORKED for them%s"
-                % (times, tail))
-    if ok == n:
+    failed = n - ok - asked
+    # A bare call that got a usage message back is not a failure, so it is
+    # never reported as one. It is still worth saying, because "your user
+    # keeps reaching for this without knowing how to call it" is real.
+    note = "" if not asked else (", and %s asked for arguments"
+                                 % ("once" if asked == 1 else "%d times" % asked))
+    if failed == 0 and ok == 0:
+        return "its user ran this %s%s, never getting further" % (times, note)
+    if failed == 0:
         return ("its user ran this %s and it worked" % times if n == 1
-                else "its user ran this %s and it worked every time" % times)
-    return ("its user ran this %s, %d worked and %d failed%s"
-            % (times, ok, n - ok, tail))
+                else "its user ran this %s, and it worked every time it was "
+                     "called properly%s" % (times, note))
+    if ok == 0:
+        return ("its user ran this %s and it has NEVER WORKED for them "
+                "(%d real failures%s); the last exited %s"
+                % (times, failed, note, code))
+    return ("its user ran this %s, %d worked and %d FAILED%s; the last exited %s"
+            % (times, ok, failed, note, code))
 
 
 def render(tools_dir, journal=None, exclude=None, limit=LIBRARY_LIMIT,

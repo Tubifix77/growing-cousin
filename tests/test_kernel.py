@@ -2826,6 +2826,74 @@ def test_an_unreadable_verdict_says_which_of_three_things_went_wrong():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_usage_refusal_is_not_counted_as_a_failure():
+    """The run-record was reporting a healthy library as a broken one.
+
+    2026-09-14, measured over 153 probes: 39 exited 0, **97 were the tool
+    correctly refusing incomplete input**, and only about 12 were real
+    failures. `evidence()` invokes every tool BARE, with no arguments, so a
+    tool whose own call-line says it takes some can never exit 0 -- and the
+    brief tells the cousin in as many words that a tool which refuses
+    incomplete input and says what it needs has done its job.
+
+    The display I had shipped two hours earlier counted all 114 non-zero exits
+    as failures, so `plan` read as "1 worked and 30 failed" when thirty of
+    those were it correctly asking for an argument. I then read a creature
+    "building storeys on a broken floor" out of a number the harness
+    manufactures, and wrote it into doctrine and two prompts.
+
+    That is the project's own scar, top of §5: **before believing a
+    behavioural finding about either agent, prove the harness was not
+    producing it.** The framework already knew -- `evidence()` computes
+    `needs_args` and even tells the cousin "I called it with NO ARGUMENTS" --
+    it simply never wrote it down.
+    """
+    d = tmpdir()
+    own = os.path.join(d, "own")
+    _write_tool(own, "needy", does="does a thing", call="needy <id>")
+    _write_tool(own, "broken", does="does a thing")
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    # A tool that asked for its argument, thirty times, plus one real run.
+    j.append("cousin_probe", tool="needy", exit_code=0, bare=False,
+             stdout="ok", stderr="")
+    for _ in range(3):
+        j.append("cousin_probe", tool="needy", exit_code=2, bare=True,
+                 stdout="", stderr="usage: needy <id>")
+    # A tool that really failed, called the only way it can be called.
+    for _ in range(2):
+        j.append("cousin_probe", tool="broken", exit_code=1, bare=False,
+                 stdout="", stderr="Traceback ...")
+
+    hist = library.use_history(j)
+    check("bare: an argument-refusal is counted separately, not as a failure",
+          hist["needy"]["asked"] == 3 and hist["needy"]["ok"] == 1,
+          hist.get("needy"))
+    check("bare: a real failure is still a failure",
+          hist["broken"]["ok"] == 0 and hist["broken"].get("asked", 0) == 0,
+          hist.get("broken"))
+
+    out = library.render(own, j)
+    needy_line = [l for l in out.splitlines() if "asked for arguments" in l]
+    check("bare: the tool that always asked is NOT reported as failing",
+          needy_line and "FAILED" not in needy_line[0], needy_line)
+    check("bare: and the one that really fails still says NEVER WORKED",
+          "NEVER WORKED" in out, out)
+
+    # THE DISCRIMINATION: without the bare flag the two are indistinguishable,
+    # which is exactly the state that produced the wrong reading.
+    j2 = Journal(os.path.join(d, "j2.jsonl"))
+    for _ in range(3):
+        j2.append("cousin_probe", tool="needy", exit_code=2,
+                  stdout="", stderr="usage: needy <id>")
+    check("bare: with no flag recorded, a refusal counts as a failure -- which "
+          "is why the flag has to be written at probe time, not guessed later",
+          library.use_history(j2)["needy"].get("asked", 0) == 0,
+          library.use_history(j2).get("needy"))
+
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_creature_is_told_to_repair_rather_than_delete_or_panic():
     """Making the failures visible created a second risk, named by Tue before
     it bit: twelve tools now read "NEVER WORKED" in the same context.
@@ -2905,8 +2973,10 @@ def test_a_tool_that_never_worked_says_so_to_both_inhabitants():
     out = library.render(own, j)
     check("floor: a tool that never worked is not shown as merely 'last failed'",
           "NEVER WORKED" in out, out)
+    # FAILED is capitalised since 2026-09-14: it now means a real failure,
+    # not a tool that was called bare and asked for its arguments.
     check("floor: and the mixed one reports BOTH halves of its record",
-          "1 worked and 1 failed" in out, out)
+          "1 worked and 1 FAILED" in out, out)
     check("floor: a clean record still reads as clean",
           "NEVER WORKED" not in out.split("- storey")[1], out)
 
@@ -3337,7 +3407,8 @@ def test_the_module_list_matches_the_kernel():
 
 def main():
     t0 = time.time()
-    for fn in (test_the_creature_is_told_to_repair_rather_than_delete_or_panic,
+    for fn in (test_a_usage_refusal_is_not_counted_as_a_failure,
+               test_the_creature_is_told_to_repair_rather_than_delete_or_panic,
                test_a_tool_that_never_worked_says_so_to_both_inhabitants,
                test_the_brief_tests_whether_the_handover_could_be_completed,
                test_a_want_survives_until_the_creature_has_had_a_turn,
