@@ -2826,6 +2826,71 @@ def test_an_unreadable_verdict_says_which_of_three_things_went_wrong():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_want_survives_until_the_creature_has_had_a_turn():
+    """Direction was being discarded before its recipient ever saw it.
+
+    Measured 2026-09-14 over twenty hours on one unmodified build: **50 wants
+    issued, 29 retired with no tool written in between.** The first version of
+    the discharge rule retired a want on the next ANSWERED VISIT, whatever
+    that visit was about. The objection was written into its own docstring
+    when it shipped and chosen against; with n=50 it stopped being an
+    objection and became the behaviour.
+
+    The original fault is still fixed: a want that stands forever is re-served
+    every wake and the creature re-runs the same commands at it. But *acted
+    on* is the honest test for that, not *answered*.
+    """
+    acc = ("<<<COUSIN\nverdict: ACCEPTED\ntried: ran it\noutcome: fine\n"
+           "to_creature: it worked.\nwant: a date filter\nCOUSIN")
+    ret = ("<<<COUSIN\nverdict: RETURNED\ntried: ran it\noutcome: crashed\n"
+           "to_creature: it stopped with an error.\nCOUSIN")
+    done = "```bash\nremember current-phase done\n```"
+    build = ("```bash\ncat << 'SH' > tools/own/thing\n#!/bin/sh\n"
+             "# does: a thing\necho hi\nSH\nchmod +x tools/own/thing\n```")
+
+    # 1. THE REGRESSION: want issued, creature never writes anything, a later
+    #    visit answers about something else. The want must SURVIVE.
+    e, j, b, d = build_engine([done, done], [acc("") if False else acc, ret])
+    e.run_cycle()
+    check("want: it stands once issued", e.wants() == ["a date filter"],
+          str(e.wants()))
+    e.run_cycle()
+    check("want: an answered visit does NOT discharge a want the creature "
+          "never had a turn at",
+          e.wants() == ["a date filter"], str(e.wants()))
+    check("want: and nothing is journalled as discharged",
+          dict(j.kinds()).get("want_retired") is None, dict(j.kinds()))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+    # 2. Once the creature HAS built something, the want is spent and an
+    #    answered visit clears it -- which is the original fault, still fixed.
+    e, j, b, d = build_engine([done, build, done], [acc, ret, ret])
+    e.run_cycle()                      # want issued
+    e.run_cycle()                      # creature writes a tool
+    check("want: acting on it is recorded", e.want_was_acted_on(),
+          "no TOOL_WRITE seen")
+    e.run_cycle()                      # answered visit, nothing new asked
+    check("want: a want the creature has built against IS discharged",
+          e.wants() == [], str(e.wants()))
+    rec = j.read(kinds=["want_retired"])[-1]
+    check("want: and the record says it was acted on first",
+          "acted on" in (rec.get("because") or ""), rec.get("because"))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+    # 3. Supersession is untouched: a newer want replaces the old one whether
+    #    or not the creature ever acted, because the cousin has moved on.
+    e, j, b, d = build_engine([done, done], [acc, acc2()])
+    e.run_cycle(); e.run_cycle()
+    check("want: a NEWER want still replaces the old one, acted on or not",
+          e.wants() == ["a tag filter"], str(e.wants()))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def acc2():
+    return ("<<<COUSIN\nverdict: ACCEPTED\ntried: ran it\noutcome: fine\n"
+            "to_creature: it worked.\nwant: a tag filter\nCOUSIN")
+
+
 def test_a_want_is_discharged_by_the_visit_that_answers_it():
     """A want had no completion signal and was re-served forever.
 
@@ -2862,11 +2927,21 @@ def test_a_want_is_discharged_by_the_visit_that_answers_it():
           dict(j.kinds()).get("want_retired") == 1, dict(j.kinds()))
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
-    # 2. A RETURNED answers the standing want too. It asked for nothing new,
-    #    and its testimony is the direction now.
-    e, j, b, d = build_engine([done] * 2, [acc("a date filter"), ret])
-    e.run_cycle(); e.run_cycle()
-    check("want: a RETURNED discharges what was standing",
+    # 2. CORRECTED 2026-09-14. This asserted that a RETURNED discharges
+    #    whatever was standing, full stop -- and that was the shipped
+    #    behaviour until 50 wants had been issued and 29 of them retired with
+    #    the creature never having written a thing. A visit answers the TOOL
+    #    it was sent to; it does not answer a request nobody acted on.
+    #
+    #    So a RETURNED now discharges only a want the creature has already
+    #    had a turn at. The build step below is what makes that true, and
+    #    removing it is the red-proof for the whole change.
+    build = ("```bash\ncat << 'SH' > tools/own/thing\n#!/bin/sh\n"
+             "# does: a thing\necho hi\nSH\nchmod +x tools/own/thing\n```")
+    e, j, b, d = build_engine([done, build, done],
+                              [acc("a date filter"), ret, ret])
+    e.run_cycle(); e.run_cycle(); e.run_cycle()
+    check("want: a RETURNED discharges a want that was acted on",
           e.wants() == [], str(e.wants()))
     rec = j.read(kinds=["want_retired"])[-1]
     check("want: the discharge says WHY, not just that it happened",
@@ -3127,7 +3202,8 @@ def test_the_module_list_matches_the_kernel():
 
 def main():
     t0 = time.time()
-    for fn in (test_no_document_hard_codes_the_gate_count,
+    for fn in (test_a_want_survives_until_the_creature_has_had_a_turn,
+               test_no_document_hard_codes_the_gate_count,
                test_the_module_list_matches_the_kernel,
                test_the_creatures_shell_does_not_inherit_the_engines_secrets,
                test_every_defined_test_is_registered,

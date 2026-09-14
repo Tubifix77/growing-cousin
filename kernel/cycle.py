@@ -140,6 +140,44 @@ class Engine:
                           because="superseded", texts=retired[:WANTS_KEPT])
         self.j.append("context_written", wants=1, chars=len(body))
 
+    def want_was_acted_on(self):
+        """Has the creature written a tool since the standing want was issued?
+
+        **MEASURED 2026-09-14, and it is why this exists: of 50 wants issued
+        over twenty hours, 29 were retired without the creature writing
+        anything at all.** Fifty-eight percent of the only direction channel in
+        the design, discarded before its recipient had a turn.
+
+        That was my doing. The first version retired a want on the next
+        ANSWERED VISIT, whatever that visit was about, and I wrote the
+        objection into the docstring at the time -- *"the answering visit may
+        have been about a different tool, so a want can retire without the
+        creature ever having built it"* -- and chose recency anyway. With n=50
+        the objection is no longer a worry, it is the behaviour.
+
+        The fault being fixed is still real and still fixed: a want that stood
+        forever was re-served every wake and the creature re-ran the same
+        commands against it. But *acted on* is the honest test for that, not
+        *answered*. A want the creature has already built against will not be
+        re-served; a want it never saw a turn at survives to be seen.
+
+        Supersession is unchanged and does the rest: any accept brings a new
+        want, and `record_want` replaces what was standing.
+
+        Derived from the journal, never authored -- the same rule as every
+        other piece of state here (§6.1). A tool WRITE is the evidence, which
+        includes edits: extending an existing tool is acting on a want just as
+        much as creating one, and a rule that only counted new files would
+        reward exactly the proliferation this engine is already showing.
+        """
+        wants = self.j.read(kinds=["cousin_want"])
+        if not wants:
+            return False
+        since = wants[-1].get("ts", 0)
+        return any(r.get("ts", 0) > since
+                   and r.get("type") == "TOOL_WRITE"
+                   for r in self.j.read(kinds=["trigger_fired"]))
+
     def retire_wants(self, because):
         """The cousin spoke and did not ask for this again, so it stops standing.
 
@@ -549,14 +587,10 @@ class Engine:
             # three parent guards that aim rather than refuse have no
             # replacement at all.
             self.record_want(v.want)
-        else:
-            # An ANSWERED visit that asked for nothing new discharges whatever
-            # was standing. Same invariant as the counters reset by a visit,
-            # applied to the channel that carries direction instead of the
-            # ones that summon the cousin. Reached only past the UNKNOWN
-            # return above, so a cousin that ran and said nothing usable --
-            # and one that could not be reached at all -- retires nothing.
-            self.retire_wants("answered by a %s with no new want" % v.verdict)
+        elif self.want_was_acted_on():
+            # An answered visit discharges a want the creature has ALREADY
+            # HAD A TURN AT -- and only that one. See `want_was_acted_on`.
+            self.retire_wants("acted on, then answered by a %s" % v.verdict)
         if v.blocks_done:
             self.done_blocked = v.to_creature
         return v
