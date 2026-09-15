@@ -158,6 +158,15 @@ def call_ollama(model, prompt, host, timeout=900, think=False):
     return data.get("response", ""), round(time.time() - t0, 1), meta
 
 
+# How hard to try, and how politely. A rate limit is the world saying come
+# back later; a trial that records it as a judgement has manufactured a
+# result. 8 attempts at 20s, 40s, 60s... rides out a per-minute window
+# without hammering a provider that has just refused.
+MAX_ATTEMPTS = 8
+RATE_LIMIT_WAIT = 20
+RATE_LIMITED = (429, 402, 503)
+
+
 def call_openai(model, prompt, host, timeout=900, think=None, api_key=None,
                 max_tokens=900):
     """An OpenAI-compatible rung. Every rung on the parent's ladder is one.
@@ -192,15 +201,31 @@ def call_openai(model, prompt, host, timeout=900, think=None, api_key=None,
     # judgement the model never made -- but bounded, and the attempt count is
     # reported so a rung that needs three tries every time cannot look healthy.
     attempts, data = 0, None
-    while attempts < 5 and data is None:
+    while attempts < MAX_ATTEMPTS and data is None:
         attempts += 1
         try:
             req = urllib.request.Request(host, data=body, headers=headers)
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 data = json.loads(r.read())
         except urllib.error.HTTPError as e:
-            # 4xx is ours to fix; 5xx is theirs and passes on a retry.
-            if e.code < 500 or attempts == 5:
+            # **A 429 IS NOT OURS TO FIX AND IS NOT A FAULT.** The kernel's own
+            # classify_error calls it NEXT, and CLAUDE.md §4 requires the
+            # ladder to be quota-polite because the tier is shared with the
+            # spine. A trial has no ladder to fall through to, so the polite
+            # move is to WAIT.
+            #
+            # Until 2026-09-16 this raised at once, because 4xx was treated as
+            # ours. The first held-out baseline then collapsed after four
+            # cases into twelve rows of FORMAT-FAIL at 0.0s -- which reads
+            # exactly like a brief that catches nothing, and is the results
+            # file this file's own preflight docstring calls worse than none.
+            if e.code in RATE_LIMITED and attempts < MAX_ATTEMPTS:
+                time.sleep(min(RATE_LIMIT_WAIT * attempts, 120))
+                continue
+            # The rest of 4xx still fails fast: waiting cannot fix a rejected
+            # credential, and a loop that waits politely forever on a bad key
+            # looks exactly like one that is working.
+            if e.code < 500 or attempts == MAX_ATTEMPTS:
                 raise
             time.sleep(3 * attempts)
         except (urllib.error.URLError, TimeoutError, OSError) as e:
