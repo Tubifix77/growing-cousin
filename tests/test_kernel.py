@@ -4107,11 +4107,6 @@ def test_monitor_alarms_are_edge_triggered():
     shutil.rmtree(d, ignore_errors=True)
 
 
-DRILLS = {"giveup": "gave_up", "tool-gone": "tool_vanished",
-          "torn": "journal_integrity", "silence": "engine_silent",
-          "fabricate": "complaint_fidelity"}
-
-
 def test_a_ladder_with_every_rung_walled_never_reads_as_a_wait():
     """Found by the give-up drill, 2026-09-16, which is what it is for.
 
@@ -4271,6 +4266,35 @@ def test_the_drills_give_the_unproven_detectors_their_red():
         check("drill torn: and it REPORTS rather than repairing -- a monitor "
               "that rewrites the evidence is not a monitor",
               "repair" not in f.msg.lower(), f.msg)
+
+    # THE BODY DYING UNDER THE CREATURE. `ensure_body` respawns a body that
+    # will not answer, and in run 2 it never once had to: neither kind appears
+    # in the whole journal. There is no detector for this -- it is a bound,
+    # not a judgement -- so what must be true is that the kernel SAW it and
+    # said so in its own two kinds, and that the creature was never handed the
+    # failure shaped like its own output.
+    got = load("body")
+    if got:
+        rows, _c, _b = got
+        kinds = [r.get("kind") for r in rows]
+        check("drill body: the kernel noticed the body had stopped answering",
+              "body_unresponsive" in kinds, kinds)
+        check("drill body: and recorded the respawn attempt and its outcome",
+              any(r.get("kind") == "body_respawn" and "ok" in r for r in rows),
+              [r for r in rows if r.get("kind") == "body_respawn"])
+        ends = [r for r in rows if r.get("kind") == "exec_end"]
+        check("drill body: infrastructure failure is NEVER recorded as the "
+              "creature's own command output",
+              all("body is down" not in (r.get("stderr") or "") for r in ends),
+              [r.get("stderr") for r in ends])
+        # AND the thing the drill found: the respawn does not rebuild the
+        # tree, so it comes back False and nothing raises. Visible now
+        # (PLAN item 15 is whether it should end the run).
+        f = detectors.body_unrecoverable(
+            detectors.Context(rows, now=float(rows[-1]["ts"])))
+        check("drill body: a body that could not be brought back reaches a "
+              "human, because nothing else in the loop will",
+              f.state == detectors.ALARM and f.human, "%s %s" % (f.state, f.msg))
 
     # AN ENGINE THAT STOPPED has no event for it. `engine_silent` reads the
     # clock, so replaying a journal against its own last timestamp can never

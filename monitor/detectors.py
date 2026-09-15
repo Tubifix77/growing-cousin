@@ -781,6 +781,56 @@ def deploy_regression(ctx):
                    ev, human=False)
 
 
+def body_unrecoverable(ctx):
+    """The body stopped answering and could not be brought back.
+
+    Found 2026-09-16 by the body drill. `LocalBody.respawn` sets its alive
+    flag and re-probes; it does not rebuild the tree. So when the creature
+    removes its own `$MIND` -- which its shell can do, and `$MIND` is handed
+    to it on purpose -- the respawn returns False, `run_cycle` records
+    `error where=body` and skips the rest of the cycle, and then does the
+    same on the NEXT cycle, and every cycle after. Nothing raises, so the
+    supervisor never counts a failure, so nothing gives up and nothing
+    restarts: the engine keeps producing events, which means `engine_silent`
+    stays quiet too. An engine can sit like that indefinitely looking busy.
+
+    Whether a body that cannot be respawned should END the run is a design
+    question (PLAN item 15), not something to settle at midnight -- so this
+    makes it visible, which is the response §4 allows without asking.
+    """
+    recent = ctx.recent(RECENT_H)
+    failed = [r for r in recent
+              if r.get("kind") == "body_respawn" and not r.get("ok")]
+    body_errors = [r for r in recent if r.get("kind") == "error"
+                   and r.get("where") == "body"]
+    if failed:
+        return Finding("body_unrecoverable", ALARM,
+                       "the body stopped answering and could NOT be respawned "
+                       "%d time(s) in %dh -- nothing raises on this, so the "
+                       "loop will keep going and neither `gave_up` nor "
+                       "`engine_silent` will fire"
+                       % (len(failed), RECENT_H),
+                       {"ts": [_ts(r) for r in failed],
+                        "body_errors": len(body_errors)},
+                       scar="if a hand had to intervene, the kernel was missing "
+                            "a bound")
+    if len(body_errors) >= 3:
+        return Finding("body_unrecoverable", ALARM,
+                       "%d cycles in %dh ended on a body error -- the body is "
+                       "not coming back" % (len(body_errors), RECENT_H),
+                       {"n": len(body_errors)},
+                       scar="if a hand had to intervene, the kernel was missing "
+                            "a bound")
+    respawned = [r for r in recent
+                 if r.get("kind") == "body_respawn" and r.get("ok")]
+    if respawned:
+        return Finding("body_unrecoverable", INFO,
+                       "the body was respawned %d time(s) in %dh and came back"
+                       % (len(respawned), RECENT_H), human=False)
+    return Finding("body_unrecoverable", OK,
+                   "the body has not needed respawning in %dh" % RECENT_H)
+
+
 # ------------------------------------------------- is the manager honest?
 
 # The census is cheap and the window is generous: a fabricated complaint is
@@ -902,7 +952,8 @@ ALL = (engine_silent, gave_up, unusable_verdicts, commands_lost,
        repeated_failure, want_retired_unacted, want_never_served,
        served_context_contract, tool_vanished, selfcheck_disproven,
        restart_owed, ladder_dry, journal_integrity, twin_pressure,
-       deploy_regression, want_repeated, probe_stuck, complaint_fidelity)
+       deploy_regression, want_repeated, probe_stuck, complaint_fidelity,
+       body_unrecoverable)
 
 
 def run_all(ctx, detectors=ALL):

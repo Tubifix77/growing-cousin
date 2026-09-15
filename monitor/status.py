@@ -82,6 +82,11 @@ RUNBOOK = {
                      "A want the cousin cannot verify (bare probe) or whose answers "
                      "it cannot see (hidden tool) repeats forever; the fix is in the "
                      "framework's probe or listing, never in the creature.",
+    "body_unrecoverable": "Stop the bleeding first -- that is not an intervention "
+                          "(§1.2). Check whether the creature removed its own "
+                          "$MIND; `LocalBody.respawn` does not rebuild the tree, "
+                          "and nothing raises, so the loop will sit there. PLAN "
+                          "item 15 is whether that should end the run.",
     "complaint_fidelity": "Read the verdict and its probe TOGETHER before concluding "
                           "the cousin was wrong -- the harness has invented faults "
                           "before, and `census.py --root live` prints both. Never "

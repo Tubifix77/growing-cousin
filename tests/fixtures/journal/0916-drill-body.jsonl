@@ -1,0 +1,7 @@
+{"ts": 1789511921.8370826, "kind": "wake", "context_chars": 30, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511921.841142, "kind": "think", "chars": 64, "model": "scripted", "rung": null, "finish": "stop", "raw": "[dropped from fixture]", "raw_chars": 64}
+{"ts": 1789511921.8462799, "kind": "exec_start", "block": 1, "cmd": "rm -rf \"$MIND\""}
+{"ts": 1789511921.852563, "kind": "exec_end", "block": 1, "exit_code": 0, "stdout": "", "stderr": ""}
+{"ts": 1789511921.8550854, "kind": "body_unresponsive", "detail": "exec probe did not answer"}
+{"ts": 1789511921.857074, "kind": "body_respawn", "ok": false}
+{"ts": 1789511921.8590674, "kind": "error", "where": "body", "detail": "could not respawn; skipping remaining blocks"}

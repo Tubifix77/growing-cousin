@@ -213,3 +213,31 @@ something forgotten.
 Slotted here because it adds a surface to the creature's context and must not
 land while anything is being measured. Acceptance criteria to be written when
 it starts.
+
+### 15. `[ ]` Should a body that cannot be respawned end the run?
+
+**Found by item 6's body drill, 2026-09-16 — a genuinely open design
+question, not a bug with an obvious fix.** `LocalBody.respawn` sets its alive
+flag and re-probes; it does not rebuild the tree. When the creature removes
+its own `$MIND` — which its shell can do, and `$MIND` is handed to it on
+purpose — the respawn returns False, `run_cycle` records `error where=body`
+and skips the rest of the cycle, and repeats that forever. **Nothing raises**,
+so the supervisor never counts a failure, so neither `gave_up` nor
+`engine_silent` fires, and the engine sits there looking busy.
+
+Visibility shipped immediately (`body_unrecoverable`), which §4 allows
+without asking. The decision does not follow from it:
+
+- **Raise, so the supervisor gives up and systemd restarts** — the process
+  comes back and `LocalBody.__init__` recreates the tree, but the creature's
+  library is gone and the framework will have silently rebuilt its world
+  empty. That is the parent's worst failure mode wearing a recovery's
+  clothes.
+- **Rebuild on respawn** — the same data loss, one layer lower and quieter.
+- **Stop and wait for a human** — honest, and the one option that does not
+  destroy anything; it also means an overnight run can end at 03:00.
+
+- **15.1** A decision recorded with its reason, not a patch.
+- **15.2** Whatever is chosen, the creature's existing tools are never
+  silently replaced by an empty tree (§2.1 — its tools are its world).
+- **15.3** A drill proves the chosen behaviour end to end.

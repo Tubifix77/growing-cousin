@@ -377,8 +377,32 @@ def drill_fabricate(root):
     return j.path
 
 
+def drill_body(root):
+    """The body dying under the creature, mid-cycle.
+
+    `ensure_body` runs before every block and respawns a body that will not
+    answer -- and in run 2 it never once had to: neither `body_unresponsive`
+    nor `body_respawn` appears anywhere in the journal. So the one piece of
+    machinery standing between a dead body and a creature being handed
+    infrastructure failure shaped like its own output has never run outside
+    the gate.
+
+    Killed the way it could really die: the creature's own shell removes the
+    mind it is standing in. That is not a contrived poke at a private flag --
+    an unconstrained shell can do this, `$MIND` is handed to it on purpose,
+    and the next block then finds nowhere to write its script.
+    """
+    kill = '```bash\nrm -rf "$MIND"\n```'
+    after = "```bash\necho after the body died\n```"
+    e, j, b = _engine(root, ["%s\n\n%s" % (kill, after)], [ACCEPT])
+    e.run_cycle()
+    b.destroy()
+    return j.path
+
+
 IN_PROCESS = {"tool-gone": drill_tool_gone, "torn": drill_torn,
-              "silence": drill_silence, "fabricate": drill_fabricate}
+              "silence": drill_silence, "fabricate": drill_fabricate,
+              "body": drill_body}
 
 
 def main(argv=None):
