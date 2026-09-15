@@ -2671,6 +2671,14 @@ def test_the_engine_unit_runs_the_creature_in_a_container():
           "%s vs %s" % (cfg, rw))
     check("unit: the stale comment claiming the keys are open is gone",
           "The key files are NOT closed by this" not in unit, "")
+    # PLAN item 9: the cousin runs the tool with arguments it chooses. Without
+    # this flag the deployment keeps probing BARE, which is the thing that
+    # produced 63 probes of one tool and the same want six times -- and the
+    # repo would say otherwise while the engine carried on as before, which
+    # is how `--body docker` shipped inert for twenty minutes.
+    check("unit: the cousin is given its own shell, or it is still a user "
+          "who can only call things bare",
+          "--cousin-shell" in execs[0], execs[0][:220])
 
 
 def test_the_unit_bounds_its_own_restarting():

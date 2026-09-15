@@ -60,6 +60,7 @@ ExecStart=/usr/bin/python3 -u %h/growing-cousin/run.py \
     --forever --cycles 0 --pause 30 \
     --root %h/growing-cousin/live \
     --body docker \
+    --cousin-shell \
     --rungs %h/growing-cousin/rungs.local.json \
     --cousin-rungs %h/growing-cousin/rungs.cousin.local.json
 
