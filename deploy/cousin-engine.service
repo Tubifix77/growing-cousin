@@ -29,6 +29,18 @@ WorkingDirectory=%h/growing-cousin
 # no log, and the log is the first thing anyone reads. Found 2026-09-13 by
 # archiving live/ for a reset, which is exactly when it would bite.
 ExecStartPre=/bin/mkdir -p %h/growing-cousin/live
+# The creature's body is a CONTAINER as of 2026-09-16 (PLAN item 7). Building
+# on every start is cheap when cached and means the image cannot go missing
+# without the engine noticing; `-` so a transient build failure warns rather
+# than blocking a start, since the container from the previous build is
+# usually still perfectly good.
+#
+# Verified by effect before this shipped: `PrivateUsers=yes` does NOT block
+# access to the docker socket -- tested in a throwaway unit carrying the same
+# directives, because a directive read back off a unit proves it was parsed
+# and never that it works.
+ExecStartPre=-/usr/bin/docker build -t growing-cousin-body \
+    -f %h/growing-cousin/deploy/Dockerfile %h/growing-cousin/deploy
 # --cycles 0 means no ceiling. Stop it with `touch %h/growing-cousin/live/STOP`,
 # which lets the current cycle finish; `systemctl stop` kills mid-cycle and
 # throws that cycle away.
@@ -38,6 +50,7 @@ ExecStartPre=/bin/mkdir -p %h/growing-cousin/live
 ExecStart=/usr/bin/python3 -u %h/growing-cousin/run.py \
     --forever --cycles 0 --pause 30 \
     --root %h/growing-cousin/live \
+    --body docker \
     --rungs %h/growing-cousin/rungs.local.json \
     --cousin-rungs %h/growing-cousin/rungs.cousin.local.json
 
@@ -89,12 +102,19 @@ ReadWritePaths=%h/growing-cousin/live
 # The engine has never needed this path, so making it invisible costs nothing.
 InaccessiblePaths=%h/growing-spine
 
-# The key files are NOT closed by this, and pretending otherwise would be worse
-# than leaving it open. The engine reads them per call and shares a uid with
-# the shell it spawns, so `InaccessiblePaths=%h/keys` would blind the engine
-# too. The real answers are `DockerBody` -- named as the real body since the
-# design -- or `LoadCredential=` here plus an allow-listed child environment in
-# `body.child_env` (which now exists). Tue's decision; recorded, not hidden.
+# THE KEY FILES ARE NOW CLOSED, and it took the body the design named from
+# the start. Until 2026-09-16 this comment said they were not: the engine
+# reads them per call and shared a uid with the shell it spawned, so
+# `InaccessiblePaths=%h/keys` would have blinded the engine too, and
+# `child_env`'s allow-list closed only the VARIABLES.
+#
+# With `--body docker` the creature's shell is not on this host at all. Its
+# world is a bind mount of live/body/mind and nothing else; `~/keys`, `~`, the
+# sibling project and this repo are simply not in its filesystem. Proven by
+# effect from inside the body before the switch (`rehearse.py docker`, whose
+# evidence the gate asserts) and re-proven at every start by `selfcheck`,
+# which now carries `keys_unreadable` -- so the day this regresses, the page
+# says so instead of a comment claiming otherwise for three months.
 PrivateTmp=true
 NoNewPrivileges=true
 

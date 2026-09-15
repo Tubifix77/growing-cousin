@@ -2625,6 +2625,42 @@ def test_giving_up_is_distinguishable_from_stopping():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_engine_unit_runs_the_creature_in_a_container():
+    """PLAN item 7, the part that decides whether any of it is real.
+
+    2026-09-16: the unit was edited to `--body docker`, the edit was then
+    overwritten by a stale copy during a file shuffle, and the change was
+    committed and deployed with the creature still on `LocalBody` -- keys
+    readable, exactly as before. **Nothing in the gate noticed**, because
+    every unit assertion was about restart bounds and sandboxing and none
+    about which body the engine actually runs.
+
+    A setting that is present, parsed and live can still do nothing; so can
+    one that was never there at all. This asserts the body the unit selects,
+    which is the only thing that makes item 7 true of the deployment rather
+    than of the repository.
+    """
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    unit = io.open(os.path.join(here, "deploy", "cousin-engine.service"),
+                   encoding="utf-8").read()
+    # Wrapped ExecStart lines end in a backslash; flatten before matching.
+    flat = re.sub(r"\\\s*\n\s*", " ", unit)
+    execs = [l for l in flat.splitlines() if l.startswith("ExecStart=")]
+    check("unit: it runs the engine", len(execs) == 1, execs)
+    check("unit: and puts the creature in a CONTAINER, which is the whole of "
+          "item 7 -- without this the keys are readable and nothing says so",
+          "--body docker" in execs[0], execs[0][:200])
+    pre = [l for l in flat.splitlines() if l.startswith("ExecStartPre=")]
+    check("unit: the image is built before the engine needs it",
+          any("docker build" in l for l in pre), pre)
+    check("unit: and a failed build warns rather than blocking a start, since "
+          "the previous image is usually still good",
+          any(l.startswith("ExecStartPre=-") and "docker build" in l
+              for l in pre), pre)
+    check("unit: the stale comment claiming the keys are open is gone",
+          "The key files are NOT closed by this" not in unit, "")
+
+
 def test_the_unit_bounds_its_own_restarting():
     """Restarting on failure without a bound is the crash loop that exiting 0
     was guarding against. systemd bounds it; we do not hand-roll it."""
@@ -4975,6 +5011,7 @@ def main():
                test_the_creatures_shell_does_not_inherit_the_engines_secrets,
                test_every_defined_test_is_registered,
                test_giving_up_is_distinguishable_from_stopping,
+               test_the_engine_unit_runs_the_creature_in_a_container,
                test_the_unit_bounds_its_own_restarting,
                test_a_cap_downstream_never_exceeds_the_cap_upstream,
                test_a_reply_with_no_verdict_falls_through_to_the_next_rung,
