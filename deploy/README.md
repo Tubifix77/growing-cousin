@@ -74,6 +74,15 @@ loginctl enable-linger "$USER"      # so it survives logout
 | regenerate the page now | `cd ~/growing-cousin && python3 -m monitor status --root live` |
 | what it has been doing | `python3 census.py ~/growing-cousin/live/journal.jsonl` |
 | the evidence pack for a run | `python3 -m monitor pack --root live --out ~/growing-cousin-evidence --run run-2` |
+| check a pack is what it says | `python3 -m monitor verify <pack>.tar.gz <pack>.manifest.json` |
+
+**Where a pack lives** (Tue, 2026-09-16): **the tarball stays on the laptop**,
+in `~/growing-cousin-evidence/`, and nowhere else. Only the hashed
+`*.manifest.json` is copied into the repo under `evidence/` and committed —
+`evidence/*.tar.gz` is gitignored so a tarball cannot travel even by accident.
+A pack holds raw model output, which can contain anything the creature
+happened to `cat`, and this repo is public. The manifest is enough to check any
+figure against the bytes, for anyone holding the tarball.
 
 **Stop with the file, not with `systemctl stop`.** The file lets the cycle in
 flight finish; `systemctl stop` kills it mid-cycle and throws that work away.

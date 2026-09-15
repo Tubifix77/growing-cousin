@@ -418,9 +418,26 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
                     if verdict == NEXT or attempt == retries:
                         tried.append("%s(%s)" % (name, verdict))
                         break
+        # **EVERY RUNG WALLED IS ALL-WALLED, whether it was walled just now or
+        # on an earlier call.** A walled rung is skipped by the loop above, so
+        # the second time everything is walled `tried` is EMPTY -- and the old
+        # `bool(tried) and all(...)` therefore returned False, which the
+        # supervisor reads as *come back later*. Waiting cannot fix a rejected
+        # credential: `default_is_wait` says so in as many words, and the
+        # ladder was quietly contradicting it from the second call onward. At
+        # 150s a wait and a 600-wait budget, an engine whose every credential
+        # had been rejected would have sat there looking healthy for
+        # twenty-five hours.
+        #
+        # Found 2026-09-16 by the give-up drill, which is what the drill is
+        # for: the first call was honest, so nothing that only ever looked at
+        # a first failure could see it.
         raise LadderExhausted(
-            "no rung answered; tried %s" % (", ".join(tried) or "nothing"),
-            all_walled=bool(tried) and all("(walled)" in t for t in tried))
+            "no rung answered; tried %s%s"
+            % (", ".join(tried) or "nothing",
+               (" (%d already walled: %s)" % (len(walled), ", ".join(sorted(walled))))
+               if walled and not tried else ""),
+            all_walled=bool(rungs) and all(n in walled for n, _r in rungs))
     return ask
 
 

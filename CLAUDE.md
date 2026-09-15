@@ -36,7 +36,25 @@ keeps it that way.
 against the directory rather than typed: see
 `test_the_module_list_matches_the_kernel`.
 
-### Handover — updated 2026-09-15 ~01:30, read this before touching anything
+### Handover — updated 2026-09-16, read this before touching anything
+
+**The board is `PLAN.md`.** Every open item this project knows about, in the
+order they are being done, one at a time, each with acceptance criteria that
+can be checked rather than asserted, and each verified by a reader who did not
+build it. Do not start work that is not on it; do not leave work off it.
+
+**Tue's decisions, 2026-09-16**, so the next session does not reopen them:
+
+- **The chat channel stays** — wanted, not abandoned, and **scheduled as item
+  14**. It lands after everything else because it adds a surface to the
+  creature's context, and a new surface arriving mid-measurement makes every
+  number before and after it incomparable.
+- **The evidence tarball stays on the laptop.** The repo carries the hashed
+  manifest and nothing else.
+- **The cousin gets its own shell** (item 9). That is the answer to *where
+  does "running the test" end* — not a framework that composes invocations,
+  which would move judgement back into the 99% this design deleted, and not
+  the creature demonstrating its own work, which is the wrong side of §4.
 
 **Is anything wrong right now?** `ls live/monitor/ALARM` — that file exists
 only while something needs a human, and carries the standing alarms. **Is the
@@ -124,10 +142,14 @@ against held-out cases, which `trial/` could carry and currently does not.
 **Nothing in `live/` is committed** — but the per-run evidence pack now exists:
 `python3 -m monitor pack --root live --out ~/growing-cousin-evidence --run run-2`
 writes a tarball and a manifest that hashes every file and counts every journal
-kind; the **manifest** is committed under `evidence/`, the tarball stays on the
-laptop, and the pack refuses to exist if anything key-shaped is inside. Where
-the tarball may live beyond the laptop is Tue's decision. **The first one is
-committed: `evidence/run-2-20260915-0054.manifest.json`** — run 2 at 36 hours,
+kind, and refuses to exist if anything key-shaped is inside. The **manifest**
+is committed under `evidence/`. **The tarball stays on the laptop** (Tue,
+2026-09-16) — in `~/growing-cousin-evidence/` and nowhere else;
+`evidence/*.tar.gz` is gitignored so the repo cannot carry one even by
+accident, because a pack holds raw model output and this repo is public.
+`deploy/README.md` says the same where an operator will meet it. **The first
+manifest is committed:
+`evidence/run-2-20260915-0054.manifest.json`** — run 2 at 36 hours,
 72 files, every one hashed, `python3 -m monitor verify` passing; the tarball is
 `~/growing-cousin-evidence/run-2-20260915-0054.tar.gz` on the laptop. A figure
 in §7 can now be traced to bytes by anyone holding that tarball.
@@ -1016,13 +1038,36 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    reversing the first recommendation. The parent library is a known-answer test
    set, so the cousin can be refuted in a week instead of months. Requires
    tagging every inherited tool at t=0 and splitting every metric on it, for the
-   life of the project. `ARCHITECTURE.md` §11. **Still open: does it also inherit
-   the journal and memory?** Tue's call.
+   life of the project. `ARCHITECTURE.md` §11.
+
+   > **DECIDED AND NOT EXECUTED — recorded 2026-09-16, because this file was
+   > claiming a thing that never happened.** Run 2 began *"from nothing: no
+   > journal, no context, no memory, no tools"* (§0), and run 1 before it was
+   > the same. So the copy has never been done, the known-answer refutation
+   > path has never been taken, and every reading of the cousin's judgement to
+   > date rests on a library with no known answers in it.
+   >
+   > **Bound to run 3 (PLAN item 11)**, with the tagging requirement intact:
+   > every inherited tool tagged at t=0 and every metric split on that tag, or
+   > the run measures a mixture and reports it as one number.
+   >
+   > **Still open: does it also inherit the journal and memory?** Tue's call,
+   > and it can be taken at run 3 rather than now.
 4. **When does the cousin earn the right to audit?** It may look at the whole
    library from day one (`ARCHITECTURE.md` §2, the audit rules), but an audit is
    where a manager most easily produces confident garbage, and nothing checks it
-   but the complaint-fidelity census. Consider proving it on the
-   touched-this-cycle path first. No named trigger yet — this needs one.
+   but the complaint-fidelity census — which PLAN item 1 wires into the monitor
+   so that it runs on every pass rather than only when a human types it. (What
+   is actually deployed is a question for `live/monitor/status.md`, never for
+   this file: a document asserting the state of a running system is the scar in
+   §5 about settings that are present, parsed and doing nothing.)
+   Consider proving it on the touched-this-cycle path first.
+
+   > **Trigger, named 2026-09-16: when the cousin can invoke tools with
+   > arguments (PLAN item 9).** Until then an audit is confident garbage by
+   > construction — it would be a judgement about a library the judge cannot
+   > operate, and §4 is explicit that a hold without a named trigger is
+   > inaction in the costume of caution.
 5. **Repo visibility.** Private while it is documents only (Tue, 2026-09-10).
    Revisit when code lands — the parent is public, so the default is public, but
    confirm rather than assume.

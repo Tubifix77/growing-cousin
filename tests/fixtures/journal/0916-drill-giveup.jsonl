@@ -1,0 +1,42 @@
+{"ts": 1789511622.273605, "kind": "rung_broken", "rung": "drill/no-such-credential", "reason": "no credential: cannot read /nonexistent/drill.key (FileNotFoundError)", "first": true, "expected": false}
+{"ts": 1789511622.2771635, "kind": "preflight_failed", "who": "creature", "detail": "creature via drill/no-such-credential unreachable: LadderExhausted: no rung answered; tried drill/no-such-credential(walled)"}
+{"ts": 1789511622.2960718, "kind": "engine_start", "engine": "a260dc2c01d52ec7131ada455f313b7595c234b4", "dirty": true, "python": "3.11.2", "caps": {"exec_stdout": 2400, "exec_stderr": 600, "exec_cmd": 800, "history_output": 2400, "history_total": 6000, "think_raw": 12000}, "rungs": ["drill/no-such-credential"], "cousin_rungs": ["drill/no-such-credential"], "root": "/tmp/drill/giveup", "pause": 0.0, "forever": true}
+{"ts": 1789511622.3248487, "kind": "selfcheck", "body_answers": true, "home_write_blocked": false, "spine_unreadable": false, "hand_on_path": true, "python3_on_path": true, "caps_ordered": true, "unproven": [], "ok": false}
+{"ts": 1789511622.3276327, "kind": "loop_start", "pause": 0.0, "max_cycles": null}
+{"ts": 1789511622.3300164, "kind": "wake", "context_chars": 8935, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511622.332118, "kind": "think_deferred", "where": "think", "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511622.3341463, "kind": "loop_error", "consecutive": 1, "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511622.3365407, "kind": "wake", "context_chars": 8935, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511622.3384788, "kind": "think_deferred", "where": "think", "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511622.3404512, "kind": "loop_error", "consecutive": 2, "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511622.342873, "kind": "wake", "context_chars": 8935, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511622.344824, "kind": "think_deferred", "where": "think", "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511622.346791, "kind": "loop_error", "consecutive": 3, "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511622.3491316, "kind": "wake", "context_chars": 8935, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511622.3510983, "kind": "think_deferred", "where": "think", "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511622.353002, "kind": "loop_error", "consecutive": 4, "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511622.3554077, "kind": "wake", "context_chars": 8935, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511622.3573523, "kind": "think_deferred", "where": "think", "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511622.3595061, "kind": "loop_error", "consecutive": 5, "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511622.3613791, "kind": "loop_end", "cycles": 4, "reason": "5 consecutive failures", "fault": true, "seconds": 0.0}
+{"ts": 1789511623.657947, "kind": "rung_broken", "rung": "drill/no-such-credential", "reason": "no credential: cannot read /nonexistent/drill.key (FileNotFoundError)", "first": true, "expected": false}
+{"ts": 1789511623.6620808, "kind": "preflight_failed", "who": "creature", "detail": "creature via drill/no-such-credential unreachable: LadderExhausted: no rung answered; tried drill/no-such-credential(walled)"}
+{"ts": 1789511623.6785145, "kind": "engine_start", "engine": "a260dc2c01d52ec7131ada455f313b7595c234b4", "dirty": true, "python": "3.11.2", "caps": {"exec_stdout": 2400, "exec_stderr": 600, "exec_cmd": 800, "history_output": 2400, "history_total": 6000, "think_raw": 12000}, "rungs": ["drill/no-such-credential"], "cousin_rungs": ["drill/no-such-credential"], "root": "/tmp/drill/giveup", "pause": 0.0, "forever": true}
+{"ts": 1789511623.7023623, "kind": "selfcheck", "body_answers": true, "home_write_blocked": false, "spine_unreadable": false, "hand_on_path": true, "python3_on_path": true, "caps_ordered": true, "unproven": [], "ok": false}
+{"ts": 1789511623.705306, "kind": "loop_start", "pause": 0.0, "max_cycles": null}
+{"ts": 1789511623.707902, "kind": "wake", "context_chars": 8935, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511623.709806, "kind": "think_deferred", "where": "think", "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511623.7118106, "kind": "loop_error", "consecutive": 1, "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511623.714326, "kind": "wake", "context_chars": 8935, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511623.7162735, "kind": "think_deferred", "where": "think", "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511623.7182965, "kind": "loop_error", "consecutive": 2, "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511623.7213266, "kind": "wake", "context_chars": 8935, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511623.7234511, "kind": "think_deferred", "where": "think", "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511623.7286723, "kind": "loop_error", "consecutive": 3, "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511623.731962, "kind": "wake", "context_chars": 8935, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511623.7342515, "kind": "think_deferred", "where": "think", "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511623.7363298, "kind": "loop_error", "consecutive": 4, "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511623.7391844, "kind": "wake", "context_chars": 8935, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511623.7412415, "kind": "think_deferred", "where": "think", "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511623.7432866, "kind": "loop_error", "consecutive": 5, "detail": "LadderExhausted: no rung answered; tried nothing (1 already walled: drill/no-such-credential)"}
+{"ts": 1789511623.745262, "kind": "loop_end", "cycles": 4, "reason": "5 consecutive failures", "fault": true, "seconds": 0.0}

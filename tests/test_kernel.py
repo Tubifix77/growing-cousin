@@ -18,6 +18,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -3426,11 +3427,182 @@ def _repo_root():
 def _docs():
     root = _repo_root()
     out = {}
-    for name in ("README.md", "CLAUDE.md", "ARCHITECTURE.md"):
+    # PLAN.md carries status too, so it is held to the same rule. A fourth
+    # document with its own number is exactly how this drifted before.
+    for name in ("README.md", "CLAUDE.md", "ARCHITECTURE.md", "PLAN.md"):
         p = os.path.join(root, name)
         if os.path.exists(p):
             out[name] = io.open(p, encoding="utf-8").read()
     return out
+
+
+def _doc_head(text):
+    """The CURRENT-tense part of a document. Everything after the first
+    "Previous state" heading is a dated record of what was true then, and a
+    rule applied to history rewrites history."""
+    return text.split("### Previous state", 1)[0]
+
+
+def _open_question(n):
+    """One numbered item out of CLAUDE.md §6, by its number."""
+    docs = _docs()
+    txt = docs.get("CLAUDE.md", "")
+    if "## 6. Open questions" not in txt:
+        return ""
+    txt = txt.split("## 6. Open questions", 1)[1].split("\n## 7.", 1)[0]
+    parts = re.split(r"^(\d+)\. ", txt, flags=re.M)
+    for i in range(1, len(parts) - 1, 2):
+        if parts[i] == str(n):
+            return parts[i + 1]
+    return ""
+
+
+def _paragraphs(text):
+    """Blank-line-separated blocks with their wrapping flattened. Markdown
+    wraps prose at 79 columns, so a line-based check reads a sentence as
+    fragments and passes on where the break happened to fall -- which is how
+    the first version of the check below passed by accident."""
+    return [re.sub(r"\s+", " ", p).strip()
+            for p in re.split(r"\n\s*\n", text) if p.strip()]
+
+
+def test_the_chat_channel_is_a_scheduled_intention():
+    """PLAN item 2. It has sat in every "not built" list since 2026-09-11
+    without ever being decided either way, which is the difference §4 draws
+    between a hold with a named trigger and inaction in the costume of
+    caution. Tue, 2026-09-16: it stays.
+
+    **This check was rebuilt after an independent verification broke its
+    first version three ways** -- rewriting the commitment to "remains an open
+    question; nobody has decided", restating the absence with synonyms the
+    blacklist did not carry, and renumbering the plan so the cross-reference
+    pointed at a different item -- each time with a fully green gate. A
+    blacklist of phrases defends the phrases. What is asserted now is an
+    INVARIANT: every current-tense mention commits, and the number it cites
+    really is the chat channel's item on the board.
+
+    History is left alone: the "Previous state" sections record that it did
+    not exist then, and that remains true of then.
+    """
+    docs = _docs()
+    plan = docs.get("PLAN.md", "")
+    check("chat: the board exists to be cross-referenced", bool(plan.strip()),
+          "(no PLAN.md -- it must be committed, or a fresh clone fails here)")
+    want = ("wanted", "stays", "scheduled", "will be built")
+    uncommitted, cited = [], set()
+    for name, text in docs.items():
+        if name == "PLAN.md":
+            continue
+        for p in _paragraphs(_doc_head(text)):
+            low = p.lower()
+            if "chat channel" not in low:
+                continue
+            m = re.search(r"item (\d+)", low)
+            if not (any(w in low for w in want) and m):
+                uncommitted.append("%s: %s" % (name, p[:110]))
+            elif m:
+                cited.add(int(m.group(1)))
+    check("chat: every current-tense mention of it commits -- a want-word and "
+          "the item that carries it", not uncommitted, str(uncommitted)[:300])
+    check("chat: and at least one document says so where a maintainer reads",
+          bool(cited), "no current-tense mention cites an item at all")
+    for n in sorted(cited):
+        m = re.search(r"^###\s*%d\.\s*(.+)$" % n, plan, re.M)
+        check("chat: the item the docs cite (%d) really is the chat channel's "
+              "on the board" % n,
+              m is not None and "chat channel" in m.group(1).lower(),
+              m.group(1) if m else "(PLAN has no item %d)" % n)
+    reason = [p for name, text in docs.items()
+              for p in _paragraphs(_doc_head(text))
+              if "chat channel" in p.lower() and "measur" in p.lower()
+              and ("surface" in p.lower() or "context" in p.lower())]
+    check("chat: the REASON for the slot is recorded, not just the slot -- it "
+          "adds a surface to the creature's context and must not arrive "
+          "mid-measurement", bool(reason), "no document gives the reason")
+
+
+def test_the_inherited_library_is_recorded_as_not_executed():
+    """PLAN item 3. §6.2 says "Decided 2026-09-10: copy". Run 2 started from
+    nothing, so the doctrine claims a thing that never happened -- and the
+    refutation path it was chosen for, a known-answer test set, was never
+    taken. Either execute it or say plainly that it was not."""
+    q = _open_question(2)
+    check("inherited: §6.2 exists to be judged", bool(q.strip()), q[:80])
+    low = q.lower()
+    check("inherited: it records that the decision was NOT executed",
+          "not executed" in low or "never executed" in low, q[:300])
+    check("inherited: and binds it to run 3, with a number rather than 'later'",
+          "run 3" in low, q[:300])
+    # The tagging requirement is asserted on the BOARD, not here: §6.2 has
+    # carried the words "tagging every inherited tool" since 2026-09-10, so a
+    # check for them in §6.2 was green before this work and could never have
+    # been seen red -- a tautology, found by an independent verification.
+    plan = _docs().get("PLAN.md", "")
+    item11 = re.search(r"^###\s*11\.[^\n]*\n(.*?)(?=^###\s|\Z)", plan,
+                       re.M | re.S)
+    body = re.sub(r"\s+", " ", item11.group(1)).lower() if item11 else ""
+    check("inherited: the run that will execute it carries the tagging "
+          "requirement, or the run measures a mixture and reports one number",
+          "tag" in body and ("t=0" in body or "split" in body),
+          body[:200] or "(PLAN has no item 11)")
+    check("inherited: and ARCHITECTURE agrees rather than still calling it the "
+          "plan of record -- two documents disagreeing about what happened is "
+          "the 2026-09-13 review's finding",
+          "never done" in _docs().get("ARCHITECTURE.md", "").lower(),
+          "ARCHITECTURE §11 does not record that it was never done")
+
+
+def test_the_cousins_audit_has_a_named_trigger():
+    """PLAN item 4. §6.4 ended "No named trigger yet -- this needs one", and
+    §4 is explicit that a hold without a named trigger is inaction wearing
+    caution's clothes."""
+    q = _open_question(4)
+    check("audit: §6.4 exists to be judged", bool(q.strip()), q[:80])
+    low = q.lower()
+    check("audit: the placeholder is gone", "no named trigger yet" not in low,
+          q[:300])
+    check("audit: a trigger is named, and it is the one that makes an audit "
+          "mean anything -- the cousin being able to invoke tools with "
+          "arguments", "item 9" in low and "argument" in low, q[:300])
+
+
+def test_the_evidence_tarballs_home_is_recorded():
+    """PLAN item 5. Tue, 2026-09-16: the tarball stays on the laptop; the
+    repo carries the hashed manifest. §0 hedged it as still open."""
+    head = _doc_head(_docs().get("CLAUDE.md", ""))
+    check("tarball: §0 no longer defers the decision",
+          "beyond the laptop is tue's decision" not in head.lower(), "")
+    check("tarball: and says plainly where it lives",
+          re.search(r"tarball[^.]{0,120}stays on the laptop", head, re.I | re.S)
+          is not None, "")
+    # BOTH documents, because the criterion names both: an operator meets
+    # `deploy/README.md`, never §0.
+    dep = io.open(os.path.join(_repo_root(), "deploy", "README.md"),
+                  encoding="utf-8").read()
+    check("tarball: and the operator's document says it too",
+          re.search(r"tarball[^.]{0,160}stays on the laptop", dep, re.I | re.S)
+          is not None, "deploy/README.md does not say where a pack lives")
+    # GIT ITSELF, not a pattern I typed. The old check grepped .gitignore for
+    # the literal line, which says nothing about whether git would actually
+    # refuse the file -- a producer and a checker each holding their own copy.
+    root = _repo_root()
+
+    def ignored(rel):
+        try:
+            r = subprocess.run(["git", "-C", root, "check-ignore", "-q", rel],
+                               capture_output=True, timeout=15)
+            return r.returncode == 0
+        except Exception:
+            return None
+    tar = ignored("evidence/run-2-20260915-0054.tar.gz")
+    man = ignored("evidence/run-2-20260915-0054.manifest.json")
+    if tar is None:
+        check("tarball: git could not be asked -- unproven, not assumed", False,
+              "no git here")
+    else:
+        check("tarball: git itself refuses a pack tarball under evidence/", tar)
+        check("tarball: and does NOT refuse the manifest, which is the whole "
+              "point of committing one", man is False, man)
 
 
 def test_no_document_hard_codes_the_gate_count():
@@ -3907,7 +4079,12 @@ def test_monitor_alarms_are_edge_triggered():
 
     # And when nothing stands at all, the file is REMOVED rather than left to
     # go stale -- proven by a transition, not by never having created one.
-    rows2 = [r for r in _fixture("0914-healthy-hour") if r["kind"] != "cousin_probe"]
+    # Both halves of the pair go, not just the probes: a verdict left without
+    # its probe is a cousin judging work it was never shown running, which
+    # `complaint_fidelity` is right to raise. Removing only the probes would
+    # have made this a test of a fixture nobody could produce.
+    rows2 = [r for r in _fixture("0914-healthy-hour")
+             if r["kind"] not in ("cousin_probe", "cousin_verdict")]
     d2 = tmpdir()
     root2 = _monitor_root("0914-healthy-hour", d2)
     quiet = os.path.join(root2, "monitor", monstatus.ALARM_FILE)
@@ -3918,15 +4095,324 @@ def test_monitor_alarms_are_edge_triggered():
     with open(os.path.join(root2, "journal.jsonl"), "w", encoding="utf-8") as f:
         for r in rows2:
             f.write(json.dumps(r) + "\n")
-    _md, _data, rc3 = monstatus.run_once(root2, repo=None, now=float(rows2[-1]["ts"]))
+    _md, data3, rc3 = monstatus.run_once(root2, repo=None, now=float(rows2[-1]["ts"]))
     check("edge: and once nothing needs a human the file is REMOVED, and the "
           "run exits clean", not os.path.exists(quiet) and rc3 == monstatus.EXIT_OK,
-          (os.path.exists(quiet), rc3))
+          [f["name"] for f in data3["findings"]
+           if f["state"] == "ALARM" and f.get("human")])
     shutil.rmtree(d2, ignore_errors=True)
     st = json.load(open(os.path.join(root, "monitor", "state.json"), encoding="utf-8"))
     check("edge: the state remembers since-when, per finding",
           "since" in st and "commands_lost_parser" in st["since"], str(st)[:200])
     shutil.rmtree(d, ignore_errors=True)
+
+
+DRILLS = {"giveup": "gave_up", "tool-gone": "tool_vanished",
+          "torn": "journal_integrity", "silence": "engine_silent",
+          "fabricate": "complaint_fidelity"}
+
+
+def test_a_ladder_with_every_rung_walled_never_reads_as_a_wait():
+    """Found by the give-up drill, 2026-09-16, which is what it is for.
+
+    `default_is_wait` says it plainly: *"a rejected credential is not a wait,
+    because waiting cannot fix it and a loop that waits politely forever on a
+    broken key looks exactly like one that is working."* The ladder walls a
+    rung by adding it to a set and skipping it on every later call -- so the
+    SECOND time everything is walled, nothing is tried, `tried` is empty, and
+    `all_walled=bool(tried) and ...` came out **False**. The supervisor then
+    treated a permanently broken credential as weather and waited: 600 waits
+    at 150s is twenty-five hours of an engine looking healthy while nothing
+    could ever answer it.
+
+    The first call was honest; every call after it lied. That is worse than
+    being wrong once, because the symptom appears only after the failure has
+    already been correctly diagnosed and then forgotten.
+    """
+    def dead(_prompt):
+        raise RuntimeError("no credential: /nonexistent.key is empty")
+
+    ask = backends.ladder([("only-rung", dead)], retries=1,
+                          sleep=lambda _s: None)
+    seen = []
+    for _ in range(3):
+        try:
+            ask("hello")
+        except backends.LadderExhausted as e:
+            seen.append(e)
+    check("walled: every attempt is exhausted", len(seen) == 3, len(seen))
+    check("walled: the FIRST exhaustion says every rung was walled",
+          seen[0].all_walled, seen[0])
+    check("walled: and so does every one after it, when the rung is skipped "
+          "because it was already walled", all(e.all_walled for e in seen),
+          [e.all_walled for e in seen])
+    check("walled: so the supervisor counts these as FAILURES, never waits -- "
+          "waiting cannot fix a rejected credential",
+          not any(forever.default_is_wait(e) for e in seen),
+          [forever.default_is_wait(e) for e in seen])
+    # And the opposite case must not be swept up with it: a rung that merely
+    # declined is still weather, and the loop must still wait it out.
+    def busy(_prompt):
+        e = RuntimeError("quota")
+        e.code = 429
+        raise e
+
+    ask2 = backends.ladder([("busy-rung", busy)], retries=1,
+                           sleep=lambda _s: None)
+    try:
+        ask2("hello")
+    except backends.LadderExhausted as e2:
+        check("walled: a rung that DECLINED is still a wait, not a fault",
+              not e2.all_walled and forever.default_is_wait(e2), e2)
+
+
+def test_the_rehearsal_cannot_touch_the_live_run():
+    """PLAN item 6.1/6.7. A harness whose whole purpose is breaking things
+    must be structurally unable to break the thing that is running. Two
+    independent guards, because one guard is a guess: the deployed root is
+    refused by name, and ANY root that already holds a journal is refused
+    whatever it is called -- the second catches a live root moved or renamed,
+    which the first cannot."""
+    import rehearse
+    d = tmpdir()
+    live = os.path.join(d, "growing-cousin", "live")
+    os.makedirs(live)
+    ok, why = rehearse.may_use(live)
+    check("rehearse: the deployed root is refused by name", not ok, why)
+    other = os.path.join(d, "somewhere-else")
+    os.makedirs(other)
+    with open(os.path.join(other, "journal.jsonl"), "w", encoding="utf-8") as f:
+        f.write('{"ts": 1, "kind": "wake"}\n')
+    ok2, why2 = rehearse.may_use(other)
+    check("rehearse: and so is any root that already holds a journal, "
+          "whatever it is called", not ok2, why2)
+    # THE REGRESSION THIS GUARD DID NOT HAVE, and the first run found it: the
+    # runner appends the drill's name to the path it is given, so a target of
+    # `<live>` becomes `<live>/tool-gone` -- neither named `live` nor holding
+    # a journal. It created a directory inside the running deployment. A guard
+    # keyed on one literal, guarding the one thing that must not be touched.
+    inside = os.path.join(live, "tool-gone")
+    ok_in, why_in = rehearse.may_use(inside)
+    check("rehearse: a path INSIDE the deployed root is refused too",
+          not ok_in, why_in)
+    ok_in2, why_in2 = rehearse.may_use(os.path.join(other, "sub", "deeper"))
+    check("rehearse: and so is anything under a root that holds a journal",
+          not ok_in2, why_in2)
+    fresh = os.path.join(d, "scratch")
+    ok3, _why3 = rehearse.may_use(fresh)
+    check("rehearse: a fresh scratch root is allowed", ok3, _why3)
+    # The refusal must be the DEFAULT, not something a caller opts into.
+    try:
+        rehearse.scratch_root(live)
+        refused = False
+    except rehearse.RefusedLiveRoot:
+        refused = True
+    check("rehearse: preparing a refused root raises rather than returning "
+          "something usable", refused)
+
+
+def test_the_drills_give_the_unproven_detectors_their_red():
+    """PLAN item 6.6. Four detectors have never fired on real data because
+    the faults they watch for have never happened in production: the engine
+    has never gone silent, never given up, never torn its journal, never lost
+    a tool off PATH. *A test that has never been seen red is a guess*, so the
+    drills manufacture each fault on a scratch root and keep the journal.
+
+    The fixtures are produced by `rehearse.py` on the laptop and committed;
+    this asserts what they must contain, so a drill that stops reproducing
+    its fault fails here rather than passing quietly.
+    """
+    from monitor import derive, detectors, status as monstatus
+
+    def load(drill):
+        path = os.path.join(FIXTURES, "0916-drill-%s.jsonl" % drill)
+        if not os.path.exists(path):
+            check("drill %s: its fixture exists" % drill, False, path)
+            return None
+        return derive.load(path, tail_bytes=1 << 40)
+
+    # Three are visible IN the journal, so replaying it proves them. The
+    # fabricated verdict is here because `complaint_fidelity` was otherwise
+    # the one detector whose ALARM had only ever been seen on rows a test
+    # made up -- 159 real verdicts produced zero HIGH findings, which is good
+    # news about the cousin and no news at all about the instrument.
+    for drill, detector in (("tool-gone", "tool_vanished"), ("giveup", "gave_up"),
+                            ("fabricate", "complaint_fidelity")):
+        got = load(drill)
+        if not got:
+            continue
+        rows, _complete, _bad = got
+        tl = monstatus.replay(rows, step=1)
+        hit = _first_raise(tl, detector)
+        check("drill %s: `%s` fires on the fault it had never been able to see"
+              % (drill, detector), hit is not None,
+              str(sorted(set(c["name"] for c in tl)))[:200])
+        ctx = detectors.Context(rows, now=float(rows[-1]["ts"]))
+        fs = detectors.run_all(ctx)
+        check("drill %s: and no detector raises on a journal full of faults"
+              % drill, all(f.state != detectors.CANNOT_TELL or "raised" not in f.msg
+                           for f in fs),
+              str([f.msg for f in fs if "raised" in f.msg])[:200])
+
+    # THE TORN JOURNAL cannot be carried by any loader that returns rows: the
+    # fault IS a line that does not parse, so a fixture read normally has
+    # already lost it. Only the load's own bad-count still holds it -- which
+    # is exactly why `journal_integrity` reads that rather than the rows.
+    got = load("torn")
+    if got:
+        rows, complete, bad = got
+        check("drill torn: the fixture still carries the torn line, rather "
+              "than a loader having quietly repaired it", bad >= 1, bad)
+        f = detectors.journal_integrity(
+            detectors.Context(rows, now=float(rows[-1]["ts"]),
+                              complete=complete, bad=bad))
+        check("drill torn: `journal_integrity` reports it",
+              f.state in (detectors.ALARM, detectors.INFO), "%s %s" % (f.state, f.msg))
+        check("drill torn: and it REPORTS rather than repairing -- a monitor "
+              "that rewrites the evidence is not a monitor",
+              "repair" not in f.msg.lower(), f.msg)
+
+    # AN ENGINE THAT STOPPED has no event for it. `engine_silent` reads the
+    # clock, so replaying a journal against its own last timestamp can never
+    # show it -- the age is zero at every step by construction. It is proven
+    # the way the monitor meets it: at a later wall-clock now.
+    got = load("silence")
+    if got:
+        rows, _c, _b = got
+        last = float(rows[-1]["ts"])
+        quiet = detectors.engine_silent(detectors.Context(rows, now=last + 60))
+        check("drill silence: a minute after the last event, nothing is wrong",
+              quiet.state == detectors.OK, "%s %s" % (quiet.state, quiet.msg))
+        gone = detectors.engine_silent(
+            detectors.Context(rows, now=last + (detectors.SILENT_MINUTES + 5) * 60))
+        check("drill silence: past the floor, `engine_silent` fires",
+              gone.state == detectors.ALARM, "%s %s" % (gone.state, gone.msg))
+        stopped = detectors.engine_silent(
+            detectors.Context(rows, now=last + 3600, stop_present=True,
+                              unit={"ActiveState": "inactive"}))
+        check("drill silence: but a deliberate stop is not an alarm -- the "
+              "STOP file is the documented way to stop it",
+              stopped.state == detectors.INFO and not stopped.human,
+              "%s %s" % (stopped.state, stopped.msg))
+
+
+def test_the_giveup_drill_proves_the_chain_systemd_owns():
+    """PLAN item 6.2/6.4. `run.py` exits 5 when the supervisor gives up so
+    that `Restart=on-failure` can fire -- a chain the gate structurally
+    cannot test, because systemd is half of it. The drill runs the real
+    `run.py` under a real throwaway unit and records what happened; this
+    asserts the recorded evidence says what it must.
+
+    The trigger needs no network: a rung whose key file is absent raises
+    `no credential`, which `classify_error` WALLs, so the ladder exhausts
+    all-walled, the supervisor counts failures rather than waits, and five
+    of them end the run.
+    """
+    path = os.path.join(FIXTURES, "0916-drill-giveup.evidence.json")
+    if not os.path.exists(path):
+        check("giveup drill: its evidence was recorded", False, path)
+        return
+    ev = json.load(io.open(path, encoding="utf-8"))
+    check("giveup drill: the run exited 5 -- giving up is not finishing",
+          ev.get("exit_code") == 5, ev.get("exit_code"))
+    check("giveup drill: systemd restarted it rather than leaving it dead",
+          (ev.get("n_restarts") or 0) >= 1, ev.get("n_restarts"))
+    check("giveup drill: and the restarting was BOUNDED -- it ends in `failed` "
+          "for real instead of respawning forever",
+          ev.get("final_state") == "failed", ev.get("final_state"))
+    kinds = ev.get("kinds") or {}
+    check("giveup drill: a walled rung is journalled as needing a human, not "
+          "as weather", (kinds.get("rung_broken") or 0) > 0, kinds)
+    check("giveup drill: and the loop recorded that it gave up, as a FLAG",
+          ev.get("loop_end_fault") is True, ev.get("loop_end_fault"))
+    check("giveup drill: the live journal was byte-identical before and after",
+          ev.get("live_unchanged") is True, ev.get("live_unchanged"))
+    check("giveup drill: the unit it ran under carried no sandbox, so the "
+          "selfcheck could record a DISPROVEN bound rather than only ever "
+          "passing", ev.get("selfcheck_home_write_blocked") is False,
+          ev.get("selfcheck_home_write_blocked"))
+
+
+def test_the_census_runs_by_itself():
+    """PLAN item 1. `census.py` is the only thing that checks the manager --
+    CLAUDE.md §6.1's oldest open item, built 2026-09-12 -- and nothing has
+    ever invoked it on a schedule. It ran when a human typed it, which is
+    the *dead channel* scar in a new costume: an instrument that exists and
+    is never called is not an instrument.
+
+    A fabricated complaint is the exact fault this whole design exists to
+    prevent, committed by the agent meant to catch it, so it is the one
+    finding that must reach a human by itself.
+    """
+    from monitor import detectors, status as monstatus
+    names = [d.__name__ for d in detectors.ALL]
+    check("census: the complaint-fidelity check runs with every other detector",
+          "complaint_fidelity" in names, names)
+    now = time.time()
+
+    def finding(rows):
+        return detectors.complaint_fidelity(detectors.Context(rows, now=now))
+
+    # A verdict describing an event the kernel did not record.
+    fab = finding([
+        {"ts": now - 300, "kind": "cousin_probe", "tool": "plan",
+         "exit_code": 0, "bare": False, "stdout": "ok", "stderr": ""},
+        {"ts": now - 290, "kind": "cousin_verdict", "verdict": "RETURNED",
+         "rung": "r", "tried": "I ran plan", "outcome": "it crashed",
+         "to_creature": "plan exited with code 3 and printed nothing"}])
+    check("census: a verdict claiming an exit its probe never produced is an "
+          "ALARM", fab.state == detectors.ALARM, "%s %s" % (fab.state, fab.msg))
+    check("census: and it needs a human -- a fabricated complaint is the fault "
+          "the design exists to prevent", fab.human, fab.msg)
+    check("census: which names the tool the testimony was about",
+          "plan" in fab.msg or "plan" in str(fab.evidence), fab.msg)
+    check("census: the severity comes from census itself, not a second copy of "
+          "its rules", "HIGH" in fab.msg or "HIGH" in str(fab.evidence), fab.msg)
+
+    # Testimony that matches the record -- including a usage refusal, which
+    # the brief counts as the tool working.
+    ok = finding([
+        {"ts": now - 300, "kind": "cousin_probe", "tool": "plan",
+         "exit_code": 2, "bare": True, "stdout": "", "stderr": "usage: plan <cmd>"},
+        {"ts": now - 290, "kind": "cousin_verdict", "verdict": "ACCEPTED",
+         "rung": "r", "tried": "I ran plan with no arguments",
+         "outcome": "it asked me for a command",
+         "to_creature": "I ran plan and it told me what it needs."}])
+    check("census: testimony that matches the record is OK",
+          ok.state == detectors.OK, "%s %s" % (ok.state, ok.msg))
+
+    # Nothing to check is NOT a clean bill.
+    empty = finding([{"ts": now - 60, "kind": "wake", "context_chars": 10}])
+    check("census: no verdict with a recorded probe is CANNOT_TELL, never OK "
+          "-- it means the instrument has never run",
+          empty.state == detectors.CANNOT_TELL, "%s %s" % (empty.state, empty.msg))
+
+    # VERDICTS WITH NO PROBE AT ALL. `census.pair_up` emits `(None, verdict)`,
+    # so "no pair" and "no verdict" are not the same question -- and asking
+    # the wrong one gave a clean bill to a run whose probes were never
+    # journalled. Constructed by an independent verifier, 2026-09-16.
+    orphans = finding([
+        {"ts": now - 300, "kind": "cousin_verdict", "verdict": "UNKNOWN",
+         "rung": "r", "error": "no-block"},
+        {"ts": now - 200, "kind": "cousin_verdict", "verdict": "UNKNOWN",
+         "rung": "r", "error": "no-block"}])
+    check("census: verdicts with no probe EVER recorded is CANNOT_TELL, not a "
+          "clean bill", orphans.state == detectors.CANNOT_TELL,
+          "%s %s" % (orphans.state, orphans.msg))
+
+    # And one verdict tripping two census rules is still ONE verdict.
+    two = finding([
+        {"ts": now - 300, "kind": "cousin_probe", "tool": "plan",
+         "exit_code": 0, "bare": False, "stdout": "ok", "stderr": ""},
+        {"ts": now - 290, "kind": "cousin_verdict", "verdict": "RETURNED",
+         "rung": "r", "tried": "I ran plan", "outcome": "it crashed",
+         "to_creature": "plan exited with code 3 and then crashed"}])
+    check("census: the count on the page is of VERDICTS, so one verdict "
+          "breaking two rules never reads as '2 of 1'",
+          re.search(r"\b1 of 1 verdicts\b", two.msg) is not None, two.msg)
+
+    check("census: the page carries its runbook line",
+          "complaint_fidelity" in monstatus.RUNBOOK, sorted(monstatus.RUNBOOK))
 
 
 def test_a_broken_monitor_does_not_report_as_a_finding():
@@ -4274,6 +4760,15 @@ def main():
     for fn in (test_monitor_detectors_fire_where_the_scars_happened,
                test_monitor_writes_only_its_own_directory,
                test_monitor_alarms_are_edge_triggered,
+               test_a_ladder_with_every_rung_walled_never_reads_as_a_wait,
+               test_the_rehearsal_cannot_touch_the_live_run,
+               test_the_drills_give_the_unproven_detectors_their_red,
+               test_the_giveup_drill_proves_the_chain_systemd_owns,
+               test_the_census_runs_by_itself,
+               test_the_chat_channel_is_a_scheduled_intention,
+               test_the_inherited_library_is_recorded_as_not_executed,
+               test_the_cousins_audit_has_a_named_trigger,
+               test_the_evidence_tarballs_home_is_recorded,
                test_a_broken_monitor_does_not_report_as_a_finding,
                test_monitor_page_names_its_engine_and_windows,
                test_the_monitor_unit_is_read_only_over_the_evidence,

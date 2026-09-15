@@ -1,0 +1,8 @@
+{"ts": 1789511218.3658614, "kind": "wake", "context_chars": 30, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511218.372589, "kind": "think", "chars": 22, "model": "scripted", "rung": null, "finish": "stop", "raw": "[dropped from fixture]", "raw_chars": 22}
+{"ts": 1789511218.3787832, "kind": "exec_start", "block": 1, "cmd": "echo alive"}
+{"ts": 1789511218.3843307, "kind": "exec_end", "block": 1, "exit_code": 0, "stdout": "alive\n", "stderr": ""}
+{"ts": 1789511218.3870258, "kind": "wake", "context_chars": 512, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789511218.3888311, "kind": "think", "chars": 27, "model": "scripted", "rung": null, "finish": "stop", "raw": "[dropped from fixture]", "raw_chars": 27}
+{"ts": 1789511218.3942215, "kind": "exec_start", "block": 1, "cmd": "echo still here"}
+{"ts": 1789511218.3995233, "kind": "exec_end", "block": 1, "exit_code": 0, "stdout": "still here\n", "stderr": ""}

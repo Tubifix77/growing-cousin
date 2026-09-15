@@ -136,9 +136,18 @@ def main():
                   .replace("\n", " "))
 
     print()
-    if not pairs:
-        print("NOTHING TO CHECK -- no verdict had a recorded probe. That is not "
-              "a clean bill;\nit means the instrument has never run.")
+    # A PAIR WITH NO PROBE IS NOT A PAIR. `pair_up` emits `(None, verdict)`
+    # for a verdict it could not match, so `if not pairs` asked "were there
+    # any verdicts" -- and a run whose probes were never journalled at all
+    # printed "No verdict contradicted the record", which is the clean bill
+    # this branch exists to refuse. Found 2026-09-16 by an independent
+    # verification of the detector that wraps this file; the same fault was
+    # in both, because the detector faithfully inherits these rules.
+    probed = [p for p, _v in pairs if p is not None]
+    if not probed:
+        print("NOTHING TO CHECK -- no verdict had a recorded probe (%d verdict(s) "
+              "seen, none\nwith one). That is not a clean bill; it means the "
+              "instrument has never run." % len(pairs))
     elif not findings:
         print("No verdict contradicted the record. That is the most this can "
               "say: it is\nevidence of no detected fabrication, never evidence "

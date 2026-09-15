@@ -82,6 +82,11 @@ RUNBOOK = {
                      "A want the cousin cannot verify (bare probe) or whose answers "
                      "it cannot see (hidden tool) repeats forever; the fix is in the "
                      "framework's probe or listing, never in the creature.",
+    "complaint_fidelity": "Read the verdict and its probe TOGETHER before concluding "
+                          "the cousin was wrong -- the harness has invented faults "
+                          "before, and `census.py --root live` prints both. Never "
+                          "edit a verdict (§2.2): it is testimony, and rewriting it "
+                          "makes this census meaningless.",
     "probe_stuck": "Engine.choose_target has no default since 2026-09-15 -- read "
                    "cousin_probe.picked_by on the stuck probes. `least_probed` "
                    "should walk the library; anything else sitting on one tool is "

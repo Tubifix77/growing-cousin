@@ -465,5 +465,9 @@ tried to extend it.
 
 Every one of those looked, from outside, like a creature going in circles.
 
-**Still missing:** no chat channel, and `DockerBody` is written but never
-exercised — the deployed body is local.
+**Still missing, and both are now scheduled rather than merely absent
+(`PLAN.md`, 2026-09-16):** the chat channel is **wanted** and is item 14 — it
+lands last on purpose, because it adds a surface to the creature's context and
+must not arrive while anything is being measured. `DockerBody` is written but
+never exercised — the deployed body is local, which is also why the creature's
+shell still shares a uid with the engine's key files (item 7).

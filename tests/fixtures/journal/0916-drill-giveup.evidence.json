@@ -1,0 +1,31 @@
+{
+ "exit_code": 5,
+ "final_state": "failed",
+ "kinds": {
+  "engine_start": 2,
+  "loop_end": 2,
+  "loop_error": 10,
+  "loop_start": 2,
+  "preflight_failed": 2,
+  "rung_broken": 2,
+  "selfcheck": 2,
+  "think_deferred": 10,
+  "wake": 10
+ },
+ "live_entries": [
+  "body",
+  "context.md",
+  "engine.log",
+  "journal.jsonl",
+  "monitor",
+  "quota.json",
+  "vitals.jsonl"
+ ],
+ "live_unchanged": true,
+ "loop_end_fault": true,
+ "loop_end_reason": "5 consecutive failures",
+ "n_restarts": 2,
+ "result": "exit-code",
+ "selfcheck_home_write_blocked": false,
+ "unit": "cousin-giveup-drill.service"
+}

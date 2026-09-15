@@ -554,6 +554,15 @@ guidance recur as a fault after being given?**
 **Direction: copy them.** Decided in discussion 2026-09-10, reversing this
 document's first recommendation. One sub-question below is still open.
 
+> **AND IT WAS NEVER DONE — recorded 2026-09-16.** Run 1 and run 2 both began
+> from nothing: no journal, no context, no memory, no tools. So everything
+> below is a plan that has not been executed, the refutation-in-a-week it
+> argues for has never been attempted, and every reading of the cousin's
+> judgement so far comes from a library with no known answers in it. Bound to
+> run 3 — `PLAN.md` item 11, `CLAUDE.md` §6.2. Two documents disagreeing about
+> what happened is the fault an outside review found here on 2026-09-13, so
+> this note exists in both.
+
 The two options answer different questions, and the first draft picked the wrong
 one as primary:
 

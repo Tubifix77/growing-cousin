@@ -20,6 +20,7 @@ journal where its scar actually happened, and the gate asserts it fires there
 at or before the moment a human noticed, and stays quiet on a healthy hour.
 """
 import collections
+import os
 import re
 import time
 
@@ -780,11 +781,128 @@ def deploy_regression(ctx):
                    ev, human=False)
 
 
+# ------------------------------------------------- is the manager honest?
+
+# The census is cheap and the window is generous: a fabricated complaint is
+# rare, and an old one is still worth seeing because nothing else will ever
+# report it.
+CENSUS_LOOKBACK_H = 24
+
+
+def complaint_fidelity(ctx):
+    """Does the cousin's testimony describe events the kernel recorded?
+
+    `census.py` has existed since 2026-09-12 as the answer to CLAUDE.md
+    §6.1 -- *nothing else checks the manager* -- and **nothing ever ran it on
+    a schedule.** It reported when a human typed it, which is the dead-channel
+    scar in a new costume: a channel nothing routes to is dead however
+    carefully it was built. This routes to it.
+
+    The rules stay in `census.check`. Re-stating them here would be a producer
+    and a checker each carrying their own copy, which is how `wants()` and the
+    context writer drifted in one afternoon.
+
+    **A HIGH is the only thing that reaches a human**, because a HIGH is a
+    verdict describing an event that did not happen -- the exact fault this
+    design exists to prevent, committed by the agent meant to catch it. LOW
+    and MED are worth reading and are not worth waking anyone for: "never
+    names the tool it ran" is a style, not a lie.
+
+    Like the census itself, this REPORTS and never gates. A census that can
+    block a cycle is a second judge with no judge of its own.
+
+    **What it inherits, stated rather than discovered later.** An independent
+    verification on 2026-09-16 constructed both halves:
+
+    - *False negatives.* Census's exit-code regex matches `exit[ed with] N`
+      and nothing else, so *"returned 3"* and *"exit status 3"* pass; and
+      nothing compares claimed OUTPUT against recorded stdout. A cousin that
+      accepts a bare usage line while describing an invocation it never made
+      -- the live shape of 2026-09-15 -- reads as OK here.
+    - *False positives.* The crash words are hunted as literals with no
+      negation handling, so *"ran with no traceback and no crash"* trips
+      HIGH. Zero HIGH findings exist in 159 real verdicts, so this has never
+      fired in anger, but the runbook line carries the caution for when it
+      does: read the verdict and its probe together before believing it.
+
+    Both belong to `census.check`, not here, and fixing them changes the only
+    instrument that watches the manager -- so it needs its own before/after
+    rather than a patch smuggled in behind a wiring change.
+    """
+    import sys as _sys
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if here not in _sys.path:
+        _sys.path.insert(0, here)
+    try:
+        import census
+    except Exception as e:                      # noqa: BLE001 -- reported
+        return Finding("complaint_fidelity", CANNOT_TELL,
+                       "census is not importable: %s: %s" % (type(e).__name__, e))
+    # Paired over the WHOLE tail and filtered afterwards. Pairing inside the
+    # window alone would orphan any verdict whose probe fell just outside it
+    # and report "judged work it was never shown running" about a probe that
+    # is simply older than the window -- a checker manufacturing its own
+    # finding, which is this project's most expensive shape.
+    lo = ctx.now - CENSUS_LOOKBACK_H * 3600
+    pairs = [(p, v) for p, v in census.pair_up(ctx.rows) if _ts(v) >= lo]
+    # **A PAIR WITH NO PROBE IS NOT A PAIR.** `pair_up` emits `(None, verdict)`
+    # for a verdict it could not match, so testing `if not pairs` asked "were
+    # there any verdicts", not "was anything actually checked" -- and a window
+    # of UNKNOWN verdicts with no probe ever written came back OK, *"none
+    # contradicting the record"*, which is precisely the clean bill this
+    # branch exists to refuse. Found 2026-09-16 by the independent verifier,
+    # who constructed the case rather than reading the code.
+    probed = [(p, v) for p, v in pairs if p is not None]
+    if not probed:
+        return Finding("complaint_fidelity", CANNOT_TELL,
+                       "no verdict in %dh had a recorded probe (%d verdict(s) "
+                       "seen, none with one) -- that is not a clean bill, it "
+                       "means the instrument has never run"
+                       % (CENSUS_LOOKBACK_H, len(pairs)), human=False)
+    hits = []
+    for probe, v in pairs:
+        for sev, text in census.check(probe, v):
+            hits.append({"severity": sev, "tool": (probe or {}).get("tool"),
+                         "finding": text, "ts": _ts(v),
+                         "said": (v.get("to_creature") or "")[:120]})
+    # COUNT VERDICTS, NOT FINDINGS. One verdict trips two census rules
+    # routinely -- a claimed exit code and the word "crashed" travel together
+    # in the natural phrasing -- and formatting a count of findings into
+    # "%d of %d verdicts" printed `2 of 1 verdicts` on the status page: a
+    # clean-looking wrong number rather than an error, which is the oldest
+    # fault in this file's §5.
+    def verdicts(rows):
+        return len(set(h["ts"] for h in rows))
+    high = [h for h in hits if h["severity"] == "HIGH"]
+    if high:
+        h = high[-1]
+        return Finding("complaint_fidelity", ALARM,
+                       "%d of %d verdicts in %dh describe something the kernel "
+                       "did not record -- latest, on `%s`: [HIGH] %s"
+                       % (verdicts(high), len(probed), CENSUS_LOOKBACK_H,
+                          h["tool"], h["finding"]),
+                       {"checked": len(probed), "high": verdicts(high),
+                        "hits": hits[-8:]},
+                       scar="a fabricated complaint is the fault this design "
+                            "exists to prevent, by the agent meant to catch it")
+    if hits:
+        return Finding("complaint_fidelity", INFO,
+                       "%d of %d verdicts in %dh carry a minor discrepancy (%s); "
+                       "none describes an event that did not happen"
+                       % (verdicts(hits), len(probed), CENSUS_LOOKBACK_H,
+                          ", ".join(sorted(set(h["severity"] for h in hits)))),
+                       {"checked": len(probed), "hits": hits[-8:]}, human=False)
+    return Finding("complaint_fidelity", OK,
+                   "%d verdict(s) in %dh, none contradicting the record -- "
+                   "evidence of no detected fabrication, never evidence of "
+                   "honesty" % (len(pairs), CENSUS_LOOKBACK_H))
+
+
 ALL = (engine_silent, gave_up, unusable_verdicts, commands_lost,
        repeated_failure, want_retired_unacted, want_never_served,
        served_context_contract, tool_vanished, selfcheck_disproven,
        restart_owed, ladder_dry, journal_integrity, twin_pressure,
-       deploy_regression, want_repeated, probe_stuck)
+       deploy_regression, want_repeated, probe_stuck, complaint_fidelity)
 
 
 def run_all(ctx, detectors=ALL):
