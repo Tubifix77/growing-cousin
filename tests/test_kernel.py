@@ -2657,6 +2657,18 @@ def test_the_engine_unit_runs_the_creature_in_a_container():
           "the previous image is usually still good",
           any(l.startswith("ExecStartPre=-") and "docker build" in l
               for l in pre), pre)
+    # ...but an advisory step that can NEVER succeed is worse than no step.
+    # buildx stamps an activity file under DOCKER_CONFIG, and
+    # `ProtectHome=read-only` makes the default `~/.docker` unwritable, so the
+    # build failed on every start while the `-` hid it.
+    cfg = [l for l in flat.splitlines() if l.startswith("Environment=DOCKER_CONFIG=")]
+    rw = [l.split("=", 1)[1] for l in flat.splitlines()
+          if l.startswith("ReadWritePaths=")]
+    check("unit: docker's config dir is redirected somewhere it can write",
+          len(cfg) == 1, cfg)
+    check("unit: and that somewhere is inside a path the unit may write to",
+          cfg and any(cfg[0].split("=", 2)[2].startswith(p) for p in rw),
+          "%s vs %s" % (cfg, rw))
     check("unit: the stale comment claiming the keys are open is gone",
           "The key files are NOT closed by this" not in unit, "")
 

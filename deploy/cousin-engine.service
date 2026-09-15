@@ -39,6 +39,15 @@ ExecStartPre=/bin/mkdir -p %h/growing-cousin/live
 # access to the docker socket -- tested in a throwaway unit carrying the same
 # directives, because a directive read back off a unit proves it was parsed
 # and never that it works.
+#
+# DOCKER_CONFIG must point somewhere WRITABLE or the build can never succeed:
+# buildx stamps an activity file under it, and `ProtectHome=read-only` makes
+# the default `~/.docker` unwritable. Observed on the first container start --
+# `failed to update builder last activity time: read-only file system` -- and
+# the `-` prefix meant the engine came up happily on the previous image while
+# the build had become a line that could never work. A step that always fails
+# silently is worse than no step.
+Environment=DOCKER_CONFIG=%h/growing-cousin/live/.docker
 ExecStartPre=-/usr/bin/docker build -t growing-cousin-body \
     -f %h/growing-cousin/deploy/Dockerfile %h/growing-cousin/deploy
 # --cycles 0 means no ceiling. Stop it with `touch %h/growing-cousin/live/STOP`,
