@@ -741,7 +741,7 @@ Five layers, of which the kernel owns the first:
 
 | layer | where | what |
 |---|---|---|
-| **RECORD** | `kernel/` | one kind per event with structured fields. Added 2026-09-15: `engine_start` (commit, dirty, caps, rungs — so every window can name its instrument), served facts on `wake` (`library_shown/total`, `wants_served`, `window`), `selfcheck` at every start (the sandbox and PATH tested by their EFFECT, recorded, never a veto), `loop_end.fault` |
+| **RECORD** | `kernel/` | one kind per event with structured fields. Added 2026-09-15: `engine_start` (commit, dirty, caps, rungs — so every window can name its instrument), served facts on `wake` (`library_shown/named/total`, `wants_served`, `window`), `selfcheck` at every start (the sandbox and PATH tested by their EFFECT, recorded, never a veto), `loop_end.fault`, and `cousin_probe.picked_by` — WHY the cousin was sent to that tool, because the first evening's read found the unrecorded reason had been "alphabetically last" for two days |
 | **DERIVE** | `monitor/derive.py` | counts and ratios of counts, split by rung; a ratio over few events is labelled an anecdote |
 | **DETECT** | `monitor/detectors.py` | one detector per scar. Each returns OK / ALARM / CANNOT_TELL / INFO — never a boolean, because a detector that cannot see enough must say so rather than report OK. Floors are declared in the source with the measurement behind each |
 | **PRESENT** | `monitor/status.py` | `live/monitor/status.md` + `.json` regenerated every five minutes; `alarms.jsonl` written only on a change of state; `regression/<sha>-<start>.md` written once per engine start, an hour in |

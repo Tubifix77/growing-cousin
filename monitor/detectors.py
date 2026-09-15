@@ -394,15 +394,112 @@ def served_context_contract(ctx):
                        "knows %d tools" % len(ctx.library),
                        {"wake_ts": _ts(w), "journal_library": len(ctx.library)},
                        scar="the builder's library gap survived a day")
-    if shown < total:
+    named = w.get("library_named")
+    if named is None:
+        # An engine older than the names-only tail: past the limit WAS hidden.
+        if shown < total:
+            return Finding("served_context_contract", ALARM,
+                           "%d of %d tools are beyond the listing limit and are "
+                           "shown to NOBODY" % (total - shown, total),
+                           {"shown": shown, "total": total},
+                           scar="a bound nobody chose, obeyed forever")
+    elif named < total:
         return Finding("served_context_contract", ALARM,
-                       "%d of %d tools are beyond the listing limit and are "
-                       "shown to NOBODY" % (total - shown, total),
-                       {"shown": shown, "total": total},
+                       "%d of %d tools are not even NAMED on the page"
+                       % (total - named, total), {"named": named, "total": total},
                        scar="a bound nobody chose, obeyed forever")
+    elif shown < total:
+        return Finding("served_context_contract", INFO,
+                       "%d of %d tools are past the full-entry limit and shown by "
+                       "name and purpose only" % (total - shown, total),
+                       {"shown": shown, "total": total}, human=False)
     return Finding("served_context_contract", OK,
                    "last wake served %d/%d tools, %s want(s), window %s"
                    % (shown, total, w.get("wants_served"), w.get("window")))
+
+
+# ------------------------------------------------- the loop closed on nothing
+
+# The same want issued three of the last five times. Run 2, 2026-09-15: one
+# want six times in eighteen hours, each behind an ACCEPT of a usage line the
+# cousin could not get past, while the creature built five different tools to
+# answer it. A direction channel that repeats itself is a loop closed on
+# nothing, whatever the verdicts say.
+WANT_REPEAT_LAST_N, WANT_REPEAT_MIN = 5, 3
+# The same tool probed five of the last eight visits that were NOT about a
+# tool just written. 2026-09-15: `view-subtask-logs` 28 of 30 -- and on
+# 2026-09-13 `plan` 30 times -- because the chooser defaulted to the
+# alphabetically last name. Probes on TOOL_WRITE visits are excluded: a tool
+# rewritten five times is legitimately probed five times.
+PROBE_STUCK_LAST_N, PROBE_STUCK_MIN = 8, 5
+
+
+def _norm(text):
+    return re.sub(r"[^a-z0-9 ]", "", re.sub(r"\s+", " ", (text or "").lower())).strip()
+
+
+def want_repeated(ctx):
+    """A want restating itself is the run-1 failure mode returning: nothing
+    the creature builds discharges it, because the cousin cannot verify what
+    it asks for (a bare probe) or cannot see what was built (a hidden tool)."""
+    wants = [r for r in ctx.recent(24) if r.get("kind") == "cousin_want"]
+    last = wants[-WANT_REPEAT_LAST_N:]
+    if len(last) < WANT_REPEAT_MIN:
+        return Finding("want_repeated", CANNOT_TELL,
+                       "%d want(s) in 24h; need %d" % (len(last), WANT_REPEAT_MIN),
+                       human=False)
+    counts = collections.Counter(_norm(r.get("text")) for r in last)
+    text, n = counts.most_common(1)[0]
+    if n >= WANT_REPEAT_MIN:
+        hits = [r for r in last if _norm(r.get("text")) == text]
+        return Finding("want_repeated", ALARM,
+                       "the same want %d of the last %d times -- \"%s\" -- the "
+                       "loop is closed on nothing: the cousin cannot verify the "
+                       "capability it asks for, or cannot see what was built"
+                       % (n, len(last), (hits[-1].get("text") or "")[:90]),
+                       {"n": n, "of": len(last), "first_ts": _ts(hits[0]),
+                        "last_ts": _ts(hits[-1]), "text": hits[-1].get("text")},
+                       scar="a channel with no completion signal is re-served forever")
+    return Finding("want_repeated", OK, "%d distinct of the last %d wants"
+                   % (len(counts), len(last)))
+
+
+def probe_stuck(ctx):
+    """The cousin sent to the same tool again and again on visits that were
+    not about a tool just written: a chooser fault, never the creature's.
+    Uses `picked_by` where the probe recorded it, the trigger before it
+    otherwise."""
+    recent = ctx.recent(24)
+    trig, probes = None, []
+    for r in recent:
+        k = r.get("kind")
+        if k == "trigger_fired":
+            trig = r.get("type")
+        elif k == "cousin_probe":
+            how = r.get("picked_by")
+            about_a_write = (how in ("new", "written")) if how else (trig == "TOOL_WRITE")
+            if not about_a_write:
+                probes.append(r)
+    last = probes[-PROBE_STUCK_LAST_N:]
+    if len(last) < PROBE_STUCK_MIN:
+        return Finding("probe_stuck", CANNOT_TELL,
+                       "%d probe(s) in 24h not about a fresh write; need %d"
+                       % (len(last), PROBE_STUCK_MIN), human=False)
+    counts = collections.Counter(r.get("tool") for r in last)
+    tool, n = counts.most_common(1)[0]
+    if n >= PROBE_STUCK_MIN:
+        hows = collections.Counter(r.get("picked_by") or "(unrecorded)" for r in last
+                                   if r.get("tool") == tool)
+        return Finding("probe_stuck", ALARM,
+                       "its user was sent to `%s` on %d of the last %d visits not "
+                       "about a fresh write (picked by: %s) -- a chooser fault in "
+                       "the framework, not a fact about the tool"
+                       % (tool, n, len(last), dict(hows)),
+                       {"tool": tool, "n": n, "of": len(last),
+                        "last_ts": _ts(last[-1])},
+                       scar="the framework manufactures work and the creature is billed")
+    return Finding("probe_stuck", OK, "%d tools across the last %d such probes"
+                   % (len(counts), len(last)))
 
 
 def tool_vanished(ctx):
@@ -687,7 +784,7 @@ ALL = (engine_silent, gave_up, unusable_verdicts, commands_lost,
        repeated_failure, want_retired_unacted, want_never_served,
        served_context_contract, tool_vanished, selfcheck_disproven,
        restart_owed, ladder_dry, journal_integrity, twin_pressure,
-       deploy_regression)
+       deploy_regression, want_repeated, probe_stuck)
 
 
 def run_all(ctx, detectors=ALL):

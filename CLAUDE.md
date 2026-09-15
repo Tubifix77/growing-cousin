@@ -55,16 +55,22 @@ owed; do not work it out from `git log` and systemd by hand again.
 non-zero and systemd restarts it, bounded to 5 starts per 30 minutes; the page's
 `gave_up` and `engine_silent` findings say so if that ever stops being true.
 
-**The monitor's first alarm, for the morning read:** at 00:50 on 2026-09-15 it
-raised `commands_lost[gemini/gemma-4-31b-it]` — 3 of the last 20 thinks cut at
-`finish=length` with the command lost, exactly the declared 15% floor (run 2's
-baseline was 3.4%). Real truncations, not a parser fault (`commands_lost_parser`
-was OK). Two readings are possible and `alarms.jsonl` decides between them: if
-it raises and clears every few hours, **the floor is the question** — n=20 is
-one truncation wide at 15% — and the fix is hysteresis in the detector, not
-anything in the creature; if it stands, the creature's 3072-token budget is
-being hit more often than in run 2's first day, which is a tuning question and
-needs several windows split by rung before anyone touches the budget.
+**The first day of the monitor, read 2026-09-15 18:55 (18 hours unattended):**
+`commands_lost[gemini]` raised 00:50 (3/20) and cleared 03:25, never flapped —
+the floor stands, nothing to tune. `served_context_contract` raised 07:00 when
+the library crossed 40 — and the page's "Latest" showed the same want and the
+same accept three times running, which led to the §5 scar of that date: the
+probe chooser's alphabetical default and the listing's alphabetical cut had
+manufactured six identical wants and five twins. Both fixed the same evening
+(`Engine.choose_target`, names-only tail in `library.render`), two detectors
+added (`want_repeated`, `probe_stuck`), engine restarted on the commit the
+page names. **What to read next time:** `probe_stuck` should be OK with
+`picked_by=least_probed` walking the library; `want_repeated` should clear
+once the cousin's wants move on; `served_context_contract` should be INFO
+("shown by name and purpose only"), never ALARM. If the same want persists
+with the chooser fixed, the remaining cause is the **bare probe** — the cousin
+cannot supply arguments — which is the design question in §6 (a shell for the
+cousin), not a patch.
 
 **Frozen, and the condition to unfreeze it.** `MANAGER-PROMPT.md` and
 `CREATURE-PROMPT.md` are NOT to be edited. Three prompt changes shipped on
@@ -84,7 +90,8 @@ against held-out cases, which `trial/` could carry and currently does not.
 | "nothing is being produced" | count tool writes BOTH ways — `tool-edit NAME` **and** `cat > tools/own/NAME`. A tool-edit-only count undersells by half. |
 | "the tier is broken" | a flat think count with `loop_waiting` climbing is weather. Never restart to clear it. The page's `ladder_dry` line says so, with times. |
 | "is it healthy?" / "what happened overnight?" | `cat live/monitor/status.md`, then `tail live/monitor/alarms.jsonl`. Grepping the journal by hand is how the tool-write count was undersold by half. |
-| "`plan` has 30 real failures" | 36 of `subagent-orchestrator`'s 43 probes and 30 of `plan`'s 31 predate the `bare` flag and are **unqualified**, not failures. The library now says so to both inhabitants; it used to say FAILED. |
+| "`plan` has 30 real failures" | 36 of `subagent-orchestrator`'s 43 probes and 30 of `plan`'s 31 predate the `bare` flag and are **unqualified**, not failures — and `plan` was probed 30 times because it was the **alphabetically last tool** and the chooser defaulted to it (§5, 2026-09-15). The library now says so to both inhabitants; it used to say FAILED. |
+| "the cousin keeps asking for the same thing" / "the creature keeps building twins" | check `probe_stuck` and `want_repeated` on the page FIRST. On 2026-09-15 six identical wants and five twins were the chooser sending the cousin to `view-subtask-logs` bare, 28 of 30 visits. |
 
 **Habits this session had to learn the hard way**, all cheap and all mine:
 
@@ -648,6 +655,38 @@ was measured, with what, and on what date.*
   on, it is a BRIEF matter, and it is frozen until it can be measured properly
   rather than patched at midnight.
 
+- **ALPHABETICAL ORDER WAS AN IMPLICIT CHOOSER IN TWO PLACES, AND IT
+  MANUFACTURED A DAY OF TWINS.** 2026-09-15, found at 18:55 in the monitor's
+  first evening read, eighteen hours after it began. (1) `pick_target`'s
+  fallback was `tools_after[-1]` — the alphabetically last tool — taken on
+  every `DONE_CLAIM` and `STALL` visit for the life of run 2. On 2026-09-13
+  that was `plan`: **30 probes, bare**, which is the whole of the "1 worked
+  and 30 failed" reading, not only the bare-call artifact. From 2026-09-14 it
+  was `view-subtask-logs`: **63 probes; 28 of 30 non-write visits in eighteen
+  hours**; each exited 2 with its usage line, the brief correctly counted that
+  as the tool working, the cousin ACCEPTED, and — unable to run it *with*
+  IDs — asked for *"retrieve logs for multiple parent task IDs"* **six
+  times**. The creature answered five different ways (`view-multi-`,
+  `view-recursive-`, `view-multiple-subtask-logs`, `synthesize-multi-parent-
+  logs`, `subtask-logs-multi`). (2) The listing was `names[:40]`, alphabetical,
+  so from 07:00 the seven tools past the cut were **exactly those answers** —
+  shown to nobody, so it could not see them and built the next. Thirteenth
+  instance of *the framework manufactures work and the creature is billed for
+  it*, and it reverses part of the 2026-09-14 scar: this batch of twins was
+  not the cousin's judgement.
+
+  **Invariant: a position in a sorted list is never a reason.** Every choice
+  the framework makes on the creature's behalf carries its reason as a
+  recorded field (`cousin_probe.picked_by`: `new` / `written` / `ran` /
+  `least_probed`), and a bound on a listing DEGRADES it — name and purpose
+  past the limit — and never hides from it. `want_repeated` and `probe_stuck`
+  now fire within three visits; replayed, they fire on every fixture this repo
+  has, including the one cut as a "healthy hour", because the fault was live
+  in all of them. **Proven with the journal before believed** (the chains
+  trigger → probe → verdict → want, since start), per the top scar — and the
+  proof took one query because the page had already pointed at the exact
+  three identical want/verdict pairs.
+
 - **The record was corrected and the display was not, so both inhabitants
   kept being shown a broken floor for a day after the misreading was found.**
   2026-09-15. `cousin_probe` gained `bare` on 2026-09-14 (f52ac78) and the
@@ -974,6 +1013,15 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
 > finding was that these sections drift fastest in the sessions that work
 > hardest. First live render, 00:38: 0 alarms, 4 cannot-tell, 3 informational;
 > `selfcheck` proved all six deployment effects; run 2 stands at 37 tools.
+>
+> **Evening read, 2026-09-15 18:52, engine `00d77d1` since 00:56:** 424
+> wakes / 157 thinks / 212 commands; 17 verdicts (gemini 14 ACCEPTED, 2
+> RETURNED; groq 1 ACCEPTED); 16 wants, **11 distinct — one of them six
+> times**; 10 tools added, 0 removed, **47 in the library** (`archive-*` ×10,
+> `plan-*` ×9, `subtask-*` ×6, `view-*` ×4). Probes: 4 worked / 41 asked for
+> arguments / 0 failed. `rung_broken` 0. The six-times want and the `view-*`
+> family are the chooser fault (§5); the numbers after the 19:xx restart are
+> the first measured without it.
 
 **Measured over run 2 entire, 2026-09-13 12:48 to 2026-09-14 23:48 (35.0 h).
 The engine changed roughly twenty times inside that window, so these are

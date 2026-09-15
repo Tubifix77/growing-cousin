@@ -3674,13 +3674,17 @@ def test_monitor_detectors_fire_where_the_scars_happened():
     events is a wolf-crier nobody reads. Then the control: a healthy hour
     must raise nothing a human has to look at.
     """
-    from monitor import detectors, status as monstatus
+    from monitor import derive, detectors, status as monstatus
 
     # A. 2026-09-13: gemini served 14 UNKNOWN in a row; read as weather for
     #    four hours. The fourth arrived 16:22. Same slice: a want retired at
-    #    17:42 with no tool write since it was issued.
+    #    17:42 with no tool write since it was issued. And `plan`, probed 22
+    #    times -- the chooser's alphabetical default, found 2026-09-15.
     rows = _fixture("0913-gemini-unusable-and-want-unacted")
     tl = monstatus.replay(rows, step=1)
+    stuck = _first_raise(tl, "probe_stuck")
+    check("replay: probe_stuck names `plan` on 09-13 -- the chooser, not the tool",
+          stuck is not None and stuck["evidence"].get("tool") == "plan", str(stuck)[:200])
     unk = [r for r in rows if r["kind"] == "cousin_verdict"
            and (r.get("rung") or "").startswith("gemini")
            and r.get("verdict") == "UNKNOWN"]
@@ -3726,13 +3730,53 @@ def test_monitor_detectors_fire_where_the_scars_happened():
           "yields no block", hit is not None and uf
           and abs(hit["ts"] - float(uf[0]["ts"])) <= 1, str(hit)[:200])
 
-    # D. The control.
+    # D. The control -- for every detector but one. Cut as a healthy hour on
+    #    2026-09-14; on 2026-09-15 it turned out to carry the chooser fault
+    #    (`view-subtask-logs` probed 5 of 5, all bare). A control is a
+    #    control only for the detectors that are quiet on it, and the one
+    #    that is not must say so rather than be excused.
     rows = _fixture("0914-healthy-hour")
     tl = monstatus.replay(rows, step=1)
-    raised = [c for c in tl if c["to"] == "ALARM" and c.get("human")]
-    check("replay: a healthy hour raises NOTHING a human must look at",
+    raised = [c for c in tl if c["to"] == "ALARM" and c.get("human")
+              and c["name"] != "probe_stuck"]
+    check("replay: the control hour raises NOTHING else a human must look at",
           not raised, str([(c["name"], c["msg"][:60]) for c in raised])[:400])
-    ctx = detectors.Context(rows, now=float(rows[-1]["ts"]))
+    stuck = _first_raise(tl, "probe_stuck")
+    check("replay: and the fault that WAS live in it is named -- view-subtask-logs, "
+          "5 of 5, the chooser's default",
+          stuck is not None and stuck["evidence"].get("tool") == "view-subtask-logs",
+          str(stuck)[:200])
+
+    # E. 2026-09-15: the same want six times behind ACCEPTs of a usage line
+    #    the cousin could not get past; view-subtask-logs probed 28 of 30
+    #    non-write visits. Eighteen hours before anyone looked.
+    rows = _fixture("0915-want-loop")
+    tl = monstatus.replay(rows, step=1)
+    same = [r for r in rows if r["kind"] == "cousin_want"
+            and "multiple parent task ids" in (r.get("text") or "").lower()]
+    hit = _first_raise(tl, "want_repeated")
+    check("replay: want_repeated fires on the THIRD identical want (16:34; it ran "
+          "to six)", hit is not None and len(same) >= 3
+          and abs(hit["ts"] - float(same[2]["ts"])) <= 1,
+          str(hit)[:200] if hit else str([c["name"] for c in tl])[:200])
+    view = [r for r in rows if r["kind"] == "cousin_probe"
+            and r.get("tool") == "view-subtask-logs"]
+    hit2 = _first_raise(tl, "probe_stuck")
+    check("replay: probe_stuck fires on view-subtask-logs once it is 5 of the last "
+          "8 non-write probes", hit2 is not None
+          and hit2["evidence"].get("tool") == "view-subtask-logs", str(hit2)[:200])
+    check("replay: and not before the fifth such probe",
+          hit2 is not None and len(view) >= 5
+          and hit2["ts"] >= float(view[4]["ts"]) - 1,
+          hit2 and derive.ts_str(hit2["ts"]))
+    hidden = _first_raise(tl, "served_context_contract")
+    check("replay: the seven tools past the listing limit are alarmed on the real "
+          "slice (07:00 on 09-15)", hidden is not None and "NOBODY" in hidden["msg"],
+          str(hidden)[:200])
+
+    # Three states, never silence -- checked on the control hour.
+    healthy = _fixture("0914-healthy-hour")
+    ctx = detectors.Context(healthy, now=float(healthy[-1]["ts"]))
     fs = detectors.run_all(ctx)
     check("replay: every detector reports a state on the control -- none is "
           "silent", len(fs) >= len(detectors.ALL)
@@ -3790,7 +3834,13 @@ def test_monitor_writes_only_its_own_directory():
     have = set(os.listdir(mon)) if os.path.isdir(mon) else set()
     check("monitor: status.md, status.json and state.json were written",
           {"status.md", "status.json", "state.json"} <= have, str(have))
-    check("monitor: a healthy hour exits 0 -- no human needed", rc == 0, rc)
+    # The control hour carries ONE real fault (the chooser sat on
+    # view-subtask-logs, found 2026-09-15), so the run exits 1 for that and
+    # for nothing else.
+    human = [f["name"] for f in data["findings"]
+             if f["state"] == "ALARM" and f.get("human")]
+    check("monitor: the control hour exits 1 for the chooser fault it carries, "
+          "and for nothing else", rc == 1 and human == ["probe_stuck"], (rc, human))
     check("monitor: the page says the engine is UNKNOWN when the journal "
           "never said (pre-43eb8af), rather than guessing",
           "unknown" in md.split("## Alarms")[0], md[:400])
@@ -4025,6 +4075,80 @@ def test_the_evidence_pack_is_hashed_and_refuses_secrets():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_probe_never_defaults_to_the_last_name():
+    """`tools_after[-1]` sent the cousin to the alphabetically LAST tool on
+    every visit that was not about a fresh write. Measured over run 2
+    (2026-09-15): `plan` 30 times on 09-13, `view-subtask-logs` 28 of 30
+    non-write visits in eighteen hours -- each ACCEPTED on its usage line,
+    each followed by the same want, six times, and five different tools built
+    to answer it. The framework manufactured the day's twins.
+
+    There is no default now. The reason is a recorded fact (`picked_by`), and
+    with nothing else to go on successive visits WALK the library.
+    """
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    class Stub:
+        mind = d
+    e = Engine(j, Stub(), "brief", None, None, os.path.join(d, "context.md"))
+    lib = ["archive", "plan", "view-subtask-logs"]
+    got = e.choose_target([("plan list", 0), ("echo done", 0)], lib, lib)
+    check("target: a library tool the creature invoked is chosen, with the reason",
+          got == ("plan", "ran"), got)
+    got = e.choose_target([("python3 tools/own/archive query x", 0)], lib, lib)
+    check("target: a tool named by its path counts as invoked",
+          got == ("archive", "ran"), got)
+    seen = []
+    for _ in range(3):
+        name, how = e.choose_target([("echo nothing", 0)], lib, lib)
+        seen.append((name, how))
+        j.append("cousin_probe", tool=name, exit_code=2, bare=True, picked_by=how)
+    check("target: with nothing to go on the reason is least_probed",
+          all(h == "least_probed" for _n, h in seen), seen)
+    check("target: three such visits reach three different tools -- it walks, "
+          "it does not sit", len({n for n, _h in seen}) == 3, seen)
+    check("target: the alphabetically last tool is reached by rotation, never "
+          "first by position", seen[0][0] != "view-subtask-logs", seen)
+    check("target: pick_target still answers with the name",
+          e.pick_target([("plan list", 0)], lib, lib) == "plan")
+    check("target: a new tool still wins",
+          e.choose_target([("plan list", 0)], lib + ["fresh"], lib) == ("fresh", "new"))
+    check("target: a written tool beats one merely run",
+          e.choose_target([("plan list", 0), ("tool-edit archive", 0)], lib, lib)
+          == ("archive", "written"))
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_no_tool_is_ever_hidden_from_the_listing():
+    """The limit bounds the FULL entries, never the names. 2026-09-15 07:00:
+    the library crossed 40 and the seven tools past the alphabetical cut --
+    every tool the creature built that day to answer one want -- were shown
+    to nobody, so it built a sixth. A bound on context size degrades the
+    listing; it never hides from it."""
+    e, j, b, d = build_engine(["thinking, no commands"], [])
+    own = os.path.join(b.mind, "tools", "own")
+    names = ["tool-%02d" % i for i in range(45)]
+    for n in names:
+        _write_tool(own, n, does="does %s" % n, call="%s <x>" % n)
+    out = library.render(own, j)
+    check("listing: every tool is named, past the limit too",
+          all(("- %s" % n) in out for n in names), out[-400:])
+    head, _sep, tail = out.partition("Also here, by name and purpose only")
+    check("listing: the first %d carry their full record" % library.LIBRARY_LIMIT,
+          head.count("used as:") == library.LIBRARY_LIMIT, head.count("used as:"))
+    check("listing: the rest carry name and purpose, one line each, no run record",
+          _sep and "used as:" not in tail and "does tool-44" in tail
+          and "(5 more" in tail, tail[:300])
+    e.run_cycle()
+    w = j.read(kinds=["wake"])[-1]
+    check("served: the wake says how many were named, shown in full, and exist",
+          w.get("library_named") == 45 and w.get("library_shown") == 40
+          and w.get("library_total") == 45, str(w))
+    b.destroy()
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_monitor_unit_is_read_only_over_the_evidence():
     """The unit is what makes 'writes only its own directory' impossible to
     violate rather than merely untested. Directives are asserted by SECTION
@@ -4070,6 +4194,8 @@ def main():
                test_monitor_alarms_are_edge_triggered,
                test_monitor_page_names_its_engine_and_windows,
                test_the_monitor_unit_is_read_only_over_the_evidence,
+               test_the_probe_never_defaults_to_the_last_name,
+               test_no_tool_is_ever_hidden_from_the_listing,
                test_deploy_regression_compares_the_hour_after_a_start,
                test_the_evidence_pack_is_hashed_and_refuses_secrets,
                test_the_journal_names_the_engine_that_wrote_it,

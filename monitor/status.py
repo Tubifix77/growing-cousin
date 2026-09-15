@@ -55,9 +55,18 @@ RUNBOOK = {
                             "acted: see Engine.want_was_acted_on (17d8951).",
     "want_never_served": "record_want writes context.md; serve_context reads it. "
                          "Check the file and the wake's wants_served.",
-    "served_context_contract": "library.LIBRARY_LIMIT is 40 and the library is near "
-                               "it: tools past the limit are shown to nobody. A "
-                               "limit is a decision; raise it or page it, on purpose.",
+    "served_context_contract": "Every tool must at least be NAMED on the page; the "
+                               "full-entry limit (library.LIBRARY_LIMIT) may compact "
+                               "the tail but never hide it. Read the last wake's "
+                               "library_shown / library_named / library_total.",
+    "want_repeated": "Read the last five wants and the probes behind their accepts. "
+                     "A want the cousin cannot verify (bare probe) or whose answers "
+                     "it cannot see (hidden tool) repeats forever; the fix is in the "
+                     "framework's probe or listing, never in the creature.",
+    "probe_stuck": "Engine.choose_target has no default since 2026-09-15 -- read "
+                   "cousin_probe.picked_by on the stuck probes. `least_probed` "
+                   "should walk the library; anything else sitting on one tool is "
+                   "a chooser fault.",
     "tool_vanished": "A body/PATH fault, not the creature: the relative-root scar. "
                      "Check PathBody.run's PATH export and that the root is absolute.",
     "selfcheck": "A bound this deployment relies on does NOT hold. Read the "

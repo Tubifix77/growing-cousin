@@ -118,7 +118,12 @@ class Engine:
         # from the directory would be a second account of the same event, and
         # two accounts drift; the kernel says what it served, once.
         self.served = {
+            # Full entries (name, purpose, call-line, run record) up to the
+            # limit; EVERY tool is named regardless. 2026-09-15: seven tools
+            # past an alphabetical limit of 40 were shown to nobody, and they
+            # were the creature's five answers to one want.
             "library_shown": min(len(names), librarymod.LIBRARY_LIMIT),
+            "library_named": len(names),
             "library_total": len(names),
             "wants_served": len(wants),
             "window": self.HISTORY_OUTPUT_CHARS,
@@ -595,8 +600,9 @@ class Engine:
 
     def visit_cousin(self, fired, executed, tools_after, tools_before):
         trigger, _fields = fired
-        target = self.pick_target(executed, tools_after, tools_before)
-        claim, header, transcript, library = self.evidence(target, executed)
+        target, how = self.choose_target(executed, tools_after, tools_before)
+        claim, header, transcript, library = self.evidence(target, executed,
+                                                           picked_by=how)
 
         v = cousinmod.visit(self.ask_cousin, self.brief, claim, header,
                             transcript, journal=self.j, trigger=trigger,
@@ -636,9 +642,46 @@ class Engine:
 
         Guessing a name from text is allowed. Believing the guess is not.
         """
+        return self.choose_target(executed, tools_after, tools_before)[0]
+
+    # A library tool named at the start of a line, or by its path anywhere.
+    TOOL_CALL_RE = re.compile(
+        r"^\s*(?:\./)?([A-Za-z0-9_.\-]+)"
+        r"|(?:\$MIND/|\$\{MIND\}/|/mind/|(?<![A-Za-z0-9_./\-]))tools/own/([A-Za-z0-9_.\-]+)",
+        re.M)
+
+    def choose_target(self, executed, tools_after, tools_before):
+        """`(name, how)`: which tool the cousin is sent to use, and WHY, so
+        the choice is a recorded fact (`cousin_probe.picked_by`) and not a
+        belief about this code.
+
+        **THERE IS NO DEFAULT.** Until 2026-09-15 the fallback was
+        `tools_after[-1]` -- the alphabetically LAST tool -- and it was taken
+        on every DONE_CLAIM and STALL visit. Measured over run 2: `plan` was
+        last on 2026-09-13 and its user was sent to it 30 times, bare, which is
+        the whole of the "1 worked and 30 failed" reading; `view-subtask-logs`
+        was last from 2026-09-14 and was probed 63 times, 28 of 30
+        non-write visits in eighteen hours, each ending in an ACCEPT of its
+        usage line and the SAME want -- *retrieve logs for multiple parent
+        task IDs* -- six times over. The creature answered that want five
+        different ways. Thirteenth instance of the framework manufacturing
+        work and billing the creature, and the one that reversed a scar: the
+        day's twins were not the cousin's judgement, they were this line.
+
+        Order of preference, each a REASON rather than a position in a list:
+        `new` -- a tool that did not exist before this cycle; `written` -- the
+        tool a write command names, if the library holds it; `ran` -- a
+        library tool the creature invoked this cycle, most recent first, which
+        is what a done-claim is most likely about; `least_probed` -- the tool
+        its user has run the fewest times, ties by name, so successive visits
+        with nothing else to go on WALK the library instead of sitting on one
+        entry. A library tool the user has never touched is exactly what a
+        second user should be sent to try.
+        """
         new = sorted(set(tools_after) - set(tools_before))
         if new:
-            return new[-1]
+            return new[-1], "new"
+        have = set(tools_after)
         for cmd, _ in reversed(executed):
             m = trigmod.TOOL_WRITE_RE.search(cmd)
             if m:
@@ -646,13 +689,24 @@ class Engine:
                 if tail:
                     guess = os.path.basename(tail[0].strip("'\""))
                     # Only if the library actually holds it.
-                    if guess in tools_after:
-                        return guess
-        return tools_after[-1] if tools_after else ""
+                    if guess in have:
+                        return guess, "written"
+        for cmd, _ in reversed(executed):
+            for m in self.TOOL_CALL_RE.finditer(cmd or ""):
+                name = m.group(1) or m.group(2)
+                if name in have:
+                    return name, "ran"
+        if not tools_after:
+            return "", "none"
+        hist = librarymod.use_history(self.j)
+        return (min(tools_after,
+                    key=lambda n: (hist.get(n, {}).get("runs", 0), n)),
+                "least_probed")
 
-    def evidence(self, target, executed):
+    def evidence(self, target, executed, picked_by=None):
         """What the cousin is shown. It runs the tool ITSELF -- the transcript
-        is the cousin's own attempt, never a replay of the creature's."""
+        is the cousin's own attempt, never a replay of the creature's.
+        `picked_by` is `choose_target`'s reason, recorded on the probe."""
         path = os.path.join(self.body.mind, "tools", "own", target)
         header = ""
         if target and os.path.exists(path):
@@ -737,7 +791,7 @@ class Engine:
             # measuring this, and read a creature "building storeys on a
             # broken floor" out of a number the harness manufactures.
             self.j.append("cousin_probe", tool=target, exit_code=r.code,
-                          bare=needs_args,
+                          bare=needs_args, picked_by=picked_by,
                           stdout=capped(r.stdout, EXEC_STDOUT_CHARS),
                           stderr=capped(r.stderr, EXEC_STDERR_CHARS))
             transcript = "$ %s\nexit %d\n%s%s" % (

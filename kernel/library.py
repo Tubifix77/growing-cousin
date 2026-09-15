@@ -173,6 +173,23 @@ def render(tools_dir, journal=None, exclude=None, limit=LIBRARY_LIMIT,
         if call:
             lines.append("    used as: %s" % call)
         lines.append("    %s" % status(hist.get(name)))
+    # THE LIMIT BOUNDS THE FULL ENTRIES, NEVER THE NAMES. Until 2026-09-15 it
+    # was `names[:limit]` and nothing else: the library crossed 40 at 07:00,
+    # and the seven tools past the cut -- alphabetically the `subtask-*`,
+    # `synthesize-*` and `view-*` family, i.e. every tool the creature had
+    # built that day to answer one repeated want -- were shown to NOBODY.
+    # The creature could not see its own previous answers and built a sixth.
+    # A bound on context size must DEGRADE the listing, never hide from it:
+    # past the limit each tool keeps its name and purpose on one line, which
+    # is the minimum the anti-twin comparison needs.
+    rest = names[limit:]
+    if rest:
+        lines.append("")
+        lines.append("Also here, by name and purpose only (%d more; nothing is "
+                     "hidden from this list):" % len(rest))
+        for name in rest:
+            does, _call = headers(os.path.join(tools_dir, name))
+            lines.append("- %s%s" % (name, (" - " + does) if does else ""))
     body = "\n".join(lines)
     if not title:
         return body
