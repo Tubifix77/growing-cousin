@@ -1,0 +1,157 @@
+{
+ "_about": "HELD OUT. No rule in MANAGER-PROMPT.md was written against any case in here, and no case in here was looked at while writing one. That is the whole point: cases.json and repair-cases.json taught the brief, so a score on them measures recall of its own training.",
+ "_labels": "Evidence, not opinion. RETURNED = the interpreter refuses the file, established by compile()/`bash -n`, which reads and runs nothing. ACCEPTED = our own journal records the cousin running it to exit 0 with output.",
+ "_boundary": "The parent's tools are READ, never executed -- CLAUDE.md §2.6. Running one would write into its creature's world.",
+ "_captured": {
+  "spine_mind": "/home/boas/growing-spine-mind",
+  "journal": "/home/boas/growing-cousin/live/journal.jsonl",
+  "excluded_as_already_taught": 16
+ },
+ "_scoring": "Detection and correction are reported together, always. A detection number without a correction number beside it is the 2026-09-11 scar (99.1%% detection sitting on top of a total failure at correction).",
+ "cases": [
+  {
+   "name": "FetchAndRecallAnswer",
+   "class": "MECH",
+   "expect": "RETURNED",
+   "why": "the interpreter refuses the file, so it cannot run for anyone: SyntaxError: unexpected character after line continuation character (line 95)",
+   "claim": "I finished FetchAndRecallAnswer.",
+   "header": "#!/usr/bin/env python3\n# tool: FetchAndRecallAnswer\n# call: FetchAndRecallAnswer \"<query>\"\n# does: Fetch fresh JSON API data for a query, store it in the keyword archive, and return the answer corroborated with previous records.\n\nimport sys",
+   "transcript": "$ FetchAndRecallAnswer\nexit 1\nTraceback (most recent call last):\n  File \"FetchAndRecallAnswer\"\nSyntaxError: unexpected character after line continuation character (line 95)"
+  },
+  {
+   "name": "KnowledgeRefreshUpdater",
+   "class": "MECH",
+   "expect": "RETURNED",
+   "why": "the interpreter refuses the file, so it cannot run for anyone: SyntaxError: invalid syntax (line 6)",
+   "claim": "I finished KnowledgeRefreshUpdater.",
+   "header": "#!/usr/bin/env python3\n# tool: KnowledgeRefreshUpdater\n# call: KnowledgeRefreshUpdater <keyword>\n# does: Fetch latest Wikipedia summary for a keyword, update the keyword‑archive if the summary changed, and add a review step to the persistent planner.\n#!/usr/bin/env bash\nset -euo pipefail",
+   "transcript": "$ KnowledgeRefreshUpdater\nexit 1\nTraceback (most recent call last):\n  File \"KnowledgeRefreshUpdater\"\nSyntaxError: invalid syntax (line 6)"
+  },
+  {
+   "name": "LiveStateComplianceChecker",
+   "class": "MECH",
+   "expect": "RETURNED",
+   "why": "the interpreter refuses the file, so it cannot run for anyone: SyntaxError: unexpected character after line continuation character (line 51)",
+   "claim": "I finished LiveStateComplianceChecker.",
+   "header": "#!/usr/bin/env python3\n# tool: LiveStateComplianceChecker\n# call: LiveStateComplianceChecker <metric_name>\n# does: Fetch a live system metric, compare it to a stored baseline, and if it deviates, ask an LLM sub‑agent for a remediation plan.\nimport sys, json, subprocess, os, urllib.request, urllib.error, math, textwrap",
+   "transcript": "$ LiveStateComplianceChecker\nexit 1\nTraceback (most recent call last):\n  File \"LiveStateComplianceChecker\"\nSyntaxError: unexpected character after line continuation character (line 51)"
+  },
+  {
+   "name": "ToolUsageAuditor",
+   "class": "MECH",
+   "expect": "RETURNED",
+   "why": "the interpreter refuses the file, so it cannot run for anyone: SyntaxError: unexpected character after line continuation character (line 71)",
+   "claim": "I finished ToolUsageAuditor.",
+   "header": "#!/usr/bin/env python3\n# tool: ToolUsageAuditor\n# call: ToolUsageAuditor\n# does: Scans memstore logs, extracts tool‑call patterns, and uses subagent_ask_helper to suggest pruning or chaining of tools.\n\nimport json",
+   "transcript": "$ ToolUsageAuditor\nexit 1\nTraceback (most recent call last):\n  File \"ToolUsageAuditor\"\nSyntaxError: unexpected character after line continuation character (line 71)"
+  },
+  {
+   "name": "batch_plan_from_questions_file",
+   "class": "MECH",
+   "expect": "RETURNED",
+   "why": "the interpreter refuses the file, so it cannot run for anyone: SyntaxError: invalid syntax (line 5)",
+   "claim": "I finished batch_plan_from_questions_file.",
+   "header": "#!/usr/bin/env python3\n# tool: batch_plan_from_questions_file\n# call: batch_plan_from_questions_file <questions_file>\n# does: Reads a file of questions, creates a plan for each via plan_from_question, archives each plan ID with the question, and prints the list of created plans.\nset -euo pipefail",
+   "transcript": "$ batch_plan_from_questions_file\nexit 1\nTraceback (most recent call last):\n  File \"batch_plan_from_questions_file\"\nSyntaxError: invalid syntax (line 5)"
+  },
+  {
+   "name": "feed_timeline_generator",
+   "class": "MECH",
+   "expect": "RETURNED",
+   "why": "the interpreter refuses the file, so it cannot run for anyone: SyntaxError: invalid syntax (line 7)",
+   "claim": "I finished feed_timeline_generator.",
+   "header": "#!/usr/bin/env python3\n# tool: feed_timeline_generator\n# call: feed_timeline_generator <rss_url>\n# does: Fetch an RSS feed, extract each item's date, title, and URL, sort chronologically, and output a CSV timeline (date,title,url).\n\n#!/usr/bin/env bash",
+   "transcript": "$ feed_timeline_generator\nexit 1\nTraceback (most recent call last):\n  File \"feed_timeline_generator\"\nSyntaxError: invalid syntax (line 7)"
+  },
+  {
+   "name": "integrate_fetch_recall",
+   "class": "MECH",
+   "expect": "RETURNED",
+   "why": "the interpreter refuses the file, so it cannot run for anyone: SyntaxError: invalid syntax (line 7)",
+   "claim": "I finished integrate_fetch_recall.",
+   "header": "#!/usr/bin/env python3\n# tool: integrate_fetch_recall\n# call: integrate_fetch_recall <query>\n# does: Fetches new information, recalls relevant memories, and synthesizes insights via subagent orchestration\n#!/bin/bash\nquery=\"\"",
+   "transcript": "$ integrate_fetch_recall\nexit 1\nTraceback (most recent call last):\n  File \"integrate_fetch_recall\"\nSyntaxError: invalid syntax (line 7)"
+  },
+  {
+   "name": "news_insight_generator",
+   "class": "MECH",
+   "expect": "RETURNED",
+   "why": "the interpreter refuses the file, so it cannot run for anyone: SyntaxError: invalid syntax (line 7)",
+   "claim": "I finished news_insight_generator.",
+   "header": "#!/usr/bin/env python3\n# tool: news_insight_generator\n# call: news_insight_generator\n# does: Generates actionable insight plans from fresh news items by fetching, filling knowledge gaps, synthesising an insight via a sub‑agent LLM, and storing the result as a persistent plan.\n\n#!/usr/bin/env bash",
+   "transcript": "$ news_insight_generator\nexit 1\nTraceback (most recent call last):\n  File \"news_insight_generator\"\nSyntaxError: invalid syntax (line 7)"
+  },
+  {
+   "name": "filter-multi-parent-by-code",
+   "class": "SEMANTIC",
+   "expect": "ACCEPTED",
+   "why": "its user really ran it and it exited 0 with output; refusing this refuses work that demonstrably ran",
+   "claim": "I finished filter-multi-parent-by-code.",
+   "header": "#!/usr/bin/env bash\n# tool: filter-multi-parent-by-code\n# call: filter-multi-parent-by-code <code> <parent_id> [parent_id ...]\n# does: Retrieves sub‑task logs for the given parent IDs, filtered by the result code using subtask-logs-multi.\n\nif [[ $# -lt 2 ]]; then",
+   "transcript": "$ filter-multi-parent-by-code\nexit 0\nfilter-multi-parent-by-code: not written yet"
+  },
+  {
+   "name": "archive-context",
+   "class": "SEMANTIC",
+   "expect": "ACCEPTED",
+   "why": "its user really ran it and it exited 0 with output; refusing this refuses work that demonstrably ran",
+   "claim": "I finished archive-context.",
+   "header": "#!/usr/bin/env python3\n# tool: archive-context\n# call: archive-context [--keyword K] [--start S] [--end E] [--exclude ID1,ID2...]\n# does: Retrieves full content of archive entries matching filters to provide as LLM context.\n\nimport sys",
+   "transcript": "$ archive-context\nexit 0\n--- Archive Context: 36 entries found ---\n\nID: 0 | Title: Project Goals | Date: 2026-09-13T13:07:26.337676\n----------------------------------------\nBuild a toolkit for the cousin. Focus on durability and utility.\n----------------------------------------\n\nID: 1 | Title: Example Page | Date: 2026-09-13T11:13:06.215488\n----------------------------------------\n<!doctype html><html lang=\"en\"><head><title>Example Domain</title><link rel=\"icon\" href=\"data:,\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style>body{background:#eee;width:60vw;margin:15vh auto;font-family:system-ui,sans-serif}h1{font-size:1.5em}div{opacity:0.8}a:link,a:visited{color:#348}</style></head><body><div><h1>Example Domain</h1><p>This domain is for use in documentation examples without needing permission. Avoid use in operations.</p><p><a href=\"https://iana.org/domains/example\">Learn more</a></p></div></body></html>\n\n----------------------------------------\n\nID: 2 | Title: Test Entry | Date: 2026-09-13T19:02:25.993730\n----------------------------------------\nThis is a dummy archive entry for linking.\n----------------------------------------\n\nID: 3 | Title: Archive Save"
+  },
+  {
+   "name": "synthesize-multi-parent-logs",
+   "class": "SEMANTIC",
+   "expect": "ACCEPTED",
+   "why": "its user really ran it and it exited 0 with output; refusing this refuses work that demonstrably ran",
+   "claim": "I finished synthesize-multi-parent-logs.",
+   "header": "#!/usr/bin/env python3\n# tool: synthesize-multi-parent-logs\n# call: synthesize-multi-parent-logs <title> <parent_id1> [parent_id2 ...]\n# does: Collects sub‑task logs for the given parent task IDs, merges them into one JSON array, prints the combined logs, and saves the array as a new archive entry with the given title.\n\nimport os",
+   "transcript": "$ synthesize-multi-parent-logs\nexit 0\nsynthesize-multi-parent-logs: not written yet"
+  },
+  {
+   "name": "subtask-log-filter",
+   "class": "SEMANTIC",
+   "expect": "ACCEPTED",
+   "why": "its user really ran it and it exited 0 with output; refusing this refuses work that demonstrably ran",
+   "claim": "I finished subtask-log-filter.",
+   "header": "#!/usr/bin/env python3\n# tool: subtask-log-filter\n# call: subtask-log-filter [--keyword K] [--start S] [--end E] [--limit N] [--output FILE]\n# does: Filters sub‑task logs by keyword and/or date range, limits to the most recent N entries,\n#       and optionally writes the JSON result to a file.",
+   "transcript": "$ subtask-log-filter\nexit 0\n[\n  {\n    \"timestamp\": \"2023-01-01T00:00:00Z\",\n    \"task_id\": \"t1\",\n    \"msg\": \"first\"\n  },\n  {\n    \"timestamp\": \"2023-01-02T00:00:00Z\",\n    \"task_id\": \"t2\",\n    \"msg\": \"second\"\n  },\n  {\n    \"timestamp\": \"2023-01-03T00:00:00Z\",\n    \"task_id\": \"t3\",\n    \"msg\": \"third\"\n  },\n  {\n    \"timestamp\": \"2023-01-04T00:00:00Z\",\n    \"task_id\": \"t4\",\n    \"msg\": \"fourth\"\n  }\n]"
+  },
+  {
+   "name": "list-subtasks-detailed",
+   "class": "SEMANTIC",
+   "expect": "ACCEPTED",
+   "why": "its user really ran it and it exited 0 with output; refusing this refuses work that demonstrably ran",
+   "claim": "I finished list-subtasks-detailed.",
+   "header": "#!/usr/bin/env python3\n# tool: list-subtasks-detailed\n# call: list-subtasks-detailed <parent_task_id>\n# does: Prints detailed info (ID, status, result, timestamps) for each sub‑task belonging to the given parent task.\nimport os, sys, json",
+   "transcript": "$ list-subtasks-detailed\nexit 0\nlist-subtasks-detailed: not written yet"
+  },
+  {
+   "name": "obtain-parent-task-id",
+   "class": "SEMANTIC",
+   "expect": "ACCEPTED",
+   "why": "its user really ran it and it exited 0 with output; refusing this refuses work that demonstrably ran",
+   "claim": "I finished obtain-parent-task-id.",
+   "header": "#!/usr/bin/env python3\n# tool: obtain-parent-task-id\n# call: obtain-parent-task-id\n# does: Retrieves and prints a valid parent task ID from the subagent-orchestrator state\n\nimport os",
+   "transcript": "$ obtain-parent-task-id\nexit 0\ntest-parent-123"
+  },
+  {
+   "name": "subtask-log-table",
+   "class": "SEMANTIC",
+   "expect": "ACCEPTED",
+   "why": "its user really ran it and it exited 0 with output; refusing this refuses work that demonstrably ran",
+   "claim": "I finished subtask-log-table.",
+   "header": "#!/usr/bin/env python3\n# tool: subtask-log-table\n# call: subtask-log-table [parent_id] [--keyword K] [--status S]\n# does: Displays sub-task logs as a formatted table.\n\nimport os",
+   "transcript": "$ subtask-log-table\nexit 0\nParent     | ID         | Timestamp            | Status     | Message                                           \n----------------------------------------------------------------------------------------------------------------\ntask-1     | st-1       | 2023-10-01T10:00:00  | success    | Starting the process                              \ntask-1     | st-2       | 2023-10-01T11:00:00  | success    | Encountered a minor error but recovered           \ntask-2     | st-3       | 2023-10-01T12:00:00  | success    | Different task log"
+  },
+  {
+   "name": "subtask-log-filter-by-statuscode",
+   "class": "SEMANTIC",
+   "expect": "ACCEPTED",
+   "why": "its user really ran it and it exited 0 with output; refusing this refuses work that demonstrably ran",
+   "claim": "I finished subtask-log-filter-by-statuscode.",
+   "header": "#!/usr/bin/env python3\n# tool: subtask-log-filter-by-statuscode\n# call: subtask-log-filter-by-statuscode [--status S] [--code C] [--keyword K] [--start S] [--end E]\n# does: Filters sub‑task logs (stored in $MIND/data/subtask_logs.json) by status, result code,\n#       optional keyword, and optional ISO‑8601 date range, outputting matching entries as JSON.",
+   "transcript": "$ subtask-log-filter-by-statuscode\nexit 0\n[\n  {\n    \"parent_id\": \"task-1\",\n    \"subtask_id\": \"st-1\",\n    \"timestamp\": \"2023-10-01T10:00:00Z\",\n    \"message\": \"Starting the process\",\n    \"status\": \"success\"\n  },\n  {\n    \"parent_id\": \"task-1\",\n    \"subtask_id\": \"st-2\",\n    \"timestamp\": \"2023-10-01T11:00:00Z\",\n    \"message\": \"Encountered a minor error but recovered\",\n    \"status\": \"success\"\n  },\n  {\n    \"parent_id\": \"task-2\",\n    \"subtask_id\": \"st-3\",\n    \"timestamp\": \"2023-10-01T12:00:00Z\",\n    \"message\": \"Different task log\",\n    \"status\": \"success\"\n  }\n]"
+  }
+ ]
+}

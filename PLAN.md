@@ -131,7 +131,7 @@ as this uid.
 
 ## Phase 3 — unfreeze the brief
 
-### 8. `[ ]` Held-out cases, so a brief change can be scored
+### 8. `[~]` Held-out cases, so a brief change can be scored
 
 The unfreeze condition written in §0 and never built. Until it exists every
 question about the cousin's **judgement** is unanswerable, and items 9 and 10
@@ -146,6 +146,23 @@ have no scoreboard.
 - **8.4** A recorded baseline for the frozen brief, split by model.
 - **8.5** §0's unfreeze condition is marked satisfied, with the instrument
   named.
+
+> **Status 2026-09-16: 8.1–8.3 done, 8.4 blocked on quota, 8.5 waits on 8.4.**
+> `trial/heldout-cases.json` carries 16 cases — 8 parent tools whose
+> interpreter refuses them (read statically; §2.6 forbids running one) and 8
+> of our own tools the journal records running to exit 0 with output. None is
+> in the training set, and the generator refuses to emit one that is.
+> `trial/score_brief.py` runs both halves and cannot print detection alone.
+>
+> **The first baseline attempt returned sixteen `HTTP 429`s** — the free tier
+> is shared with the live engine, and at 01:07 it had nothing to give. The
+> scorer reported `caught 0/8` over those, which reads as a brief that catches
+> nothing; that is now refused as NOT MEASURABLE, which was worth finding.
+>
+> **Trigger for 8.4: run it when the tier is quiet** — the engine paused, or
+> a window where `ladder_dry` has been clear for an hour. The command is in
+> `score_brief.py`'s docstring. Several reps, split by model, before any
+> number here is treated as a baseline rather than an anecdote.
 
 ---
 

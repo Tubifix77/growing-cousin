@@ -4175,6 +4175,90 @@ def test_monitor_alarms_are_edge_triggered():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_brief_can_be_scored_against_cases_it_never_saw():
+    """PLAN item 8. §0 has said since 2026-09-14 that the brief is FROZEN
+    until there is a way to score a change against held-out cases, *"which
+    `trial/` could carry and currently does not"*. Every case in `cases.json`
+    and `repair-cases.json` was used to WRITE the brief, so a score on them
+    measures how well it remembers its own training.
+    """
+    root = _repo_root()
+    trial = os.path.join(root, "trial")
+    sys.path.insert(0, trial)
+    import make_heldout
+    import score_brief
+
+    def cases_of(name):
+        p = os.path.join(trial, name)
+        if not os.path.exists(p):
+            return None
+        with io.open(p, encoding="utf-8") as f:
+            doc = json.load(f)
+        return doc.get("cases") if isinstance(doc, dict) else doc
+
+    held = cases_of("heldout-cases.json")
+    check("heldout: the set exists", held is not None, "no heldout-cases.json")
+    if held is None:
+        return
+    check("heldout: and it has both kinds -- broken work to catch and good "
+          "work that must NOT be refused",
+          {c["expect"] for c in held} == {"RETURNED", "ACCEPTED"},
+          sorted({c["expect"] for c in held}))
+
+    # THE POINT OF THE WHOLE SET: none of it taught the brief. The first run
+    # of the generator produced three tools that are in `cases.json` --
+    # RecallScheduler, ascii_plot, dynamic_faq_updater -- which would have
+    # been the 2026-09-10 leak with the direction reversed, and would have
+    # read as a strong score.
+    taught = make_heldout.already_taught(
+        [os.path.join(trial, n) for n in ("cases.json", "repair-cases.json",
+                                          "cases-v1-bare-probe.json")])
+    overlap = sorted({c["name"] for c in held} & taught)
+    check("heldout: NOT ONE case is in the set the brief was written against",
+          not overlap, str(overlap))
+    check("heldout: and the exclusion is a real filter, not an empty set",
+          len(taught) > 8, len(taught))
+
+    # The leak check that already refuses a brief naming a case under test
+    # must cover this set too, or it protects only the old one.
+    import run_trial
+    brief = io.open(os.path.join(root, "MANAGER-PROMPT.md"),
+                    encoding="utf-8").read()
+    names = {c["name"] for c in held}
+    leaks = sorted(n for n in names
+                   if re.search(r"(?<![\w.-])" + re.escape(n) + r"(?![\w-])", brief))
+    check("heldout: the brief names none of them", not leaks, str(leaks))
+    check("heldout: and the leak checker is the shared one, not a second copy",
+          callable(getattr(run_trial, "assert_brief_names_no_case", None)))
+
+    # DETECTION AND CORRECTION TRAVEL TOGETHER, and when correction cannot be
+    # measured the runner must say so rather than print detection alone.
+    repair = cases_of("heldout-repair-cases.json")
+    check("heldout: the correction half exists as a file, even while empty",
+          repair is not None, "no heldout-repair-cases.json")
+
+    # A RATE IS ONLY A RATE IF THE JUDGE ANSWERED. The first baseline attempt
+    # printed `caught 0/8` when all sixteen calls had returned HTTP 429.
+    dead = {"n": 16, "caught": 0, "of_broken": 8, "falsely_returned": 0,
+            "of_good": 8, "unreadable": 16, "answered": 0, "call_errors": 16,
+            "call_error_kinds": ["HTTPError"]}
+    ok, line = score_brief.detection_line(dead)
+    check("heldout: a run the judge never answered is NOT a score",
+          not ok and "never answered" in line, line)
+    check("heldout: and it says so measures the RUNG, not the brief",
+          "rung" in line, line)
+    live = dict(dead, unreadable=0, answered=16, caught=7, falsely_returned=1,
+                call_errors=0, call_error_kinds=[])
+    ok2, line2 = score_brief.detection_line(live)
+    check("heldout: a run that DID answer is scored",
+          ok2 and "caught 7/8" in line2, line2)
+    part = dict(live, unreadable=4, answered=12)
+    ok3, line3 = score_brief.detection_line(part)
+    check("heldout: and a partly-answered run says how much it is missing "
+          "rather than hiding it",
+          ok3 and "unreadable" in line3, line3)
+
+
 def test_the_docker_body_carries_the_contract_the_creature_is_promised():
     """PLAN item 7, the half that needs no docker.
 
@@ -4990,6 +5074,7 @@ def main():
     for fn in (test_monitor_detectors_fire_where_the_scars_happened,
                test_monitor_writes_only_its_own_directory,
                test_monitor_alarms_are_edge_triggered,
+               test_the_brief_can_be_scored_against_cases_it_never_saw,
                test_the_docker_body_carries_the_contract_the_creature_is_promised,
                test_the_docker_drill_proves_the_keys_are_out_of_reach,
                test_a_ladder_with_every_rung_walled_never_reads_as_a_wait,

@@ -119,8 +119,22 @@ cousin), not a patch.
 2026-09-14 (repair-not-delete, handover-completes, record display) and none has
 a before/after yet. The brief's third test is known to be failing on judgement
 (§5) — **that is the next real question, and it needs a measurement regime,
-not a midnight patch.** Unfreeze when there is a way to score a brief change
-against held-out cases, which `trial/` could carry and currently does not.
+not a midnight patch.**
+
+> **The instrument now exists (2026-09-16, PLAN item 8).**
+> `trial/heldout-cases.json` — 16 cases the brief was never written against,
+> labelled by evidence rather than opinion: 8 parent tools whose interpreter
+> refuses them (established statically, because §2.6 forbids running one) and
+> 8 of our own that the journal records running to exit 0 with output.
+> `trial/score_brief.py` is the one runner, and it cannot print a detection
+> figure alone — the correction half says NOT MEASURABLE, with the reason,
+> until a real failure is followed by a real repair in the journal.
+>
+> **What remains before the brief may be touched: a recorded baseline.** The
+> first attempt met sixteen `HTTP 429`s — the tier is shared with the live
+> engine. Run it when the tier is quiet, several reps, split by model. Until
+> that baseline exists there is still nothing to score a change AGAINST, and
+> the freeze stands.
 
 **Do not re-derive these; they are settled and each cost real time:**
 
