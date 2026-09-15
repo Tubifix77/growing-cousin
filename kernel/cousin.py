@@ -201,6 +201,52 @@ def unusable_reply(text, meta):
                           (meta or {}).get("chars_stripped"))
 
 
+INVOKE_TEMPLATE = """You are about to judge a tool someone else built. Before
+you do, you get to USE it, in a shell of your own.
+
+Here is what it says about itself:
+
+{header}
+
+{library}
+
+Write ONE ```bash block containing the command you want to run. Nothing else
+in the block. You may pass whatever arguments you judge sensible -- make up
+plausible inputs if you need them; that is what a user does.
+
+If you genuinely cannot think of a way to invoke it, write a bash block
+containing only the tool's own name.
+"""
+
+
+def choose_invocation(ask, header, library=""):
+    """Ask the cousin what it wants to run, and return its own words.
+
+    **The framework must never compose this.** §4 gives *running the test* to
+    the cousin, and until 2026-09-16 the harness invoked every tool BARE --
+    so the cousin owned a job it structurally could not do, and spent two days
+    accepting usage lines. The obvious repair is to have the kernel build a
+    command out of the `# call:` header, and that is the wrong repair: it
+    moves judgement back into the framework, which is the 99% this design
+    deleted. A user who cannot think what to type has told you something
+    about the tool.
+
+    Returns `(command, meta)`; `command` is None when the cousin proposed
+    nothing, and nothing is substituted for it.
+    """
+    from . import think as thinkmod
+    prompt = INVOKE_TEMPLATE.format(header=header or "(no header)",
+                                    library=library or "")
+    reply, meta = ask(prompt)
+    blocks = thinkmod.parse_blocks(reply or "")
+    if not blocks:
+        return None, dict(meta or {}, raw=(reply or "")[:400])
+    # The FIRST line of the FIRST block. A user runs one thing and looks at
+    # it; a chain of commands is a transcript nobody can attribute.
+    cmd = (blocks[0] or "").strip().split("\n")[0].strip()
+    return (cmd or None), dict(meta or {}, raw=(reply or "")[:400])
+
+
 def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
           library=""):
     """One manager invocation, end to end. `ask(prompt) -> (text, meta)`."""

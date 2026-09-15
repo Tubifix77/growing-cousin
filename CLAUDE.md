@@ -557,6 +557,19 @@ guess with authority it has not earned.
   Until that fires, the brief is not to be touched: two changes at once and
   neither is measurable.
 
+- **Who may propose a cull** (2026-09-16, PLAN item 10). **The creature owns
+  it; the framework owns only the visibility; the cousin gets nothing.** §4's
+  table already settles the principle — *ordering of the creature's own work*
+  is the creature's — and a cull is that. A cousin that could retire a tool
+  would hold a write path into the creature's world without touching a file
+  (§2.3), and since 2026-09-16 that is impossible rather than forbidden: its
+  shell gets a **copy** of the library, remade per visit. What the framework
+  may add, and has not, is one line of stem families in the listing both
+  inhabitants already see. **Trigger: forty-eight hours after the cousin's
+  shell goes live, if families of 3+ are still growing and nothing has been
+  removed.** Not before — the twins may be an artifact of a user that could
+  only ever call things bare.
+
 - **Free tier only, permanently.** "We get what is available without paying
   anything ever." A rung behind a paywall is defunct by definition; removing one
   needs no decision. Rung count and concentration are *outcomes*, not targets.

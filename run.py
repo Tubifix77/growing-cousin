@@ -110,13 +110,21 @@ class PathBody(bodymod.LocalBody):
     _as_shell_path = staticmethod(bash_path)
 
     def run(self, cmd, timeout=bodymod.EXEC_TIMEOUT_SECS):
-        if self.bin:
-            # The creature's own tools go on PATH too. The prompt tells it its
-            # tools are on PATH; a prompt that promises something the body does
-            # not provide is a contract violation, and the creature pays for it.
-            own = bash_path(os.path.join(self.mind, "tools", "own"))
-            cmd = ('export PATH="%s:%s:$PATH"; export MIND="%s"; %s'
-                   % (bash_path(self.bin), own, bash_path(self.mind), cmd))
+        # The tools in this mind ALWAYS go on PATH; our hands only when this
+        # body has them. The prompt tells the creature its tools are on PATH,
+        # and a prompt that promises something the body does not provide is a
+        # contract violation the creature pays for.
+        #
+        # The hands are conditional because the COUSIN gets one of these too
+        # (PLAN item 9) and must not: it is the second user, never a second
+        # builder (§2.3), so it gets the library to run and no `tool-edit` to
+        # build with. Before 2026-09-16 a bin-less body put NOTHING on PATH,
+        # so the cousin's own chosen command met `command not found` -- the
+        # relative-root scar, arriving by the one door left open.
+        own = bash_path(os.path.join(self.mind, "tools", "own"))
+        parts = ([bash_path(self.bin)] if self.bin else []) + [own]
+        cmd = ('export PATH="%s:$PATH"; export MIND="%s"; %s'
+               % (":".join(parts), bash_path(self.mind), cmd))
         return bodymod.LocalBody.run(self, cmd, timeout=timeout)
 
 
@@ -298,21 +306,32 @@ def ensure_container(container, image, host_body, timeout=120):
     st = d("inspect", "-f", "{{.State.Running}}", container)
     if st.returncode != 0:
         d("rm", "-f", container)
-        r = d("run", "-d", "--init", "--name", container,
-              # The SAME uid that owns the mind on the host, so what the
-              # creature writes stays readable by the engine and nothing in
-              # the container runs as root.
-              "--user", "%d:%d" % (os.getuid(), os.getgid()),
-              "--memory", "1g", "--pids-limit", "256",
-              "-v", "%s:%s" % (host_body.mind, bodymod.DockerBody.MIND),
-              "-v", "%s:%s:ro" % (host_body.bin, bodymod.DockerBody.HANDS),
-              image, "sleep", "infinity")
+        argv = ["run", "-d", "--init", "--name", container,
+                # The SAME uid that owns the mind on the host, so what the
+                # creature writes stays readable by the engine and nothing in
+                # the container runs as root.
+                "--user", "%d:%d" % (os.getuid(), os.getgid()),
+                "--memory", "1g", "--pids-limit", "256",
+                "-v", "%s:%s" % (host_body.mind, bodymod.DockerBody.MIND)]
+        # The hands only when this body HAS them. The cousin's body does not:
+        # it is the second user, never a second builder (§2.3), so it gets the
+        # library to run and no `tool-edit` to build with.
+        if getattr(host_body, "bin", None):
+            argv += ["-v", "%s:%s:ro" % (host_body.bin,
+                                         bodymod.DockerBody.HANDS)]
+        r = d(*(argv + [image, "sleep", "infinity"]))
         if r.returncode != 0:
             raise RuntimeError("could not start %s: %s"
                                % (container, (r.stderr or "")[-300:]))
     elif "false" in (st.stdout or "").strip().lower():
         d("start", container)
-    return bodymod.DockerBody(container, image=image, mind=host_body.mind)
+    body = bodymod.DockerBody(container, image=image, mind=host_body.mind)
+    # PLAN item 15: a respawn may recreate a CONTAINER and must never recreate
+    # a MIND. Only this function knows the mounts, so it hands the body a way
+    # back rather than the body guessing one.
+    body.recreate = lambda: ensure_container(container, image, host_body,
+                                             timeout=timeout)
+    return body
 
 
 def main():
@@ -325,6 +344,12 @@ def main():
                          "out of the creature's reach -- see PLAN item 7.")
     ap.add_argument("--container", default=DOCKER_CONTAINER)
     ap.add_argument("--image", default=DOCKER_IMAGE)
+    ap.add_argument("--cousin-shell", action="store_true",
+                    help="give the cousin a body of its own, so it can run "
+                         "the tool with arguments it chooses instead of bare "
+                         "(PLAN item 9). It gets a COPY of the library, "
+                         "remade per visit, and none of our hands: it is the "
+                         "second user, never a second builder (§2.3).")
     ap.add_argument("--model", default="gemma4:12b")
     ap.add_argument("--root", default=os.path.join(HERE, "live"))
     ap.add_argument("--fresh", action="store_true", help="wipe --root first")
@@ -466,12 +491,27 @@ def main():
               % ((" (could not test: %s)" % ", ".join(sc["unproven"]))
                  if sc["unproven"] else ""))
 
+    # THE COUSIN'S OWN HANDS (PLAN item 9). A separate root, a separate
+    # container, no hands of ours, and `Engine.sync_cousin_world` fills it
+    # with a COPY of the creature's library before every visit.
+    cousin_body = None
+    if args.cousin_shell:
+        host = PathBody(os.path.join(args.root, "cousin-body"))
+        if args.body == "docker":
+            cousin_body = ensure_container(args.container + "-user",
+                                           args.image, host)
+        else:
+            cousin_body = host
+        print("cousin shell: %s (library copied in per visit, hands withheld)"
+              % (args.container + "-user" if args.body == "docker"
+                 else host.root))
+
     # The creature's identity is SERVED, never written into the managed file.
     # Conflating them meant the cousin could not write direction without
     # overwriting who the creature is.
     e = Engine(j, body, cousin_brief, ask_creature, ask_cousin,
                os.path.join(args.root, "context.md"),
-               creature_brief=creature_brief)
+               creature_brief=creature_brief, cousin_body=cousin_body)
 
     # Pick up where a killed run left off. Derived from the journal, so there
     # is no savegame to go stale -- a crash costs the cycle in flight and

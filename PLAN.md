@@ -168,7 +168,7 @@ have no scoreboard.
 
 ## Phase 4 — the boundary question
 
-### 9. `[ ]` The cousin gets its own shell
+### 9. `[~]` The cousin gets its own shell
 
 Tue, 2026-09-16, choosing the direction. §4 assigns *running the test* to the
 cousin, and the framework only ever invokes a tool **bare** — so the cousin
@@ -185,7 +185,7 @@ shell"* since 2026-09-10.
   digest across a visit in which the cousin deliberately tries.
 - **9.5** Measured against item 8's baseline, split by rung, before and after.
 
-### 10. `[ ]` Who may propose a cull
+### 10. `[~]` Who may propose a cull
 
 Deliberately deferred until item 9 produces data: a library that is finally
 *used properly* may consolidate itself — the creature has done it twice
@@ -195,6 +195,28 @@ unprompted.
   information" (§4).
 - **10.2** Whatever the answer, the cousin never gains a write path into
   `tools/own` (§2.3).
+
+> **DECIDED 2026-09-16: the creature owns the cull; the framework owns only
+> the visibility; the cousin gets nothing.**
+>
+> §4's table already settles the principle — *ordering of the creature's own
+> work* is the creature's, inside its world — and a cull is ordering its own
+> work. The cousin must never acquire it: a manager that can retire a tool
+> holds a write path into the creature's world without touching a file, which
+> is precisely what the parent project examined and rejected. Since
+> 2026-09-16 that is structural rather than promised: the cousin's shell is
+> given a **copy** of the library, remade per visit, so there is nowhere for
+> such a path to exist.
+>
+> **What the framework may add, and has not yet:** one line in the listing
+> both inhabitants already see, giving the stem families (`archive-*` ×10).
+> Nothing more — no gate, no score, no advice.
+>
+> **Trigger, named 2026-09-16: forty-eight hours after the cousin's shell
+> goes live, if families of three or more are still growing and no tool has
+> been removed.** Not before — the twins may be an artifact of a user who
+> could only ever call things bare, and adding a surface now would change the
+> creature's context in the same window as item 9 and make both unmeasurable.
 
 ---
 
@@ -238,13 +260,13 @@ something forgotten.
 
 ## After the plan
 
-### 14. `[ ]` The chat channel (item 2's build)
+### 14. `[~]` The chat channel (item 2's build)
 
 Slotted here because it adds a surface to the creature's context and must not
 land while anything is being measured. Acceptance criteria to be written when
 it starts.
 
-### 15. `[ ]` Should a body that cannot be respawned end the run?
+### 15. `[~]` Should a body that cannot be respawned end the run?
 
 **Found by item 6's body drill, 2026-09-16 — a genuinely open design
 question, not a bug with an obvious fix.** `LocalBody.respawn` sets its alive

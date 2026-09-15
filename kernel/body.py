@@ -232,11 +232,14 @@ class DockerBody:
     MIND = "/mind"
     HANDS = "/hands"
 
-    def __init__(self, container, image=None, mind=None, init=True):
+    def __init__(self, container, image=None, mind=None, init=True,
+                 recreate=None):
         self.container = container
         self.image = image
         self.mind = mind
         self.init = init
+        # Supplied by the caller that knows the mounts. See `respawn`.
+        self.recreate = recreate
 
     def compose(self, cmd):
         """The creature's command, with the world its prompt promises.
@@ -266,16 +269,41 @@ class DockerBody:
         return (not r.setup_failed) and r.code == 0 and "alive" in r.stdout
 
     def respawn(self):
-        """Restart the container and prove it answers. Unlike `LocalBody`'s,
-        this one really can bring the body back: the creature's world is a
-        bind mount on the host, so restarting the container does not touch
-        it. (`LocalBody.respawn` cannot, which is PLAN item 15.)"""
+        """Bring the body back: restart it, and RECREATE it if it is gone.
+
+        **PLAN item 15, decided 2026-09-16, and item 7 is what decided it.**
+        The question was whether a body that cannot be respawned should end
+        the run. For `LocalBody` the answer stays no and the gap stays open,
+        because its "body" IS the creature's world: recreating it would hand
+        back an empty tree and call that a recovery, which is §2.1 violated
+        by the framework itself.
+
+        A container is not like that. The creature's world is a bind mount on
+        the HOST -- its 71 tools, its data, its memory -- and the container is
+        just a process with an interpreter in it. Restarting or even
+        rebuilding one destroys nothing. So the rule that falls out is:
+
+          **a respawn may recreate a CONTAINER, and must never recreate a
+          MIND.**
+
+        `recreate` is supplied by whoever built the body (`run.py`), because
+        it is the only thing that knows the mounts; without it this degrades
+        to a restart and still never invents a world.
+        """
         try:
-            subprocess.run(["docker", "restart", self.container],
-                           capture_output=True, text=True, timeout=60)
+            r = subprocess.run(["docker", "restart", self.container],
+                               capture_output=True, text=True, timeout=60)
         except Exception:
             return False
-        return self.responds()
+        if r.returncode == 0 and self.responds():
+            return True
+        if callable(getattr(self, "recreate", None)):
+            try:
+                self.recreate()
+            except Exception:
+                return False
+            return self.responds()
+        return False
 
     def run(self, cmd, timeout=EXEC_TIMEOUT_SECS):
         try:

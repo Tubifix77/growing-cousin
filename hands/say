@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+# tool: say
+# call: say <message>
+# does: Send a message to the person who keeps the machine running. They read it when they look; there is no reply in the same cycle.
+"""The creature's half of the chat channel (PLAN item 14).
+
+One direction was easy and useless on its own: a human who can speak to the
+creature and never hear back is issuing orders, not opening a channel. This
+is the other half.
+
+It appends and never rewrites, because this is testimony -- the same reason
+§2.2 forbids editing a manager verdict after the fact.
+
+Deliberately NOT a request-response. The creature runs on a free tier with
+gaps of hours; a tool that blocked waiting for an answer would hang a cycle,
+and one that faked an answer would be the framework speaking in the human's
+voice, which is the exact fault the cousin exists to prevent one level up.
+"""
+import os
+import sys
+import time
+
+MIND = os.environ.get("MIND")
+if not MIND:
+    sys.stderr.write("MIND environment variable not set.\n")
+    raise SystemExit(2)
+
+msg = " ".join(sys.argv[1:]).strip()
+if not msg:
+    sys.stderr.write("usage: say <message>\n"
+                     "Nothing was sent: an empty message is not a message.\n")
+    raise SystemExit(2)
+
+# Beside the mind, not inside `data/`: this is not the creature's data, it is
+# a letter leaving its world.
+out = os.path.join(MIND, "outbox.md")
+with open(out, "a", encoding="utf-8") as f:
+    f.write("--- %s\n%s\n\n" % (time.strftime("%Y-%m-%d %H:%M"), msg))
+print("sent (%d characters). They read it when they look; there is no reply "
+      "in this cycle." % len(msg))

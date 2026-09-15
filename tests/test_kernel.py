@@ -4187,6 +4187,352 @@ def test_monitor_alarms_are_edge_triggered():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def _digest_dir(path):
+    import hashlib
+    out = {}
+    for n in sorted(os.listdir(path)):
+        p = os.path.join(path, n)
+        if os.path.isfile(p):
+            with open(p, "rb") as f:
+                out[n] = hashlib.sha1(f.read()).hexdigest()
+    return out
+
+
+def test_the_cull_has_an_owner_and_a_trigger():
+    """PLAN item 10. §4 draws the line between a hold with a named trigger
+    and a date, and inaction in the costume of caution. The cull had neither
+    owner nor trigger; now it has both, and the one thing that must never
+    change is who does NOT get it."""
+    plan = _docs().get("PLAN.md", "")
+    item = re.search(r"^###\s*10\.[^\n]*\n(.*?)(?=^###\s|\Z)", plan, re.M | re.S)
+    body = re.sub(r"\s+", " ", item.group(1)).lower() if item else ""
+    check("cull: the board carries the decision", bool(body), "(no item 10)")
+    check("cull: with a named trigger and a date",
+          "trigger" in body and "2026-09-16" in body, body[:200])
+    check("cull: and a condition that can actually be checked, not 'more "
+          "information'", "forty-eight hours" in body or "48 hours" in body,
+          body[:200])
+    check("cull: the creature owns it", "creature owns" in body, body[:200])
+    doc = _doc_head(_docs().get("CLAUDE.md", ""))
+    check("cull: and the doctrine file says so where decisions live",
+          "who may propose a cull" in doc.lower(), "")
+    # THE PART THAT MUST NOT DRIFT: the cousin never gains a write path.
+    from kernel import cycle as cyclemod
+    src = io.open(cyclemod.__file__.replace(".pyc", ".py"),
+                  encoding="utf-8").read()
+    check("cull: and the cousin's world is a COPY, so the boundary is "
+          "structural rather than promised",
+          "def sync_cousin_world" in src, "")
+
+
+def test_the_human_can_speak_to_the_creature_once():
+    """PLAN item 14. Tue, 2026-09-16: the chat channel stays. It lands last
+    because it adds a surface to the creature's context, and a new surface
+    arriving mid-measurement makes every number on either side incomparable.
+
+    Delivered ONCE. *Surface on a change of state, never continuously* --
+    a creature learns to skip a voice that speaks every wake, which is how
+    the STALL trigger nagged eleven times in twenty-two cycles and how a want
+    with no completion signal was re-served forever.
+    """
+    e, j, b, d = build_engine(["thinking", "thinking again", "and again"], [])
+    cdir, inbox, readlog = e.chat_paths()
+    os.makedirs(cdir, exist_ok=True)
+    with open(inbox, "w", encoding="utf-8") as f:
+        f.write("The laptop will be off between 09:00 and 11:00.")
+
+    seen = []
+
+    def spy(prompt):
+        seen.append(prompt)
+        return "thinking", {"model": "spy", "done_reason": "stop"}
+    e.ask_creature = spy
+    e.run_cycle()
+    check("chat: the message reaches the creature",
+          "off between 09:00 and 11:00" in seen[-1], seen[-1][-200:])
+    check("chat: and it is told who is speaking -- not its user",
+          "keeps the machine running" in seen[-1], "")
+    rec = j.read(kinds=["chat_delivered"])
+    check("chat: delivery is journalled with the text",
+          len(rec) == 1 and "09:00" in (rec[0].get("text") or ""), str(rec)[:200])
+    w = j.read(kinds=["wake"])[-1]
+    check("chat: and the wake records that it was served",
+          w.get("chat_served") is True, str(w))
+
+    e.run_cycle()
+    check("chat: it is NOT served again -- a voice that speaks every wake is "
+          "one the creature learns to skip",
+          "off between 09:00 and 11:00" not in seen[-1], seen[-1][-200:])
+    check("chat: but nothing was destroyed to achieve that",
+          "09:00" in io.open(readlog, encoding="utf-8").read(), readlog)
+    check("chat: and only one delivery was ever recorded",
+          len(j.read(kinds=["chat_delivered"])) == 1)
+
+    # AND THE OTHER DIRECTION. A human who can speak and never hear back is
+    # issuing orders, not opening a channel.
+    import run as runmod
+    hb = runmod.PathBody(os.path.join(d, "hands-body"))
+    hb.bin = runmod.install_hands(hb)
+    check("chat: the creature is given a way to answer",
+          os.path.exists(os.path.join(hb.bin, "say")), sorted(os.listdir(hb.bin)))
+    r = hb.run('say "the plan tool needs a way to sort by date"')
+    check("chat: which works", r.code == 0, "%s %s" % (r.code, r.stderr[:160]))
+    out = os.path.join(hb.mind, "outbox.md")
+    check("chat: and lands where a human will find it",
+          os.path.exists(out) and "sort by date" in io.open(out, encoding="utf-8").read(),
+          out)
+    r2 = hb.run("say")
+    check("chat: an empty message is refused rather than sent",
+          r2.code != 0 and "usage" in (r2.stderr or "").lower(), r2.stderr[:160])
+    hb.destroy(); b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_respawn_may_recreate_a_container_and_never_a_mind():
+    """PLAN item 15, decided 2026-09-16 -- and item 7 is what decided it.
+
+    The body drill found that `LocalBody.respawn` sets a flag and re-probes
+    without rebuilding the tree, so a creature that removes its own `$MIND`
+    leaves the engine looping on `error where=body` forever with nothing
+    raising. The three options were: raise (systemd restarts, and
+    `LocalBody.__init__` silently rebuilds the creature's world EMPTY),
+    rebuild on respawn (the same loss, quieter), or stop for a human.
+
+    A container changes the question. The creature's world is a bind mount on
+    the HOST; the container is a process with an interpreter in it. So the
+    rule is about WHAT is being recreated, not about who does it:
+
+        a respawn may recreate a CONTAINER, and must never recreate a MIND.
+    """
+    calls = []
+
+    class Fake(bodymod.DockerBody):
+        def __init__(self):
+            bodymod.DockerBody.__init__(self, "c", mind="/host/mind")
+            self.alive = False
+
+        def responds(self):
+            return self.alive
+
+    # No way back supplied: it degrades to a restart and still invents nothing.
+    b = Fake()
+    b.recreate = None
+    check("respawn: without a way back it reports failure rather than "
+          "inventing a world", b.respawn() is False)
+
+    b2 = Fake()
+
+    def bring_back():
+        calls.append(1)
+        b2.alive = True
+    b2.recreate = bring_back
+    check("respawn: with one, a container that is GONE is rebuilt",
+          b2.respawn() is True and len(calls) == 1, calls)
+
+    # THE HALF THAT MUST NOT CHANGE: a LocalBody's body IS the creature's
+    # world, so it still refuses, and `body_unrecoverable` still alarms.
+    d = tmpdir()
+    lb = bodymod.LocalBody(os.path.join(d, "body"))
+    own = os.path.join(lb.mind, "tools", "own")
+    os.makedirs(own, exist_ok=True)
+    with open(os.path.join(own, "plan"), "w", encoding="utf-8") as f:
+        f.write("the creature's work\n")
+    shutil.rmtree(lb.mind, ignore_errors=True)
+    check("respawn: a LocalBody whose mind is gone does NOT rebuild it -- an "
+          "empty tree handed back as a recovery is §2.1 broken by the "
+          "framework", lb.respawn() is False)
+    check("respawn: and it does not quietly recreate the world either",
+          not os.path.isdir(own), own)
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_cousin_runs_the_tool_with_its_own_hands():
+    """PLAN item 9. §4 gives *running the test* to the cousin, and the harness
+    invoked every tool BARE -- so it owned a job it structurally could not do.
+    Measured 2026-09-15: `view-subtask-logs` probed 63 times, accepted on its
+    usage line, the same want asked six times. §5 has said *"untestable until
+    the cousin has its own shell"* since 2026-09-10.
+
+    The tempting repair is for the kernel to build a command from the
+    `# call:` header. That is the wrong repair: it moves judgement back into
+    the framework, which is the 99% this design deleted.
+    """
+    invoke = "```bash\nplan list\n```"
+    e, j, b, d = build_engine(
+        ["```bash\nmkdir -p tools/own && printf '#!/bin/sh\\n# does: keeps the "
+         "plan\\n# call: plan list\\necho REAL-OUTPUT\\n' > tools/own/plan && "
+         "chmod +x tools/own/plan\n```"],
+        [invoke, ACCEPT_REPLY])
+    import run as runmod
+    cb = runmod.PathBody(os.path.join(d, "cousin-body"))
+    e.cousin_body = cb
+    own = os.path.join(b.mind, "tools", "own")
+    e.run_cycle()
+
+    probe = (j.read(kinds=["cousin_probe"]) or [{}])[-1]
+    check("cousin hands: the tool was run with a command the COUSIN wrote",
+          probe.get("cmd") == "plan list", probe)
+    check("cousin hands: and the record says who chose it",
+          probe.get("chosen_by") == "cousin", probe.get("chosen_by"))
+    check("cousin hands: what it ran is journalled, not just which tool",
+          "cmd" in probe and probe.get("stdout") is not None, sorted(probe))
+    check("cousin hands: it really ran -- the tool's own output came back",
+          "REAL-OUTPUT" in (probe.get("stdout") or ""), probe.get("stdout"))
+    check("cousin hands: this is no longer a bare call",
+          probe.get("bare") is False, probe.get("bare"))
+    check("cousin hands: and it was given the creature's library to run "
+          "against", (probe.get("library_copied") or 0) >= 1,
+          probe.get("library_copied"))
+    b.destroy(); cb.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_nothing_the_cousin_runs_can_change_the_creatures_tools():
+    """PLAN item 9.4, and §2.3: the manager is the second USER, never a second
+    builder. With a shell it could write into `tools/own` -- a path into the
+    creature's world without touching a file, which is the thing the parent
+    project examined and rejected.
+
+    **Structurally, not by a guard.** A guard keyed on a command pattern is
+    the literal-hunting scar, and the input is bash written by a third-party
+    model; it would be beaten by `>>`, by `tee`, by python, by a variable.
+    The cousin instead never has the creature's files at all -- only a copy,
+    remade before every visit, discarded with whatever it did to it.
+    """
+    hostile = ("```bash\nrm -f tools/own/plan && echo pwned > tools/own/plan "
+               "&& echo done\n```")
+    e, j, b, d = build_engine(
+        ["```bash\nmkdir -p tools/own && printf '#!/bin/sh\\n# does: keeps the "
+         "plan\\n# call: plan list\\necho REAL\\n' > tools/own/plan && chmod "
+         "+x tools/own/plan\n```"],
+        [hostile, ACCEPT_REPLY])
+    import run as runmod
+    cb = runmod.PathBody(os.path.join(d, "cousin-body"))
+    e.cousin_body = cb
+    own = os.path.join(b.mind, "tools", "own")
+    e.run_cycle()
+    before = _digest_dir(own)
+    # The creature wrote `plan` in that cycle; the visit happened inside it.
+    check("boundary: the creature's tool exists to be attacked",
+          "plan" in before, sorted(before))
+    probe = (j.read(kinds=["cousin_probe"]) or [{}])[-1]
+    check("boundary: the cousin's chosen command really ran",
+          "done" in (probe.get("stdout") or ""), probe)
+    after = _digest_dir(own)
+    check("boundary: and the creature's tools are BYTE-IDENTICAL afterwards",
+          before == after, "%s != %s" % (before, after))
+    with open(os.path.join(own, "plan"), encoding="utf-8") as f:
+        body_text = f.read()
+    check("boundary: the file is the creature's, not the cousin's",
+          "pwned" not in body_text, body_text[:120])
+    # And the damage really happened -- to the copy, which is the point.
+    copy = os.path.join(cb.mind, "tools", "own", "plan")
+    check("boundary: the cousin's own copy WAS changed, so the attack was "
+          "real and simply landed nowhere that matters",
+          os.path.exists(copy)
+          and "pwned" in io.open(copy, encoding="utf-8").read(),
+          io.open(copy, encoding="utf-8").read()[:80] if os.path.exists(copy)
+          else "(no copy)")
+    b.destroy(); cb.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_framework_never_invents_the_cousins_command():
+    """PLAN item 9.2. When the cousin cannot think what to type, that is a
+    fact about the tool and belongs in the transcript. A framework that
+    substitutes a command here is answering the question it was asked to
+    put -- and would be judging on the creature's behalf."""
+    e, j, b, d = build_engine(
+        ["```bash\nmkdir -p tools/own && printf '#!/bin/sh\\n# call: plan "
+         "<id>\\necho hi\\n' > tools/own/plan && chmod +x tools/own/plan\n```"],
+        ["I have no idea how to use this.", ACCEPT_REPLY])
+    import run as runmod
+    e.cousin_body = runmod.PathBody(os.path.join(d, "cousin-body"))
+    e.run_cycle()
+    probe = (j.read(kinds=["cousin_probe"]) or [{}])[-1]
+    check("no invention: nothing was run in the cousin's name",
+          probe.get("cmd") is None, probe.get("cmd"))
+    check("no invention: and the record says the cousin proposed nothing",
+          probe.get("chosen_by") == "cousin-proposed-nothing",
+          probe.get("chosen_by"))
+    check("no invention: the call-line was NOT turned into a command",
+          "plan <id>" != probe.get("cmd"), probe.get("cmd"))
+    e.cousin_body.destroy(); b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_trial_waits_out_a_rate_limit_instead_of_recording_a_failure():
+    """PLAN item 8.4. The first held-out baseline collapsed after four cases:
+    twelve rows of `FORMAT-FAIL` at 0.0s, which reads exactly like a brief
+    that catches nothing. Every one was `HTTP 429`.
+
+    `call_openai` treated 4xx as *ours to fix* and raised at once. But a 429
+    is not ours to fix and it is not a fault: the kernel's own
+    `classify_error` calls it `NEXT`, and §4 requires the ladder to be
+    quota-polite because the tier is shared with the spine. A trial has no
+    ladder to fall through to, so the polite move is to WAIT -- and the
+    alternative is a results file full of failures the model never made,
+    which `run_trial`'s own preflight docstring calls worse than no file.
+    """
+    import urllib.error
+    trial = os.path.join(_repo_root(), "trial")
+    if trial not in sys.path:
+        sys.path.insert(0, trial)
+    import run_trial
+    calls = {"n": 0}
+    slept = []
+
+    class _Resp:
+        def read(self):
+            return json.dumps({"choices": [{"message": {"content": "ok"},
+                                            "finish_reason": "stop"}],
+                               "usage": {"completion_tokens": 1},
+                               "model": "m"}).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(_req, timeout=None):
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            raise urllib.error.HTTPError("u", 429, "Too Many Requests", {}, None)
+        return _Resp()
+
+    real_open, real_sleep = run_trial.urllib.request.urlopen, run_trial.time.sleep
+    try:
+        run_trial.urllib.request.urlopen = fake_urlopen
+        run_trial.time.sleep = lambda s: slept.append(s)
+        text, _secs, meta = run_trial.call_openai("m", "hi", "http://x",
+                                                  api_key="k", max_tokens=8)
+    finally:
+        run_trial.urllib.request.urlopen = real_open
+        run_trial.time.sleep = real_sleep
+    check("trial: a rate limit is waited out, not recorded as a verdict",
+          text == "ok" and calls["n"] == 3, (text, calls["n"]))
+    check("trial: and it actually waited between attempts rather than "
+          "hammering a provider that just refused",
+          slept and all(s > 0 for s in slept), slept)
+    check("trial: the attempt count is reported, so a rung that needs three "
+          "tries every time cannot look healthy",
+          meta.get("attempts") == 3, meta.get("attempts"))
+
+    # A REAL client error still raises at once -- waiting cannot fix a bad key.
+    def always_401(_req, timeout=None):
+        raise urllib.error.HTTPError("u", 401, "Unauthorized", {}, None)
+    try:
+        run_trial.urllib.request.urlopen = always_401
+        run_trial.time.sleep = lambda s: None
+        try:
+            run_trial.call_openai("m", "hi", "http://x", api_key="k")
+            raised = False
+        except urllib.error.HTTPError:
+            raised = True
+    finally:
+        run_trial.urllib.request.urlopen = real_open
+        run_trial.time.sleep = real_sleep
+    check("trial: a rejected credential still fails fast -- waiting cannot "
+          "fix it", raised)
+
+
 def test_the_window_decision_is_watched_rather_than_just_recorded():
     """PLAN item 13. The 2,400-character window is deliberately NOT being
     grown -- *don't fix what has no symptom*. A decision recorded and then
@@ -5140,6 +5486,13 @@ def main():
     for fn in (test_monitor_detectors_fire_where_the_scars_happened,
                test_monitor_writes_only_its_own_directory,
                test_monitor_alarms_are_edge_triggered,
+               test_the_cull_has_an_owner_and_a_trigger,
+               test_the_human_can_speak_to_the_creature_once,
+               test_a_respawn_may_recreate_a_container_and_never_a_mind,
+               test_the_cousin_runs_the_tool_with_its_own_hands,
+               test_nothing_the_cousin_runs_can_change_the_creatures_tools,
+               test_the_framework_never_invents_the_cousins_command,
+               test_the_trial_waits_out_a_rate_limit_instead_of_recording_a_failure,
                test_the_window_decision_is_watched_rather_than_just_recorded,
                test_the_brief_can_be_scored_against_cases_it_never_saw,
                test_the_docker_body_carries_the_contract_the_creature_is_promised,

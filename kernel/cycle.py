@@ -13,6 +13,7 @@ day 400 as on day 1, however large the library grows.
 import os
 import re
 import shlex
+import time
 
 from . import body as bodymod
 from . import cousin as cousinmod
@@ -37,7 +38,7 @@ FENCE_RUN = re.compile(r"`{3,}")
 
 class Engine:
     def __init__(self, journal, body, brief, ask_creature, ask_cousin,
-                 context_path, creature_brief=""):
+                 context_path, creature_brief="", cousin_body=None):
         self.j = journal
         self.body = body
         self.brief = brief                  # the cousin's brief
@@ -49,6 +50,9 @@ class Engine:
         self.cycles_since_change = 0
         self.done_blocked = None       # testimony the creature must see next wake
         self.served = {}               # what the last serve_context put on the page
+        # THE COUSIN'S OWN HANDS. None keeps the old bare probe, which is what
+        # every figure before 2026-09-16 was measured with.
+        self.cousin_body = cousin_body
 
     # ---------------------------------------------------------------- context
 
@@ -72,6 +76,9 @@ class Engine:
             # it every cycle would be a nag it learns to skip.
             parts.append("## The person who needs this could not use it\n\n"
                          + self.done_blocked)
+        chat = self.chat_block()
+        if chat:
+            parts.append(chat)
         mem = self.memory_block()
         if mem:
             parts.append(mem)
@@ -129,6 +136,7 @@ class Engine:
             "window": self.HISTORY_OUTPUT_CHARS,
             "refusal_served": bool(self.done_blocked),
             "memory_served": bool(mem),
+            "chat_served": bool(chat),
         }
         return "\n\n---\n\n".join(p for p in parts if p)
 
@@ -252,6 +260,54 @@ class Engine:
                 if m:
                     out.append(m.group(1))
         return out
+
+    CHAT_DIR = "chat"
+
+    def chat_paths(self):
+        root = os.path.dirname(self.context_path) or "."
+        d = os.path.join(root, self.CHAT_DIR)
+        return d, os.path.join(d, "inbox.md"), os.path.join(d, "read.log")
+
+    def chat_block(self):
+        """What the human said, delivered ONCE.
+
+        PLAN item 14, and Tue's decision on 2026-09-16 that the channel stays
+        after sitting in every "not built" list since 2026-09-11. It lands
+        last on purpose: it adds a surface to the creature's context, and a
+        new surface arriving mid-measurement makes every number on either
+        side of it incomparable.
+
+        **Delivered once, then cleared**, because the parent's rule is
+        *surface on a change of state, never continuously* and a creature
+        learns to skip a voice that speaks every wake -- which is exactly how
+        the STALL trigger nagged eleven times in twenty-two cycles, and how a
+        want with no completion signal was re-served forever. The text is
+        kept in `chat/read.log` so clearing it destroys nothing.
+
+        It is the HUMAN's channel, not the cousin's. The cousin already has
+        the want channel and its verdicts; a second voice with no census over
+        it would be a second judge (§2.5).
+        """
+        d, inbox, readlog = self.chat_paths()
+        try:
+            with open(inbox, encoding="utf-8") as f:
+                text = f.read().strip()
+        except OSError:
+            return ""
+        if not text:
+            return ""
+        os.makedirs(d, exist_ok=True)
+        with open(readlog, "a", encoding="utf-8") as f:
+            f.write("--- delivered %s\n%s\n" % (time.strftime("%Y-%m-%d %H:%M"),
+                                                text))
+        with open(inbox, "w", encoding="utf-8") as f:
+            f.write("")
+        self.j.append("chat_delivered", chars=len(text),
+                      text=capped(text, EXEC_STDOUT_CHARS))
+        return ("## A message from the person who keeps the machine running\n\n"
+                "%s\n\n(They are not your user -- that is the person whose "
+                "verdicts reach you. This is the human who can change the "
+                "world you live in. It is shown once.)" % text)
 
     def memory_block(self):
         """What it remembered. The prompt promises memory is shown each cycle;
@@ -703,6 +759,48 @@ class Engine:
                     key=lambda n: (hist.get(n, {}).get("runs", 0), n)),
                 "least_probed")
 
+    def sync_cousin_world(self):
+        """Put a COPY of the creature's tools and data in the cousin's body.
+
+        **This is how §2.3 is kept structurally rather than by a guard.** The
+        manager is the second *user*, never a second builder: if it could
+        write into `tools/own` it would hold a path into the creature's world
+        without touching a file, which is the thing the parent project
+        examined and rejected. A guard keyed on a command pattern would be
+        the literal-hunting scar again, and the input here is bash written by
+        a third-party model.
+
+        So the cousin never has the creature's files at all -- only a copy,
+        remade before every visit and discarded with whatever it did to them.
+        It can `rm -rf` its whole world and the creature will not notice.
+        """
+        import shutil
+        src = os.path.join(self.body.mind, "tools", "own")
+        dst_mind = self.cousin_body.mind
+        dst = os.path.join(dst_mind, "tools", "own")
+        if os.path.isdir(dst):
+            shutil.rmtree(dst, ignore_errors=True)
+        os.makedirs(dst, exist_ok=True)
+        copied = 0
+        for n in trigmod.list_tools(src):
+            try:
+                shutil.copy2(os.path.join(src, n), os.path.join(dst, n))
+                copied += 1
+            except OSError:
+                pass
+        # Its data too, or every tool that reads a store reports an empty one
+        # and the cousin judges a working tool as useless.
+        data_src = os.path.join(self.body.mind, "data")
+        data_dst = os.path.join(dst_mind, "data")
+        if os.path.isdir(data_src):
+            if os.path.isdir(data_dst):
+                shutil.rmtree(data_dst, ignore_errors=True)
+            try:
+                shutil.copytree(data_src, data_dst)
+            except OSError:
+                pass
+        return copied
+
     def evidence(self, target, executed, picked_by=None):
         """What the cousin is shown. It runs the tool ITSELF -- the transcript
         is the cousin's own attempt, never a replay of the creature's.
@@ -775,6 +873,39 @@ class Engine:
             # is not merely fragile, it EXECUTES: a file called `$(rm -rf ~)`
             # would have run. The creature names its own files, so the name is
             # untrusted input to this line.
+            if self.cousin_body is not None:
+                # THE COUSIN RUNS IT, IN ITS OWN BODY, HAVING CHOSEN THE
+                # COMMAND ITSELF. See `sync_cousin_world` for why it gets a
+                # copy, and `cousin.choose_invocation` for why the framework
+                # does not compose the command out of the `# call:` line.
+                copied = self.sync_cousin_world()
+                chosen, cmeta = cousinmod.choose_invocation(
+                    self.ask_cousin, header, library)
+                if chosen:
+                    r = self.cousin_body.run(chosen)
+                    needs_args = False
+                    ran, chosen_by = chosen, "cousin"
+                else:
+                    # NOTHING IS SUBSTITUTED. A user who cannot think what to
+                    # type has told you something about the tool, and a
+                    # framework that invents a command here is answering the
+                    # question it was asked to put.
+                    r = bodymod.ExecResult("", "", 0)
+                    ran, chosen_by = None, "cousin-proposed-nothing"
+                self.j.append("cousin_probe", tool=target, exit_code=r.code,
+                              bare=False, picked_by=picked_by, cmd=ran,
+                              chosen_by=chosen_by, library_copied=copied,
+                              stdout=capped(r.stdout, EXEC_STDOUT_CHARS),
+                              stderr=capped(r.stderr, EXEC_STDERR_CHARS))
+                if ran:
+                    transcript = "$ %s\nexit %d\n%s%s" % (
+                        ran, r.code, capped(r.stdout, EXEC_STDOUT_CHARS),
+                        ("\n" + capped(r.stderr, EXEC_STDERR_CHARS))
+                        if r.stderr else "")
+                else:
+                    transcript = ("(I could not think of a way to invoke it "
+                                  "from what it says about itself.)")
+                return claim, header, transcript, library
             r = self.body.run(shlex.quote(target))
             # The cousin's OWN attempt, recorded as fact. Nothing else can check
             # whether its testimony describes an event that actually happened --
