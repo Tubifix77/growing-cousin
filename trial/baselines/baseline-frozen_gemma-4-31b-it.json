@@ -1,0 +1,28 @@
+{
+ "model": "gemma-4-31b-it",
+ "label": "baseline-frozen",
+ "reps": 1,
+ "detection": {
+  "n": 16,
+  "caught": 7,
+  "of_broken": 8,
+  "falsely_returned": 5,
+  "of_good": 8,
+  "unreadable": 2,
+  "answered": 14,
+  "call_errors": 1,
+  "call_error_kinds": [
+   "HTTPError"
+  ]
+ },
+ "correction": null,
+ "detection_measurable": true,
+ "detection_not_measurable": null,
+ "correction_not_measurable": "Zero probes in run 2 failed with bare=False -- every non-zero probe since the flag was added is a tool correctly refusing incomplete input. Nothing has broken for its user, so nothing has been repaired for its user, and a correction case invented here would put the author's own repair in the answer key. The generator is wired; this fills itself the day a real failure is followed by a real success.",
+ "cases": {
+  "detection": "heldout-cases.json",
+  "correction": "heldout-repair-cases.json"
+ },
+ "when": 1789516612.2159898,
+ "when_str": "2026-09-16 01:56"
+}

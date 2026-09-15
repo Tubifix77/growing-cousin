@@ -4218,9 +4218,14 @@ def test_a_run_can_be_seeded_with_a_tagged_inheritance():
     d = tmpdir()
     src = os.path.join(d, "parent-mind", "tools", "own")
     os.makedirs(src)
-    for n, body in (("good", "#!/bin/sh\necho ok\n"),
+    # All python, so the start-check is `compile()` and the fixture means the
+    # same thing on every box. A `#!/bin/sh` fixture made this depend on
+    # `bash -n`, which misfires on the Windows development box and would have
+    # made the whole case set read differently there than on the laptop.
+    for n, body in (("good", "#!/usr/bin/env python3\nprint('ok')\n"),
+                    ("fine", "#!/usr/bin/env python3\nprint('also ok')\n"),
                     ("broken", "#!/usr/bin/env python3\nprint('unclosed\n"),
-                    ("skipme.bak", "#!/bin/sh\n")):
+                    ("skipme.bak", "#!/usr/bin/env python3\n")):
         with open(os.path.join(src, n), "w", encoding="utf-8") as f:
             f.write(body)
     root = os.path.join(d, "live")
@@ -4258,30 +4263,53 @@ def test_a_run_can_be_seeded_with_a_tagged_inheritance():
     tagged = seed_run.inherit_library(src, own)
     seed_run.write_tag(root, tagged, "parent-mind")
     check("seed: the library came across", sorted(os.listdir(own)) ==
-          ["broken", "good"], sorted(os.listdir(own)))
+          ["broken", "fine", "good"], sorted(os.listdir(own)))
     check("seed: backups are not tools and did not come with it",
           "skipme.bak" not in os.listdir(own), sorted(os.listdir(own)))
     doc = seed_run.load_tag(root)
     check("seed: every inherited tool is tagged at t=0, with its bytes",
-          set(doc["tools"]) == {"good", "broken"}
-          and all(len(v) == 64 for v in doc["tools"].values()), doc)
+          set(doc["tools"]) == {"good", "fine", "broken"}
+          and all(len(v["sha"]) == 64 for v in doc["tools"].values()), doc)
+    check("seed: and with whether it STARTED, because a later byte change is "
+          "a fix or a breakage and the hash alone cannot say which",
+          doc["tools"]["good"]["starts"] is True
+          and doc["tools"]["broken"]["starts"] is False, doc["tools"])
 
-    inh, built, repaired = seed_run.split_on_tag(root, own)
-    check("seed: metrics can be split -- 2 inherited, 0 built, 0 repaired",
-          (inh, built, repaired) == (2, 0, 0), (inh, built, repaired))
+    s0 = seed_run.split_on_tag(root, own)
+    check("seed: at t=0 everything is inherited and nothing else",
+          (s0["inherited"], s0["built"], s0["modified"], s0["deleted"])
+          == (3, 0, 0, 0), s0)
+
+    # EVERY CASE A VERIFIER FOUND WRONG, 2026-09-16. The first version keyed
+    # the tag by NAME and consulted the hash only after a name match, so a
+    # rename counted as BUILT -- while PLAN.md claimed a hash-based tag made
+    # renames harmless -- `repaired` meant *modified* including *broken*, and
+    # a deleted inheritance vanished from every count.
+    os.rename(os.path.join(own, "good"), os.path.join(own, "good-v2"))
     with open(os.path.join(own, "ownwork"), "w", encoding="utf-8") as f:
-        f.write("#!/bin/sh\necho mine\n")
+        f.write("#!/usr/bin/env python3\nprint('mine')\n")
     with open(os.path.join(own, "broken"), "w", encoding="utf-8") as f:
         f.write("#!/usr/bin/env python3\nprint('fixed')\n")
-    inh, built, repaired = seed_run.split_on_tag(root, own)
-    check("seed: a tool the creature BUILT is counted apart from one it was "
-          "handed", built == 1, (inh, built, repaired))
-    check("seed: and REPAIRING an inheritance is visible -- the number §6.2 "
-          "chose the parent's library for", repaired == 1,
-          (inh, built, repaired))
-    check("seed: the tag survives a rename convention nobody agreed to, "
-          "because it is a file of hashes and not a naming rule",
-          "good" in doc["tools"] and doc["tools"]["good"] != doc["tools"]["broken"])
+    with open(os.path.join(own, "fine"), "w", encoding="utf-8") as f:
+        f.write("#!/usr/bin/env python3\nprint('now broken\n")
+    s1 = seed_run.split_on_tag(root, own)
+    check("seed: a RENAME with identical bytes is still the inheritance, "
+          "followed by hash rather than lost to the new name",
+          s1["renamed"] == 1 and s1["inherited"] == 3, s1)
+    check("seed: a tool the creature BUILT is counted apart", s1["built"] == 1, s1)
+    check("seed: REPAIRED means what §6.2 chose this library for -- a tool "
+          "that COULD NOT START and now starts", s1["repaired"] == 1, s1)
+    check("seed: and a tool the creature BROKE is counted too, or the number "
+          "could only ever move the flattering way", s1["broke"] == 1, s1)
+    check("seed: both are modifications, and that is reported separately from "
+          "which direction they went", s1["modified"] == 2, s1)
+
+    os.remove(os.path.join(own, "broken"))
+    s2 = seed_run.split_on_tag(root, own)
+    check("seed: a DELETED inheritance is visible, rather than looking like "
+          "one that was never there", s2["deleted"] == 1, s2)
+    check("seed: and it stops being counted as present",
+          s2["inherited"] == 2, s2)
     shutil.rmtree(d, ignore_errors=True)
 
 
@@ -4371,6 +4399,53 @@ def test_the_human_can_speak_to_the_creature_once():
     r2 = hb.run("say")
     check("chat: an empty message is refused rather than sent",
           r2.code != 0 and "usage" in (r2.stderr or "").lower(), r2.stderr[:160])
+
+    # 14.4 -- EXACTLY ONE FILE, INSIDE THE CREATURE'S OWN TREE. Nothing
+    # tested this when it shipped, which an independent verifier said plainly.
+    import hashlib
+
+    def tree(path):
+        out = {}
+        for dp, _dn, fn in os.walk(path):
+            for n in fn:
+                p = os.path.join(dp, n)
+                try:
+                    with open(p, "rb") as fh:
+                        out[os.path.relpath(p, path)] = hashlib.sha1(
+                            fh.read()).hexdigest()
+                except OSError:
+                    pass
+        return out
+    before = tree(hb.root)
+    hb.run('say "a second message"')
+    after = tree(hb.root)
+    # The body writes its own command script into the mind on every run, so
+    # that is the harness and not `say`; everything else must be untouched.
+    touched = sorted(k for k in set(before) | set(after)
+                     if before.get(k) != after.get(k)
+                     and ".cmd-" not in k)
+    check("chat: saying something changes exactly one file, and it is the "
+          "outbox", touched == [os.path.join("mind", "outbox.md")], touched)
+
+    # 14.3 -- and somebody READS it. When `say` shipped, `outbox.md` was read
+    # by no detector, no page and no document: a channel whose far end nobody
+    # reads is the dead-channel scar with a politer face.
+    from monitor import detectors as det
+    # The detector reads `<root>/body/mind/outbox.md`, which is where the
+    # deployment keeps it; lay the file out that way rather than pointing the
+    # detector somewhere convenient.
+    os.makedirs(os.path.join(d, "root", "body", "mind"), exist_ok=True)
+    shutil.copy2(out, os.path.join(d, "root", "body", "mind", "outbox.md"))
+    ctx = det.Context([{"ts": time.time(), "kind": "wake"}])
+    ctx.root = os.path.join(d, "root")
+    f = det.creature_said(ctx)
+    check("chat: the monitor reports what the creature said, so the far end "
+          "of the channel is read by something",
+          f.state == det.INFO and "2 message" in f.msg and "second message" in f.msg,
+          "%s %s" % (f.state, f.msg))
+    empty = det.creature_said(det.Context([], now=time.time()))
+    check("chat: and says nothing when there is nothing to say",
+          empty.state in (det.OK, det.CANNOT_TELL), empty.msg)
     hb.destroy(); b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 

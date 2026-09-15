@@ -47,6 +47,45 @@ class Refused(Exception):
     """Something is alive in there, or the target is not ours to take."""
 
 
+def why_it_cannot_start(path):
+    """The interpreter's own words, or None if the file starts fine.
+
+    Reads; never executes -- §2.6 forbids running anything of the parent's,
+    and its tools would write into its creature's world. A syntax error is
+    the one defect that needs no opinion: the tool cannot run for anybody, on
+    any day, under any brief.
+
+    THE canonical implementation. `trial/make_heldout.py` imports it rather
+    than keeping a second copy, because a producer and a checker that each
+    carry their own rule drift and no test notices.
+    """
+    try:
+        with io.open(path, encoding="utf-8", errors="replace") as f:
+            src = f.read()
+    except OSError:
+        return None
+    first = src.split(chr(10), 1)[0]
+    if "python" in first:
+        try:
+            compile(src, os.path.basename(path), "exec")
+        except SyntaxError as e:
+            return "%s: %s (line %s)" % (type(e).__name__, e.msg, e.lineno)
+        except ValueError as e:
+            return "ValueError: %s" % e
+        return None
+    if "bash" in first or "/sh" in first:
+        import subprocess
+        try:
+            r = subprocess.run(["bash", "-n", path], capture_output=True,
+                               text=True, timeout=20)
+        except Exception:
+            return None
+        if r.returncode != 0:
+            return (r.stderr or "").strip().split(chr(10))[-1][:200] or "syntax error"
+        return None
+    return None
+
+
 def engine_is_running(unit="cousin-engine.service"):
     import subprocess
     try:
@@ -110,7 +149,13 @@ def inherit_library(src_own, dst_own, limit=None):
             continue
         shutil.copy2(src, os.path.join(dst_own, n))
         os.chmod(os.path.join(dst_own, n), 0o755)
-        tagged[n] = hashlib.sha256(blob).hexdigest()
+        # THE HASH AND WHETHER IT STARTS. The hash alone can only say
+        # "changed", and a change is a fix or a breakage -- `repaired` meant
+        # `modified` until an independent verifier said so on 2026-09-16.
+        # §6.2 chose this library for `cannot_start 32 -> 23`, so the thing
+        # worth counting is whether a tool that COULD NOT RUN now can.
+        tagged[n] = {"sha": hashlib.sha256(blob).hexdigest(),
+                     "starts": why_it_cannot_start(src) is None}
     return tagged
 
 
@@ -145,35 +190,72 @@ def load_tag(root):
 
 
 def split_on_tag(root, own_dir):
-    """`(inherited, built, repaired)` for what is in the library NOW.
+    """What became of an inherited library. Returns a dict, not a triple.
 
-    `repaired` is an inherited tool whose bytes have changed -- the single
-    most interesting number this tag makes available, and the one §6.2 was
-    chosen for: *the parent moved `cannot_start` 32 -> 23 over months; a
-    cousin taking it to zero in a week would be a headline result.*
+    **Rewritten 2026-09-16 after a verifier tested it on its own fixtures and
+    found all three answers wrong.** The first version keyed the tag by NAME
+    and consulted the hash only after a name match, so:
+
+    - a tool RENAMED with identical bytes counted as **built** -- and
+      `PLAN.md` claimed in as many words that a hash-based tag made a rename
+      harmless, which was the opposite of true;
+    - `repaired` meant *modified*, incrementing for a comment, a cosmetic
+      edit, or a tool the creature BROKE;
+    - a DELETED inheritance vanished from every count, so a creature that
+      threw one away looked like one that never had it.
+
+    Now the hash is a first-class index, so a rename is followed; and
+    `repaired` means what §6.2 chose this library for -- a tool that COULD
+    NOT START and now starts. Its opposite, `broke`, is counted too, because
+    a number that can only move in the flattering direction is not a
+    measurement.
     """
     doc = load_tag(root) or {}
     tags = doc.get("tools") or {}
-    inherited = built = repaired = 0
+    # Tolerates the pre-2026-09-16 shape, where a tag was a bare hash string.
+    norm = {}
+    for name, t in tags.items():
+        norm[name] = t if isinstance(t, dict) else {"sha": t, "starts": None}
+    by_sha = {}
+    for name, t in norm.items():
+        by_sha.setdefault(t["sha"], name)
+
+    out = {"inherited": 0, "renamed": 0, "built": 0, "modified": 0,
+           "deleted": 0, "repaired": 0, "broke": 0}
+    seen = set()
     try:
         names = sorted(os.listdir(own_dir))
     except OSError:
-        return 0, 0, 0
+        return out
     for n in names:
         p = os.path.join(own_dir, n)
         if not os.path.isfile(p) or n.startswith(".") or n.endswith(NOT_A_TOOL):
             continue
-        if n not in tags:
-            built += 1
-            continue
-        inherited += 1
         try:
             with open(p, "rb") as f:
-                if hashlib.sha256(f.read()).hexdigest() != tags[n]:
-                    repaired += 1
+                sha = hashlib.sha256(f.read()).hexdigest()
         except OSError:
-            pass
-    return inherited, built, repaired
+            continue
+        if n in norm:
+            origin = n
+        elif sha in by_sha:
+            origin = by_sha[sha]           # renamed, bytes untouched
+            out["renamed"] += 1
+        else:
+            out["built"] += 1
+            continue
+        seen.add(origin)
+        out["inherited"] += 1
+        if sha != norm[origin]["sha"]:
+            out["modified"] += 1
+            was = norm[origin].get("starts")
+            now = why_it_cannot_start(p) is None
+            if was is False and now:
+                out["repaired"] += 1
+            elif was is True and not now:
+                out["broke"] += 1
+    out["deleted"] = len([n for n in norm if n not in seen])
+    return out
 
 
 def main(argv=None):

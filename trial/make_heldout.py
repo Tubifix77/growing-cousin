@@ -52,37 +52,12 @@ def header_of(path, lines=HEADER_LINES):
         return ""
 
 
-def why_it_cannot_start(path):
-    """The interpreter's own words, or None if it starts fine.
-
-    Reads; never executes. A syntax error is the one defect that needs no
-    opinion at all -- the tool cannot run for anybody, on any day, under any
-    brief.
-    """
-    try:
-        with io.open(path, encoding="utf-8", errors="replace") as f:
-            src = f.read()
-    except OSError:
-        return None
-    first = src.split("\n", 1)[0]
-    if "python" in first:
-        try:
-            compile(src, os.path.basename(path), "exec")
-        except SyntaxError as e:
-            return "%s: %s (line %s)" % (type(e).__name__, e.msg, e.lineno)
-        except ValueError as e:
-            return "ValueError: %s" % e
-        return None
-    if "bash" in first or "/sh" in first:
-        try:
-            r = subprocess.run(["bash", "-n", path], capture_output=True,
-                               text=True, timeout=20)
-        except Exception:
-            return None
-        if r.returncode != 0:
-            return (r.stderr or "").strip().split("\n")[-1][:200] or "syntax error"
-        return None
-    return None
+# ONE implementation of "does this file start", shared with `seed_run.py`,
+# which needs the identical judgement to decide whether an inherited tool was
+# REPAIRED. Two copies of a rule drift and no test notices -- the fault this
+# repo has paid for in `wants()`, in the caps, and in the census.
+sys.path.insert(0, os.path.dirname(HERE))
+from seed_run import why_it_cannot_start          # noqa: E402
 
 
 def already_taught(paths):

@@ -131,7 +131,7 @@ as this uid.
 
 ## Phase 3 — unfreeze the brief
 
-### 8. `[~]` Held-out cases, so a brief change can be scored
+### 8. `[x]` Held-out cases, so a brief change can be scored
 
 The unfreeze condition written in §0 and never built. Until it exists every
 question about the cousin's **judgement** is unanswerable, and items 9 and 10
@@ -147,7 +147,34 @@ have no scoreboard.
 - **8.5** §0's unfreeze condition is marked satisfied, with the instrument
   named.
 
-> **Status 2026-09-16: 8.1–8.3 done, 8.4 blocked on quota, 8.5 waits on 8.4.**
+> ## 8.4 — THE FIRST BASELINE, 2026-09-16 02:00
+>
+> `gemma-4-31b-it`, one rep, engine paused so the tier was not being shared
+> with it, quota-polite waits (one case took six minutes of backoff):
+>
+> | | |
+> |---|---|
+> | **detection** | **caught 7 of 8** tools whose interpreter refuses them |
+> | **false-return** | **5 of 8** tools that demonstrably ran were REFUSED |
+> | unreadable | 2 of 16 — neither caught nor missed; that measures the rung |
+> | correction | **NOT MEASURABLE**, and the runner says so rather than printing detection alone |
+>
+> **The detection half is strong and the false-return half is not**, and that
+> asymmetry is the first thing this instrument was built to be able to see.
+> §5 already records a rule that *"regressed genuine repairs 5/5 → 1/5 while
+> catching nothing"* and was reverted rather than layered over; this is the
+> same shape, now visible on cases the brief was never written against.
+>
+> **Two limits, stated before anyone quotes the number.** It is ONE pass on
+> ONE model — the file's own rule is that a direction surviving several
+> windows is a signal and one number moving is not. And the ACCEPTED label
+> means *the cousin ran it and it exited 0 with output*, which is weaker than
+> *it did what its header claims*: some of those five refusals may be right,
+> and finding out means reading the five transcripts, not adjusting a rule.
+>
+> `trial/baselines/baseline-frozen_gemma-4-31b-it.json`.
+>
+> **Status 2026-09-16: 8.1–8.5 done.**
 > `trial/heldout-cases.json` carries 16 cases — 8 parent tools whose
 > interpreter refuses them (read statically; §2.6 forbids running one) and 8
 > of our own tools the journal records running to exit 0 with output. None is
@@ -344,8 +371,32 @@ something forgotten.
 ### 14. `[~]` The chat channel (item 2's build)
 
 Slotted here because it adds a surface to the creature's context and must not
-land while anything is being measured. Acceptance criteria to be written when
-it starts.
+land while anything is being measured.
+
+> **Criteria written 2026-09-16, AFTER the build — which is the wrong order
+> and is recorded as such.** PLAN's own first rule is that the test comes
+> first; this item shipped against a one-line brief with "acceptance criteria
+> to be written when it starts" still in place, and an independent verifier
+> was the one to point out that it therefore had no contract to be judged
+> against. Written now so the thing that exists can be judged at all.
+
+- **14.1** A message from the human reaches the creature, **once**, and is
+  never re-served. *Surface on a change of state, never continuously.*
+- **14.2** Clearing the inbox destroys nothing: the text is kept.
+- **14.3** The creature can answer, and its answer lands somewhere a human
+  will actually see — **not** in a file nothing reads.
+- **14.4** `say` writes exactly one file, inside the creature's own tree, and
+  nothing else anywhere.
+- **14.5** The creature is TOLD the channel exists. Until then the channel is
+  one-way in practice, and that is stated rather than assumed.
+
+> **14.5 is NOT met and cannot be met yet.** `CREATURE-PROMPT.md` lists the
+> built-in hands and is FROZEN (§0) until item 8.4 has a baseline. So `say`
+> exists, works, and the creature has not been told about it — a hand nobody
+> mentioned is a hand nobody uses, which is this project's *dead channel*
+> scar with the freeze as its cause. **Trigger: add `say` to the prompt's
+> hand list in the same change that unfreezes the brief.** Recorded here so
+> the unfreeze does not quietly forget it.
 
 ### 15. `[~]` Should a body that cannot be respawned end the run?
 

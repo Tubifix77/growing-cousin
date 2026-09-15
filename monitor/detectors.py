@@ -855,6 +855,39 @@ def window_reread(ctx):
                    "changed, in %dh" % (REREAD_MIN, RECENT_H))
 
 
+def creature_said(ctx):
+    """Has the creature written to the human, and has anyone looked?
+
+    PLAN item 14.3. `hands/say` appends to `<mind>/outbox.md`, and when it
+    shipped **nothing read that file** -- no detector, no page, no document.
+    A channel whose far end nobody reads is the *dead channel* scar with a
+    politer face: the creature would be writing letters into a drawer.
+
+    Reports rather than alarms. The creature speaking is not a fault, and a
+    message that has been there a while is a fact about the human, not the
+    engine -- so this is INFO however old it is, and the page is where it
+    shows up.
+    """
+    root = getattr(ctx, "root", None)
+    if not root:
+        return Finding("creature_said", CANNOT_TELL, "no root to read",
+                       human=False)
+    path = os.path.join(root, "body", "mind", "outbox.md")
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = f.read().strip()
+    except OSError:
+        return Finding("creature_said", OK, "nothing in the outbox")
+    if not text:
+        return Finding("creature_said", OK, "nothing in the outbox")
+    blocks = [b.strip() for b in text.split("--- ") if b.strip()]
+    last = blocks[-1].replace("\n", " ") if blocks else text[:120]
+    return Finding("creature_said", INFO,
+                   "the creature has written %d message(s) to you; the last "
+                   "is: %s" % (len(blocks), last[:160]),
+                   {"messages": len(blocks), "path": path}, human=False)
+
+
 def body_unrecoverable(ctx):
     """The body stopped answering and could not be brought back.
 
@@ -1035,7 +1068,7 @@ ALL = (engine_silent, gave_up, unusable_verdicts, commands_lost,
        served_context_contract, tool_vanished, selfcheck_disproven,
        restart_owed, ladder_dry, journal_integrity, twin_pressure,
        deploy_regression, want_repeated, probe_stuck, complaint_fidelity,
-       body_unrecoverable, window_reread)
+       body_unrecoverable, window_reread, creature_said)
 
 
 def run_all(ctx, detectors=ALL):

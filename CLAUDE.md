@@ -138,11 +138,18 @@ not a midnight patch.**
 > figure alone — the correction half says NOT MEASURABLE, with the reason,
 > until a real failure is followed by a real repair in the journal.
 >
-> **What remains before the brief may be touched: a recorded baseline.** The
-> first attempt met sixteen `HTTP 429`s — the tier is shared with the live
-> engine. Run it when the tier is quiet, several reps, split by model. Until
-> that baseline exists there is still nothing to score a change AGAINST, and
-> the freeze stands.
+> **THE FIRST BASELINE EXISTS (2026-09-16 02:00), so the unfreeze condition
+> is met.** `gemma-4-31b-it`, one rep, engine paused:
+> **caught 7 of 8 broken; falsely returned 5 of 8 good**; 2 of 16 replies
+> unreadable; correction NOT MEASURABLE and said so.
+> `trial/baselines/baseline-frozen_gemma-4-31b-it.json`.
+>
+> **The discipline that replaces the freeze**: a brief change is scored by a
+> DIRECTION across several reps, split by model, with detection and
+> correction reported together — never by one number moving. And before
+> touching a rule over that 5-of-8, read the five transcripts: the ACCEPTED
+> label means *ran and produced output*, which is weaker than *did what its
+> header claims*, so some of those refusals may be correct.
 
 **Do not re-derive these; they are settled and each cost real time:**
 
