@@ -82,6 +82,14 @@ owed; do not work it out from `git log` and systemd by hand again.
 non-zero and systemd restarts it, bounded to 5 starts per 30 minutes; the page's
 `gave_up` and `engine_silent` findings say so if that ever stops being true.
 
+**BOTH inhabitants now have their own container** (2026-09-16). The creature's
+is `growing-cousin-body`; the cousin's is `growing-cousin-body-user`, and it
+holds a **copy** of the library, remade before every visit and discarded with
+whatever it did to it — which is how §2.3 stopped being a promise and became
+a fact. The cousin has no hands of ours: it is the second user, never a
+second builder. It now chooses its own invocation instead of being sent to
+run things bare (PLAN item 9), which costs two cousin calls per visit.
+
 **The creature lives in a container as of 2026-09-16** (`--body docker`, PLAN
 item 7). Its world is a bind mount of `live/body/mind` at `/mind`, our hands
 read-only at `/hands`; `~/keys`, the host home, this repo and the sibling

@@ -183,7 +183,41 @@ shell"* since 2026-09-10.
 - **9.4** **§2.3 holds structurally, not by a guard keyed on a literal:**
   nothing the cousin runs can change the creature's `tools/own`. Proved by
   digest across a visit in which the cousin deliberately tries.
-- **9.5** Measured against item 8's baseline, split by rung, before and after.
+- **9.5** Measured against a recorded BEFORE window, split by rung.
+
+> **Live 2026-09-16 01:42, engine `28c4eda`.** The cousin has its own
+> container (`growing-cousin-body-user`), no hands, and an empty world until
+> its first visit — the library is copied in per visit and discarded with
+> whatever it did to it.
+>
+> **Corrected criterion.** 9.5 first said *"measured against item 8's
+> baseline"*, and that was wrong: item 8 scores the BRIEF against fixed
+> transcripts, so it cannot see a change in how the transcript is produced.
+> Giving the cousin hands changes production, and production is where it must
+> be read. Keeping the wrong instrument named would have been the
+> *checker that cannot distinguish the thing it measures* in the plan itself.
+>
+> **THE BEFORE WINDOW, from the page at 01:16 (engine `a8c4e43`, bare
+> probes):**
+>
+> | | |
+> |---|---|
+> | probes | 4 worked / 41 asked-for-arguments / 0 failed |
+> | wants | 16, **11 distinct — one of them six times** |
+> | standing alarms | `want_repeated`, `probe_stuck`, `window_reread` |
+> | library | 46 tools; `archive-*` ×10, `plan-*` ×9, `subtask-*` ×6 |
+>
+> **What to read after:** the *asked-for-arguments* column should collapse —
+> a probe that chose its own arguments is not a bare call — and
+> `want_repeated` should clear if the repetition was the cousin being unable
+> to verify what it asked for. If the want still repeats with the cousin
+> holding real hands, that is the anti-twin JUDGEMENT question isolated at
+> last (§5, 2026-09-14), and it is a brief matter needing item 8's scoreboard.
+>
+> Two things to watch, both costs of this change: it spends **two** cousin
+> calls per visit instead of one, on a tier that is already thin; and the
+> cousin now runs arbitrary bash of its own choosing, which is why it does so
+> in a container with a copy.
 
 ### 10. `[~]` Who may propose a cull
 
