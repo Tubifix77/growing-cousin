@@ -222,17 +222,64 @@ unprompted.
 
 ## Phase 5 — settle
 
-### 11. `[ ]` Run 3
+### 11. `[~]` Run 3
 
 - **11.1** Clean start on a framework that has stopped changing weekly.
 - **11.2** Carries item 3's decision, with every inherited tool tagged at t=0
   and every metric split on that tag.
 - **11.3** An evidence pack for run 2 is committed before it ends.
 
-### 12. `[ ]` Spine restarts
+> **11.2 and 11.3 done 2026-09-16. 11.1 deliberately not taken, and the
+> reason is 11.1 itself.**
+>
+> `seed_run.py` archives the old run rather than deleting it (the way run 1
+> was on 2026-09-13 — a trajectory cannot be repaired retroactively), copies
+> the parent's library read-only, and **tags every inherited tool with its
+> bytes at t=0**. The tag is a file of hashes, not a naming convention, so
+> the creature's first rename cannot silently break every metric split on it.
+> `split_on_tag` then reports inherited / built / **repaired** — and repaired
+> is the number §6.2 chose the parent's library for: *the parent moved
+> `cannot_start` 32 → 23 over months; a cousin taking it to zero in a week
+> would be a headline result.*
+>
+> It refuses to run while the engine is active, and treats a `systemctl` it
+> cannot reach as **cannot tell**, which is not permission. It asks before it
+> touches anything — the rehearsal harness taught that lesson on 2026-09-16
+> by clearing a target and printing REFUSED afterwards.
+>
+> **11.3:** `evidence/run-2-final-20260916-0131.manifest.json`, 94 files.
+>
+> **Why 11.1 is not met today:** the framework changed about a dozen times in
+> the three hours before this was written. Resetting now would confound a
+> clean library with a week of framework changes, which is the exact mistake
+> §4 refused to make on 2026-09-14. **Trigger: forty-eight hours with no
+> change to `kernel/` or `run.py`, and item 9's measurement window closed.**
+> Then it is one command:
+>
+>     python3 seed_run.py --root ~/growing-cousin/live \
+>         --inherit ~/growing-spine-mind --label run2 --yes
+
+### 12. `[~]` Spine restarts
 
 - **12.1** `systemctl --user enable --now growing-spine`.
 - **12.2** §4's era note records the date, so no figure crosses it silently.
+
+> **NOT TAKEN, and this one is not mine to take.** §4 records that **Tue**
+> paused the spine on 2026-09-13 13:50 CEST, deliberately, *to raise this
+> engine's cadence*. Restarting it reverses a standing decision of his and
+> halves the tier this engine has.
+>
+> It is also the wrong week. Item 8's sixteen-case baseline took over twenty
+> minutes **with the engine paused** — the tier is that thin already — and
+> item 9's whole measurement depends on the cousin getting calls. Restoring
+> the spine now would confound the one measurement the last two days were
+> spent building the instrument for.
+>
+> **Trigger: after item 9's measurement window closes and item 8.4 has a
+> baseline with several reps.** Then it is one command, and §4's era note
+> takes the date, because no figure may cross that line silently:
+>
+>     systemctl --user enable --now growing-spine
 
 ### 13. `[x]` The 2400-character window — explicitly NOT doing
 

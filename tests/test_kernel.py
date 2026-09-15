@@ -4198,6 +4198,85 @@ def _digest_dir(path):
     return out
 
 
+def test_a_run_can_be_seeded_with_a_tagged_inheritance():
+    """PLAN item 11. §6.2 decided on 2026-09-10 to copy the parent's library
+    -- a known-answer test set that would refute the design in a week rather
+    than months -- and runs 1 and 2 both began from nothing, so it has never
+    been executed. The condition attached to it is the interesting part:
+    *tagging every inherited tool at t=0 and splitting every metric on it,
+    for the life of the project.*
+    """
+    import seed_run
+    d = tmpdir()
+    src = os.path.join(d, "parent-mind", "tools", "own")
+    os.makedirs(src)
+    for n, body in (("good", "#!/bin/sh\necho ok\n"),
+                    ("broken", "#!/usr/bin/env python3\nprint('unclosed\n"),
+                    ("skipme.bak", "#!/bin/sh\n")):
+        with open(os.path.join(src, n), "w", encoding="utf-8") as f:
+            f.write(body)
+    root = os.path.join(d, "live")
+
+    # IT ASKS BEFORE IT TOUCHES ANYTHING, and cannot-tell is not permission.
+    # The genuine cannot-tell is systemctl being unreachable -- a unit that
+    # merely does not exist reports a definite `inactive`, which is an answer.
+    real = seed_run.engine_is_running
+    try:
+        seed_run.engine_is_running = lambda unit=None: None
+        ok, why = seed_run.check_safe(root)
+        seed_run.engine_is_running = lambda unit=None: True
+        ok_live, why_live = seed_run.check_safe(root)
+        seed_run.engine_is_running = lambda unit=None: False
+        ok_dead, _ = seed_run.check_safe(root)
+    finally:
+        seed_run.engine_is_running = real
+    check("seed: it refuses when it cannot establish whether anything is "
+          "running -- cannot tell is not permission", not ok, why)
+    check("seed: and refuses outright while the engine is ALIVE",
+          not ok_live and "ACTIVE" in why_live, why_live)
+    check("seed: a stopped engine is the one case it proceeds on", ok_dead)
+
+    os.makedirs(root)
+    with open(os.path.join(root, "journal.jsonl"), "w", encoding="utf-8") as f:
+        f.write('{"ts": 1, "kind": "wake"}\n')
+    moved = seed_run.archive_root(root, "run-t")
+    check("seed: the old run is MOVED aside, never deleted -- a trajectory "
+          "cannot be repaired retroactively",
+          moved and os.path.exists(os.path.join(moved, "journal.jsonl")), moved)
+    check("seed: and the root is free for the new one",
+          not os.path.exists(root), root)
+
+    own = os.path.join(root, "body", "mind", "tools", "own")
+    tagged = seed_run.inherit_library(src, own)
+    seed_run.write_tag(root, tagged, "parent-mind")
+    check("seed: the library came across", sorted(os.listdir(own)) ==
+          ["broken", "good"], sorted(os.listdir(own)))
+    check("seed: backups are not tools and did not come with it",
+          "skipme.bak" not in os.listdir(own), sorted(os.listdir(own)))
+    doc = seed_run.load_tag(root)
+    check("seed: every inherited tool is tagged at t=0, with its bytes",
+          set(doc["tools"]) == {"good", "broken"}
+          and all(len(v) == 64 for v in doc["tools"].values()), doc)
+
+    inh, built, repaired = seed_run.split_on_tag(root, own)
+    check("seed: metrics can be split -- 2 inherited, 0 built, 0 repaired",
+          (inh, built, repaired) == (2, 0, 0), (inh, built, repaired))
+    with open(os.path.join(own, "ownwork"), "w", encoding="utf-8") as f:
+        f.write("#!/bin/sh\necho mine\n")
+    with open(os.path.join(own, "broken"), "w", encoding="utf-8") as f:
+        f.write("#!/usr/bin/env python3\nprint('fixed')\n")
+    inh, built, repaired = seed_run.split_on_tag(root, own)
+    check("seed: a tool the creature BUILT is counted apart from one it was "
+          "handed", built == 1, (inh, built, repaired))
+    check("seed: and REPAIRING an inheritance is visible -- the number §6.2 "
+          "chose the parent's library for", repaired == 1,
+          (inh, built, repaired))
+    check("seed: the tag survives a rename convention nobody agreed to, "
+          "because it is a file of hashes and not a naming rule",
+          "good" in doc["tools"] and doc["tools"]["good"] != doc["tools"]["broken"])
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_cull_has_an_owner_and_a_trigger():
     """PLAN item 10. §4 draws the line between a hold with a named trigger
     and a date, and inaction in the costume of caution. The cull had neither
@@ -5486,6 +5565,7 @@ def main():
     for fn in (test_monitor_detectors_fire_where_the_scars_happened,
                test_monitor_writes_only_its_own_directory,
                test_monitor_alarms_are_edge_triggered,
+               test_a_run_can_be_seeded_with_a_tagged_inheritance,
                test_the_cull_has_an_owner_and_a_trigger,
                test_the_human_can_speak_to_the_creature_once,
                test_a_respawn_may_recreate_a_container_and_never_a_mind,
