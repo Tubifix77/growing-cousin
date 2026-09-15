@@ -72,9 +72,23 @@ def may_use(root):
     cur = p
     while True:
         parts = [x for x in cur.replace("\\", "/").rstrip("/").split("/") if x]
-        if len(parts) >= 2 and parts[-1] == "live" and parts[-2] == "growing-cousin":
+        leaf = parts[-1] if parts else ""
+        if len(parts) >= 2 and leaf == "live" and parts[-2] == "growing-cousin":
             return False, ("%s is inside the deployed root %s -- a creature "
                            "lives there" % (p, cur))
+        # §2.6 IS A BOUNDARY, NOT A HEURISTIC. *Never touch Growing Spine from
+        # this repo.* It was allowed outright until 2026-09-16, when a
+        # verifier tried it: the harness would have created and then removed
+        # directories inside the sibling project without a murmur.
+        if leaf == "growing-spine":
+            return False, ("%s is inside %s -- CLAUDE.md §2.6 makes the "
+                           "sibling project a hard boundary" % (p, cur))
+        # A CHECKOUT IS SOMEBODY'S WORKING TREE. `~/growing-cousin` is the
+        # live unit's WorkingDirectory and passed every earlier guard,
+        # because it is not named `live` and holds no journal.
+        if os.path.isdir(os.path.join(cur, ".git")):
+            return False, ("%s is inside the git checkout %s -- drills do not "
+                           "run in anybody's working tree" % (p, cur))
         if os.path.exists(os.path.join(cur, "journal.jsonl")):
             return False, ("%s is inside %s, which already holds a journal, so "
                            "something has lived there; drills only ever run on "
@@ -83,6 +97,27 @@ def may_use(root):
         if parent == cur:
             return True, p
         cur = parent
+
+
+def live_snapshot(live):
+    """Every path under the live root, relative and sorted, or None if there
+    is no such root.
+
+    NOT a hash of the journal: the engine appends to that every few seconds,
+    so hashing it could never come back unchanged and the check reported a
+    breach on every run -- a checker that cannot distinguish the thing it
+    measures. What a drill can actually do to the live root is CREATE or
+    REMOVE things in it, which is what this sees, recursively, so a deletion
+    three levels down inside `tools/own` shows up.
+    """
+    live = os.path.realpath(os.path.expanduser(str(live)))
+    if not os.path.isdir(live):
+        return None
+    out = []
+    for dp, dn, fn in os.walk(live):
+        for n in list(dn) + list(fn):
+            out.append(os.path.relpath(os.path.join(dp, n), live))
+    return sorted(out)
 
 
 def scratch_root(root):
@@ -280,12 +315,7 @@ def drill_giveup(root, live_root=None, wait_secs=120):
     # thing it measures. The drill's only possible damage is CREATING
     # something in there, which is exactly what it did before the guard was
     # fixed, so the entry set is the thing to watch.
-    def entries():
-        try:
-            return sorted(os.listdir(live))
-        except OSError:
-            return None
-    before = entries()
+    before = live_snapshot(live)
 
     rungs = os.path.join(root, "rungs.drill.json")
     with io.open(rungs, "w", encoding="utf-8", newline="\n") as f:
@@ -335,8 +365,12 @@ def drill_giveup(root, live_root=None, wait_secs=120):
     sc = [r for r in rows if r.get("kind") == "selfcheck"]
     ev["selfcheck_home_write_blocked"] = (sc[-1].get("home_write_blocked")
                                           if sc else None)
-    ev["live_unchanged"] = (entries() == before)
-    ev["live_entries"] = before
+    # A MISSING ROOT IS NOT AN UNCHANGED ONE. The first version swallowed the
+    # error and returned None on both sides, so `None == None` reported
+    # success having measured nothing -- and `--live-root` is a path a caller
+    # can get wrong.
+    ev["live_unchanged"] = bool(before) and live_snapshot(live) == before
+    ev["live_paths_watched"] = len(before or ())
 
     _sysd("stop", name)
     _sysd("reset-failed", name)
@@ -400,6 +434,149 @@ def drill_body(root):
     return j.path
 
 
+# --------------------------------------------------------------- the body
+
+IMAGE = "growing-cousin-body"
+CONTAINER = "growing-cousin-drill-body"
+
+
+def _docker(*args, **kw):
+    return subprocess.run(["docker"] + list(args), capture_output=True,
+                          text=True, timeout=kw.get("timeout", 300))
+
+
+def drill_docker(root, live_root=None, keys_dir=None):
+    """Prove the creature's world before it becomes the creature's world.
+
+    Every check here is an EFFECT run from inside the body, not a directive
+    read back off a config -- the rule §5 earned twice in one evening, when
+    a unit carrying three sandbox directives turned out to be enforcing none
+    of them. And the capability checks matter as much as the containment
+    ones: *a sandbox that breaks the run is discovered at 03:00 by nobody*,
+    so this refuses to report success unless python3, bash, `requests`, our
+    hands, the creature's own tools and a real tool it wrote all still work.
+    """
+    if os.name != "posix":
+        raise SystemExit("the docker drill needs docker; run it on the laptop")
+    live = live_root or os.path.expanduser("~/growing-cousin/live")
+    keys = keys_dir or os.path.expanduser("~/keys")
+    home = os.path.expanduser("~")
+    mind = os.path.join(root, "body", "mind")
+    own = os.path.join(mind, "tools", "own")
+    os.makedirs(own, exist_ok=True)
+    os.makedirs(os.path.join(mind, "data"), exist_ok=True)
+
+    # Our hands, installed the same way the live body installs them.
+    import run as runmod
+
+    class _Shell(object):
+        pass
+    shell = _Shell()
+    shell.root = os.path.join(root, "body")
+    bindir = runmod.install_hands(shell)
+
+    # THE CREATURE'S REAL TOOLS, copied read-only out of the live mind. A body
+    # proven against tools a test wrote proves nothing about the 46 it will
+    # actually have to run.
+    live_own = os.path.join(live, "body", "mind", "tools", "own")
+    copied = []
+    if os.path.isdir(live_own):
+        for n in sorted(os.listdir(live_own)):
+            src = os.path.join(live_own, n)
+            if os.path.isfile(src) and not n.endswith(".bak"):
+                shutil.copy2(src, os.path.join(own, n))
+                copied.append(n)
+
+    ev = {"image": IMAGE, "container": CONTAINER, "tools_copied": len(copied)}
+    b = _docker("build", "-t", IMAGE, "-f",
+                os.path.join(HERE, "deploy", "Dockerfile"),
+                os.path.join(HERE, "deploy"))
+    ev["image_built"] = (b.returncode == 0)
+    if b.returncode != 0:
+        ev["build_error"] = (b.stderr or "")[-400:]
+        return ev
+    _docker("rm", "-f", CONTAINER)
+    uid = "%d:%d" % (os.getuid(), os.getgid())
+    r = _docker("run", "-d", "--init", "--name", CONTAINER, "--user", uid,
+                "--memory", "1g", "--pids-limit", "256",
+                "-v", "%s:%s" % (mind, bodymod.DockerBody.MIND),
+                "-v", "%s:%s:ro" % (bindir, bodymod.DockerBody.HANDS),
+                IMAGE, "sleep", "infinity")
+    ev["container_started"] = (r.returncode == 0)
+    if r.returncode != 0:
+        ev["run_error"] = (r.stderr or "")[-400:]
+        return ev
+
+    body = bodymod.DockerBody(CONTAINER, image=IMAGE, mind=mind)
+    try:
+        ev["body_answers"] = body.responds()
+
+        def yes(cmd):
+            out = body.run(cmd, timeout=60)
+            return out.code == 0
+
+        def no(cmd):
+            out = body.run(cmd, timeout=60)
+            return out.code != 0
+
+        # CONTAINMENT -- each one a thing the creature's shell could do today.
+        ev["keys_unreadable"] = no("cat %s/*.key" % keys)
+        ev["host_home_invisible"] = no("ls %s" % home)
+        ev["spine_invisible"] = no("ls %s/growing-spine" % home)
+        ev["engine_repo_invisible"] = no("ls %s/run.py" % HERE)
+        # CAPABILITY -- each one a thing 46 tools need.
+        ev["mind_writable"] = yes("touch .drill-canary && rm -f .drill-canary")
+        ev["hands_on_path"] = yes("command -v tool-edit >/dev/null")
+        ev["own_tools_on_path"] = (
+            yes("command -v %s >/dev/null" % copied[0]) if copied else None)
+        ev["python3"] = yes("python3 -c 'import sys; sys.exit(0)'")
+        ev["bash"] = yes("bash -c 'exit 0'")
+        ev["requests"] = yes("python3 -c 'import requests'")
+        ev["mind_is_the_cwd"] = yes("test \"$PWD\" = %s"
+                                    % bodymod.DockerBody.MIND)
+        # A tool the creature really wrote, chosen because its own run record
+        # says it exits 0 when called bare.
+        for candidate in ("path", "json-pretty", "plan-list-goals", "archive-list"):
+            if candidate in copied:
+                out = body.run(candidate, timeout=60)
+                ev["real_tool_ran"] = (out.code == 0)
+                ev["real_tool"] = candidate
+                break
+        else:
+            ev["real_tool_ran"] = None
+        # The respawn this body really can do, unlike LocalBody's.
+        ev["respawn_works"] = body.respawn()
+    finally:
+        _docker("rm", "-f", CONTAINER)
+
+    # THE OTHER HALF OF THE ASYMMETRY: the engine still holds what the
+    # creature no longer can. Deliberately not a live call -- a preflight
+    # would make this hostage to free-tier weather.
+    from kernel import backends as _b
+    specs = []
+    # BESIDE THE LIVE ROOT, not beside this file. The ladder specs are
+    # gitignored by design -- they name a `key_file` outside the repo -- so a
+    # scratch clone has none, and looking next to `HERE` reported "0
+    # credentials checked, engine holds none": an alarming-looking figure
+    # produced entirely by where the drill went looking.
+    for base in (os.path.dirname(os.path.abspath(live)), HERE):
+        for name in ("rungs.local.json", "rungs.cousin.local.json"):
+            spec = _b.load_spec(os.path.join(base, name)) or []
+            specs.extend(r.get("key_file") for r in spec if r.get("key_file"))
+        if specs:
+            break
+    specs = sorted(set(specs))
+    ok = True
+    for kf in specs:
+        try:
+            _b.read_key(kf)
+        except Exception:
+            ok = False
+    ev["credentials_checked"] = len(specs)
+    ev["engine_holds_credentials"] = bool(specs) and ok
+    return ev
+
+
 IN_PROCESS = {"tool-gone": drill_tool_gone, "torn": drill_torn,
               "silence": drill_silence, "fabricate": drill_fabricate,
               "body": drill_body}
@@ -407,7 +584,8 @@ IN_PROCESS = {"tool-gone": drill_tool_gone, "torn": drill_torn,
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("drill", choices=sorted(IN_PROCESS) + ["giveup", "all"])
+    ap.add_argument("drill",
+                    choices=sorted(IN_PROCESS) + ["giveup", "docker", "all"])
     ap.add_argument("--scratch", required=True,
                     help="a directory the drill may destroy; never a live root")
     ap.add_argument("--emit-fixtures", action="store_true")
@@ -415,19 +593,57 @@ def main(argv=None):
                     help="the root to prove UNTOUCHED (default ~/growing-cousin/live)")
     args = ap.parse_args(argv)
 
-    names = sorted(IN_PROCESS) + ["giveup"] if args.drill == "all" else [args.drill]
+    names = (sorted(IN_PROCESS) + ["giveup", "docker"]
+             if args.drill == "all" else [args.drill])
     rc = 0
-    for name in names:
-        base = os.path.join(args.scratch, name)
+    # ASK BEFORE DESTROYING. Every path is cleared first, as a set, and only
+    # after every one of them has been allowed -- because the first version
+    # cleared each target and *then* checked it, so running against a live
+    # root printed `REFUSED` having already rmtree'd a subtree of it,
+    # including a file under `tools/own`. A guard that runs after the
+    # destruction is a comment.
+    bases = [os.path.join(args.scratch, n) for n in names]
+    for base in bases:
+        try:
+            scratch_root(base)
+        except RefusedLiveRoot as e:
+            sys.stderr.write("REFUSED, nothing touched: %s\n" % e)
+            return 3
+    for base in bases:
         if os.path.isdir(base):
             shutil.rmtree(base, ignore_errors=True)
+
+    # EVERY drill, not just the one that happened to look. 6.7 says the live
+    # root is unchanged before and after; checking it inside a single drill
+    # left the other four unwatched.
+    live_root = args.live_root or os.path.expanduser("~/growing-cousin/live")
+    live_before = live_snapshot(live_root)
+
+    for name in names:
+        base = os.path.join(args.scratch, name)
         try:
             root = scratch_root(base)
         except RefusedLiveRoot as e:
             sys.stderr.write("REFUSED: %s\n" % e)
             return 3
         print("== drill %s -> %s" % (name, root))
-        if name == "giveup":
+        if name == "docker":
+            if os.name != "posix":
+                print("  skipped: needs docker")
+                continue
+            ev = drill_docker(root, args.live_root)
+            print("  " + json.dumps(ev, sort_keys=True))
+            if args.emit_fixtures:
+                os.makedirs(FIXTURES, exist_ok=True)
+                out = os.path.join(FIXTURES, "0916-drill-docker.evidence.json")
+                with io.open(out, "w", encoding="utf-8", newline="\n") as f:
+                    json.dump(ev, f, indent=1, sort_keys=True)
+                print("  evidence %s" % os.path.basename(out))
+            if not all(ev.get(k) for k in ("keys_unreadable", "mind_writable",
+                                           "python3", "requests",
+                                           "own_tools_on_path")):
+                rc = 1
+        elif name == "giveup":
             if os.name != "posix":
                 print("  skipped: needs systemd")
                 continue
@@ -446,6 +662,22 @@ def main(argv=None):
             jpath = IN_PROCESS[name](root)
             if args.emit_fixtures:
                 emit_fixture(name, jpath, keep_bad=(name == "torn"))
+
+    if live_before is None:
+        sys.stderr.write("could not watch %s, so nothing here proves the live "
+                         "run was untouched\n" % live_root)
+        rc = rc or 1
+    else:
+        after = live_snapshot(live_root)
+        added = sorted(set(after or ()) - set(live_before))
+        gone = sorted(set(live_before) - set(after or ()))
+        if added or gone:
+            sys.stderr.write("THE LIVE ROOT CHANGED: added=%s removed=%s\n"
+                             % (added[:8], gone[:8]))
+            rc = 1
+        else:
+            print("live root unchanged: %d paths watched under %s"
+                  % (len(live_before), live_root))
     return rc
 
 

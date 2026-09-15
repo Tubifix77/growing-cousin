@@ -184,7 +184,7 @@ def record_engine_start(journal, identity, **facts):
 SELFCHECK_CANARY = ".cousin-selfcheck-canary"
 
 
-def selfcheck(body, journal=None, home=None):
+def selfcheck(body, journal=None, home=None, keys_dir=None):
     """Prove the bounds this deployment relies on by their EFFECT, at every
     start, through the same shell the creature gets. Records; never vetoes.
 
@@ -238,13 +238,26 @@ def selfcheck(body, journal=None, home=None):
                          % (spine, spine))
         out["spine_unreadable"] = (None if (code is None or "ABSENT" in so)
                                    else ("BLOCKED" in so))
+        # THE KEY FILES. PLAN item 7: the engine reads them per call and has
+        # shared a uid with the creature's shell since deployment, so until
+        # the body is a container this comes back False -- which is the point.
+        # A bound nobody re-proves is a bound nobody notices losing.
+        kd = keys_dir or os.path.join(home, "keys")
+        if not os.path.isdir(kd):
+            out["keys_unreadable"] = None
+        else:
+            q = shlex.quote(bash_path(kd))
+            code, so, _ = sh("if cat %s/*.key >/dev/null 2>&1; then echo READ; "
+                             "else echo BLOCKED; fi" % q)
+            out["keys_unreadable"] = (None if code is None
+                                      else ("BLOCKED" in so and "READ" not in so))
         code, so, _ = sh("command -v tool-edit >/dev/null 2>&1 && echo HAND")
         out["hand_on_path"] = None if code is None else ("HAND" in so)
         code, so, _ = sh("command -v python3 >/dev/null 2>&1 && echo PY")
         out["python3_on_path"] = None if code is None else ("PY" in so)
     else:
         for k in ("home_write_blocked", "spine_unreadable", "hand_on_path",
-                  "python3_on_path"):
+                  "python3_on_path", "keys_unreadable"):
             out[k] = None
     from kernel import cycle as cyclemod
     from kernel import journal as journalmod
@@ -257,9 +270,61 @@ def selfcheck(body, journal=None, home=None):
     return out
 
 
+DOCKER_IMAGE = "growing-cousin-body"
+DOCKER_CONTAINER = "growing-cousin-body"
+
+
+def ensure_container(container, image, host_body, timeout=120):
+    """The creature's container, created if absent and started if stopped.
+
+    The creature's world is a BIND MOUNT of the same host directory the
+    kernel reads -- `tools/own`, `data`, `state` -- so nothing about its
+    library depends on the container surviving. That is what makes
+    `DockerBody.respawn` able to do what `LocalBody.respawn` cannot (PLAN
+    item 15): restarting this body does not touch what the creature built.
+
+    Our hands go in read-only. They are protected scar tissue and the
+    creature has no business editing them, which under `PathBody` was a
+    convention and here is a mount option.
+    """
+    import subprocess
+    if not hasattr(os, "getuid"):
+        raise RuntimeError("a container body needs a POSIX host")
+
+    def d(*a):
+        return subprocess.run(["docker"] + list(a), capture_output=True,
+                              text=True, timeout=timeout)
+
+    st = d("inspect", "-f", "{{.State.Running}}", container)
+    if st.returncode != 0:
+        d("rm", "-f", container)
+        r = d("run", "-d", "--init", "--name", container,
+              # The SAME uid that owns the mind on the host, so what the
+              # creature writes stays readable by the engine and nothing in
+              # the container runs as root.
+              "--user", "%d:%d" % (os.getuid(), os.getgid()),
+              "--memory", "1g", "--pids-limit", "256",
+              "-v", "%s:%s" % (host_body.mind, bodymod.DockerBody.MIND),
+              "-v", "%s:%s:ro" % (host_body.bin, bodymod.DockerBody.HANDS),
+              image, "sleep", "infinity")
+        if r.returncode != 0:
+            raise RuntimeError("could not start %s: %s"
+                               % (container, (r.stderr or "")[-300:]))
+    elif "false" in (st.stdout or "").strip().lower():
+        d("start", container)
+    return bodymod.DockerBody(container, image=image, mind=host_body.mind)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cycles", type=int, default=10)
+    ap.add_argument("--body", choices=("local", "docker"), default="local",
+                    help="`docker` puts the creature in a container whose "
+                         "world is a bind mount of <root>/body/mind. It is "
+                         "the only body in which the engine's key files are "
+                         "out of the creature's reach -- see PLAN item 7.")
+    ap.add_argument("--container", default=DOCKER_CONTAINER)
+    ap.add_argument("--image", default=DOCKER_IMAGE)
     ap.add_argument("--model", default="gemma4:12b")
     ap.add_argument("--root", default=os.path.join(HERE, "live"))
     ap.add_argument("--fresh", action="store_true", help="wipe --root first")
@@ -298,6 +363,13 @@ def main():
     j = Journal(os.path.join(args.root, "journal.jsonl"))
     body = PathBody(os.path.join(args.root, "body"))
     body.bin = install_hands(body)
+    if args.body == "docker":
+        # The host-side PathBody above is still what creates the mind and
+        # installs the hands; the container is then wrapped around exactly
+        # those directories.
+        body = ensure_container(args.container, args.image, body)
+        print("body: container %s from image %s (mind bind-mounted at %s)"
+              % (args.container, args.image, bodymod.DockerBody.MIND))
 
     # 3072 for the creature, not 900. The think contract puts the ```bash block
     # LAST, so a truncated reply loses the entire action and the call is wasted

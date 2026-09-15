@@ -12,15 +12,7 @@
   "think_deferred": 10,
   "wake": 10
  },
- "live_entries": [
-  "body",
-  "context.md",
-  "engine.log",
-  "journal.jsonl",
-  "monitor",
-  "quota.json",
-  "vitals.jsonl"
- ],
+ "live_paths_watched": 141,
  "live_unchanged": true,
  "loop_end_fault": true,
  "loop_end_reason": "5 consecutive failures",

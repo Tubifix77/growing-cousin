@@ -114,7 +114,14 @@ def main():
             clean += 1
 
     print("COMPLAINT FIDELITY -- %s" % args.root)
-    print("verdicts checked : %d" % len(pairs))
+    # SEEN and CHECKED are different numbers, and printing one as the other
+    # overcounts the work done: a verdict with no recorded probe was never
+    # checked against anything.
+    _probed = [p for p, _v in pairs if p is not None]
+    print("verdicts seen    : %d" % len(pairs))
+    print("verdicts checked : %d%s"
+          % (len(_probed), "" if len(_probed) == len(pairs)
+             else "   (%d had no recorded probe)" % (len(pairs) - len(_probed))))
     print("nothing contradicted: %d" % clean)
     print("with findings    : %d" % len(findings))
 

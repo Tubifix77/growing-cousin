@@ -224,21 +224,63 @@ class DockerBody:
     full and the body could not fork.
     """
 
+    # Where the creature's world is mounted INSIDE the container. `self.mind`
+    # stays the HOST path, because the kernel reads those files itself -- the
+    # library listing, the memory, the tool inventory. The two must never be
+    # confused: a host path inside a container command is the relative-root
+    # scar with a different spelling.
+    MIND = "/mind"
+    HANDS = "/hands"
+
     def __init__(self, container, image=None, mind=None, init=True):
         self.container = container
         self.image = image
         self.mind = mind
         self.init = init
 
+    def compose(self, cmd):
+        """The creature's command, with the world its prompt promises.
+
+        `DockerBody` was written and never exercised, and it ran
+        `docker exec <container> sh -c <cmd>` bare: no working directory, no
+        PATH. The prompt tells the creature its tools are on PATH and its
+        hands are callable by name, and `PathBody` keeps that promise by
+        overriding `run` -- so switching bodies would have silently broken
+        every tool while the body reported healthy. That is exactly the
+        2026-09-12 relative-root scar, which cost thirteen honest refusals
+        and a creature rebuilding one tool three ways.
+        """
+        return ('export PATH="%s:%s/tools/own:$PATH"; export MIND="%s"; '
+                'export HOME="%s"; cd "%s" || exit 1; %s'
+                % (self.HANDS, self.MIND, self.MIND, self.MIND, self.MIND, cmd))
+
+    def argv(self, cmd):
+        """No `-e` and no `--env`: `docker exec` passes none of the host's
+        environment by default, and the whole point of this body is that the
+        engine's environment -- and the key files it reads -- are not in the
+        creature's world at all."""
+        return ["docker", "exec", self.container, "sh", "-c", self.compose(cmd)]
+
     def responds(self):
         r = self.run("echo alive", timeout=20)
         return (not r.setup_failed) and r.code == 0 and "alive" in r.stdout
 
+    def respawn(self):
+        """Restart the container and prove it answers. Unlike `LocalBody`'s,
+        this one really can bring the body back: the creature's world is a
+        bind mount on the host, so restarting the container does not touch
+        it. (`LocalBody.respawn` cannot, which is PLAN item 15.)"""
+        try:
+            subprocess.run(["docker", "restart", self.container],
+                           capture_output=True, text=True, timeout=60)
+        except Exception:
+            return False
+        return self.responds()
+
     def run(self, cmd, timeout=EXEC_TIMEOUT_SECS):
         try:
-            p = subprocess.run(
-                ["docker", "exec", self.container, "sh", "-c", cmd],
-                capture_output=True, text=True, timeout=timeout)
+            p = subprocess.run(self.argv(cmd),
+                               capture_output=True, text=True, timeout=timeout)
             out, err, code = p.stdout, p.stderr, p.returncode
         except subprocess.TimeoutExpired:
             return ExecResult("", "timed out after %ds" % timeout, 124)

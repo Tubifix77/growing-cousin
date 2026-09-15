@@ -1,14 +1,14 @@
-{"ts": 1789511218.045121, "kind": "wake", "context_chars": 30, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
-{"ts": 1789511218.0541577, "kind": "think", "chars": 150, "model": "scripted", "rung": null, "finish": "stop", "raw": "[dropped from fixture]", "raw_chars": 150}
-{"ts": 1789511218.0606673, "kind": "exec_start", "block": 1, "cmd": "mkdir -p tools/own && printf '#!/bin/sh\\n# does: keeps the plan\\n# call: plan list\\necho ok\\n' > tools/own/plan && chmod +x tools/own/plan"}
-{"ts": 1789511218.0700383, "kind": "exec_end", "block": 1, "exit_code": 0, "stdout": "", "stderr": ""}
-{"ts": 1789511218.0723171, "kind": "tools_changed", "added": ["plan"], "removed": []}
-{"ts": 1789511218.0739868, "kind": "trigger_fired", "type": "TOOL_WRITE", "tools": ["plan"]}
-{"ts": 1789511218.0790846, "kind": "cousin_probe", "tool": "plan", "exit_code": 127, "bare": true, "picked_by": "new", "stdout": "", "stderr": ".cmd-3260933.sh: linje 2: plan: kommando ikke fundet\n"}
-{"ts": 1789511218.082171, "kind": "cousin_verdict", "trigger": "TOOL_WRITE", "model": "scripted", "rung": null, "finish": "stop", "verdict": "ACCEPTED", "tried": "ran it", "outcome": "it worked", "to_creature": "I used it and it did what it said.", "want": "something further", "noticed": null, "error": null}
-{"ts": 1789511218.0839057, "kind": "cousin_want", "text": "something further"}
-{"ts": 1789511218.0859528, "kind": "context_written", "wants": 1, "chars": 5}
-{"ts": 1789511218.0889094, "kind": "wake", "context_chars": 1023, "library_shown": 1, "library_named": 1, "library_total": 1, "wants_served": 1, "window": 2400, "refusal_served": false, "memory_served": false}
-{"ts": 1789511218.0907736, "kind": "think", "chars": 21, "model": "scripted", "rung": null, "finish": "stop", "raw": "[dropped from fixture]", "raw_chars": 21}
-{"ts": 1789511218.095432, "kind": "exec_start", "block": 1, "cmd": "plan list"}
-{"ts": 1789511218.100883, "kind": "exec_end", "block": 1, "exit_code": 127, "stdout": "", "stderr": ".cmd-3260933.sh: linje 2: plan: kommando ikke fundet\n"}
+{"ts": 1789512704.9038732, "kind": "wake", "context_chars": 30, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789512704.9066238, "kind": "think", "chars": 150, "model": "scripted", "rung": null, "finish": "stop", "raw": "[dropped from fixture]", "raw_chars": 150}
+{"ts": 1789512704.9126456, "kind": "exec_start", "block": 1, "cmd": "mkdir -p tools/own && printf '#!/bin/sh\\n# does: keeps the plan\\n# call: plan list\\necho ok\\n' > tools/own/plan && chmod +x tools/own/plan"}
+{"ts": 1789512704.9211237, "kind": "exec_end", "block": 1, "exit_code": 0, "stdout": "", "stderr": ""}
+{"ts": 1789512704.92354, "kind": "tools_changed", "added": ["plan"], "removed": []}
+{"ts": 1789512704.9254658, "kind": "trigger_fired", "type": "TOOL_WRITE", "tools": ["plan"]}
+{"ts": 1789512704.930726, "kind": "cousin_probe", "tool": "plan", "exit_code": 127, "bare": true, "picked_by": "new", "stdout": "", "stderr": ".cmd-3277993.sh: linje 2: plan: kommando ikke fundet\n"}
+{"ts": 1789512704.9330554, "kind": "cousin_verdict", "trigger": "TOOL_WRITE", "model": "scripted", "rung": null, "finish": "stop", "verdict": "ACCEPTED", "tried": "ran it", "outcome": "it worked", "to_creature": "I used it and it did what it said.", "want": "something further", "noticed": null, "error": null}
+{"ts": 1789512704.934958, "kind": "cousin_want", "text": "something further"}
+{"ts": 1789512704.9371474, "kind": "context_written", "wants": 1, "chars": 5}
+{"ts": 1789512704.939835, "kind": "wake", "context_chars": 1023, "library_shown": 1, "library_named": 1, "library_total": 1, "wants_served": 1, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789512704.9417005, "kind": "think", "chars": 21, "model": "scripted", "rung": null, "finish": "stop", "raw": "[dropped from fixture]", "raw_chars": 21}
+{"ts": 1789512704.9464917, "kind": "exec_start", "block": 1, "cmd": "plan list"}
+{"ts": 1789512704.9520109, "kind": "exec_end", "block": 1, "exit_code": 127, "stdout": "", "stderr": ".cmd-3277993.sh: linje 2: plan: kommando ikke fundet\n"}

@@ -942,10 +942,18 @@ def complaint_fidelity(ctx):
                        % (verdicts(hits), len(probed), CENSUS_LOOKBACK_H,
                           ", ".join(sorted(set(h["severity"] for h in hits)))),
                        {"checked": len(probed), "hits": hits[-8:]}, human=False)
+    # `probed`, NOT `pairs`. The ALARM and INFO branches were corrected to
+    # count only verdicts that were actually checkable; this one still
+    # counted the probe-less ones as clean -- 1.4's fault surviving in the
+    # branch next door, found by the same verifier one pass later.
+    unchecked = len(pairs) - len(probed)
     return Finding("complaint_fidelity", OK,
-                   "%d verdict(s) in %dh, none contradicting the record -- "
-                   "evidence of no detected fabrication, never evidence of "
-                   "honesty" % (len(pairs), CENSUS_LOOKBACK_H))
+                   "%d verdict(s) in %dh checked against their probe, none "
+                   "contradicting the record%s -- evidence of no detected "
+                   "fabrication, never evidence of honesty"
+                   % (len(probed), CENSUS_LOOKBACK_H,
+                      ("; %d had no probe and were not checked" % unchecked)
+                      if unchecked else ""))
 
 
 ALL = (engine_silent, gave_up, unusable_verdicts, commands_lost,

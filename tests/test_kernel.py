@@ -3780,6 +3780,26 @@ def test_the_selfcheck_proves_effects_and_never_vetoes():
     check("selfcheck: recorded under its own kind, with the verdict as a field",
           len(rec) == 1 and rec[0].get("ok") is False
           and rec[0].get("home_write_blocked") is False, str(rec)[:200])
+    # THE KEY FILES, which is the whole of PLAN item 7. `child_env` closed the
+    # engine's environment variables in September and said plainly that the
+    # FILES stayed readable by anything running as this uid. A `LocalBody`
+    # therefore reads them, and the selfcheck must say so at every start
+    # rather than leaving the gap to be remembered.
+    keys = os.path.join(d, "keys")
+    os.makedirs(keys)
+    with open(os.path.join(keys, "provider.key"), "w", encoding="utf-8") as f:
+        f.write("sk-not-a-real-credential\n")
+    withkeys = runmod.selfcheck(b, journal=None, home=home, keys_dir=keys)
+    check("selfcheck: a LocalBody CAN read the engine's keys, and the record "
+          "says so instead of implying otherwise",
+          withkeys.get("keys_unreadable") is False, str(withkeys))
+    check("selfcheck: which means `ok` is False while that is true",
+          withkeys.get("ok") is False, str(withkeys))
+    nokeys = runmod.selfcheck(b, journal=None, home=home,
+                              keys_dir=os.path.join(d, "no-keys-here"))
+    check("selfcheck: and where there are no key files it is 'cannot tell', "
+          "never 'safe'", nokeys.get("keys_unreadable") is None, str(nokeys))
+
     # A sibling that CAN be read is a breach, reported as one -- not skipped.
     os.makedirs(os.path.join(home, "growing-spine"))
     out2 = runmod.selfcheck(b, journal=None, home=home)
@@ -4107,6 +4127,84 @@ def test_monitor_alarms_are_edge_triggered():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_docker_body_carries_the_contract_the_creature_is_promised():
+    """PLAN item 7, the half that needs no docker.
+
+    `DockerBody` has been "written but never exercised" since the design, and
+    reading it shows why that mattered: it runs `docker exec <container> sh -c`
+    with no working directory and no PATH. The creature's prompt promises its
+    tools are on PATH and its hands are callable by name, and `PathBody`
+    keeps that promise by overriding `run`. A body that does not is the
+    relative-root scar waiting to happen again -- every tool
+    `command not found`, the body reporting healthy, the creature billed.
+    """
+    b = bodymod.DockerBody("cousin-test-container", mind="/host/mind")
+    cmd = b.compose("plan list")
+    check("docker: the command runs in the mind, not the image's workdir",
+          "cd " in cmd and bodymod.DockerBody.MIND in cmd, cmd[:200])
+    check("docker: the creature's own tools are on PATH",
+          "tools/own" in cmd, cmd[:200])
+    check("docker: and so are our hands",
+          bodymod.DockerBody.HANDS in cmd, cmd[:200])
+    check("docker: $MIND resolves inside the container, never to a host path",
+          "/host/mind" not in cmd, cmd[:200])
+    check("docker: the creature's command is still the last thing in it",
+          cmd.rstrip().endswith("plan list"), cmd[-60:])
+    argv = b.argv("echo hi")
+    check("docker: it is exec'd in the container, not on the host",
+          argv[:2] == ["docker", "exec"] and "cousin-test-container" in argv,
+          argv[:4])
+    check("docker: no host environment is handed in -- docker exec passes "
+          "none by default, and nothing here adds any",
+          not any(a == "-e" or a.startswith("--env") for a in argv), argv)
+
+
+def test_the_docker_drill_proves_the_keys_are_out_of_reach():
+    """PLAN item 7.1-7.3. The creature's shell has shared a uid with the
+    engine's key files since deployment; `child_env` closed the variables in
+    September and said plainly that the FILES stayed readable by anything
+    running as this user. This is the other half, and it is proven by effect
+    from inside the body rather than by reading a directive -- the rule §5
+    earned twice in one evening.
+
+    The evidence is produced by `rehearse.py docker` on the laptop, where
+    docker exists, and committed. This asserts what it must say.
+    """
+    path = os.path.join(FIXTURES, "0916-drill-docker.evidence.json")
+    if not os.path.exists(path):
+        check("docker drill: its evidence was recorded", False, path)
+        return
+    ev = json.load(io.open(path, encoding="utf-8"))
+    must = [
+        ("keys_unreadable", "the engine's key files cannot be read from inside"),
+        ("host_home_invisible", "the host home is not in the body at all"),
+        ("spine_invisible", "the sibling project is unreachable (§2.6)"),
+        ("mind_writable", "the creature can still build -- a sandbox that "
+                          "breaks the run is found at 03:00 by nobody"),
+        ("hands_on_path", "our hands are callable by name"),
+        ("own_tools_on_path", "and so are the creature's own"),
+        ("python3", "python3 is there, or 63 of its tools die"),
+        ("bash", "bash is there, or the other 7 do"),
+        ("requests", "requests is importable, or the tools that fetch die"),
+        ("real_tool_ran", "a tool the creature actually wrote runs in it"),
+    ]
+    for key, why in must:
+        check("docker drill: %s" % why, ev.get(key) is True,
+              "%s=%r" % (key, ev.get(key)))
+    # NOT a live preflight: that would make this assertion hostage to free-tier
+    # weather, and a test that goes red because a rung was busy teaches its
+    # reader to ignore it. The property at stake is the asymmetry -- the engine
+    # holds the credentials, the creature cannot reach them -- and that is
+    # deterministic.
+    check("docker drill: the engine still holds every credential the creature "
+          "can no longer reach", ev.get("engine_holds_credentials") is True,
+          ev.get("engine_holds_credentials"))
+    check("docker drill: and it says which keys it checked, so the asymmetry "
+          "is countable rather than asserted",
+          isinstance(ev.get("credentials_checked"), int)
+          and ev["credentials_checked"] > 0, ev.get("credentials_checked"))
+
+
 def test_a_ladder_with_every_rung_walled_never_reads_as_a_wait():
     """Found by the give-up drill, 2026-09-16, which is what it is for.
 
@@ -4204,6 +4302,39 @@ def test_the_rehearsal_cannot_touch_the_live_run():
         refused = True
     check("rehearse: preparing a refused root raises rather than returning "
           "something usable", refused)
+
+    # A REPOSITORY IS SOMEBODY'S WORKING TREE. `~/growing-cousin` is the live
+    # unit's WorkingDirectory and was allowed outright; so was
+    # `~/growing-spine`, which §2.6 makes a hard boundary -- *never touch
+    # Growing Spine from this repo*. Found 2026-09-16 by an independent
+    # verifier who tried the paths rather than the ones the guard was written
+    # against.
+    repo = os.path.join(d, "growing-cousin")
+    os.makedirs(os.path.join(repo, ".git"))
+    ok_repo, why_repo = rehearse.may_use(repo)
+    check("rehearse: a checkout is refused -- it is somebody's working tree",
+          not ok_repo, why_repo)
+    ok_sub, _ = rehearse.may_use(os.path.join(repo, "scratch"))
+    check("rehearse: and so is anything under one", not ok_sub, "")
+    spine = os.path.join(d, "growing-spine")
+    os.makedirs(spine)
+    ok_spine, why_spine = rehearse.may_use(os.path.join(spine, "anything"))
+    check("rehearse: the sibling project is refused by NAME, whatever is in "
+          "it -- §2.6 is a boundary, not a heuristic", not ok_spine, why_spine)
+
+    # THE DANGEROUS ONE: the harness deleted its target before asking whether
+    # it was allowed to have one. It printed REFUSED *after* rmtree'ing a
+    # subtree of a live root, including a file under `tools/own`.
+    victim = os.path.join(live, "tool-gone")
+    os.makedirs(os.path.join(victim, "tools", "own"))
+    precious = os.path.join(victim, "tools", "own", "plan")
+    with open(precious, "w", encoding="utf-8") as f:
+        f.write("the creature's work\n")
+    rc = rehearse.main(["tool-gone", "--scratch", live])
+    check("rehearse: running against a live root exits non-zero", rc != 0, rc)
+    check("rehearse: AND NOTHING WAS DELETED -- the guard runs before the "
+          "harness clears its workspace, not after",
+          os.path.exists(precious), "the drill destroyed %s" % precious)
 
 
 def test_the_drills_give_the_unproven_detectors_their_red():
@@ -4349,8 +4480,15 @@ def test_the_giveup_drill_proves_the_chain_systemd_owns():
           "as weather", (kinds.get("rung_broken") or 0) > 0, kinds)
     check("giveup drill: and the loop recorded that it gave up, as a FLAG",
           ev.get("loop_end_fault") is True, ev.get("loop_end_fault"))
-    check("giveup drill: the live journal was byte-identical before and after",
+    # Says what it measures: the live root's file TREE, recursively. It used
+    # to say "byte-identical" while comparing a directory listing -- an
+    # assertion whose message misdescribed its own check.
+    check("giveup drill: no path under the live root was created or removed",
           ev.get("live_unchanged") is True, ev.get("live_unchanged"))
+    check("giveup drill: and it really watched something, rather than finding "
+          "no root and calling that unchanged",
+          (ev.get("live_paths_watched") or 0) > 0,
+          ev.get("live_paths_watched"))
     check("giveup drill: the unit it ran under carried no sandbox, so the "
           "selfcheck could record a DISPROVEN bound rather than only ever "
           "passing", ev.get("selfcheck_home_write_blocked") is False,
@@ -4423,6 +4561,26 @@ def test_the_census_runs_by_itself():
     check("census: verdicts with no probe EVER recorded is CANNOT_TELL, not a "
           "clean bill", orphans.state == detectors.CANNOT_TELL,
           "%s %s" % (orphans.state, orphans.msg))
+
+    # ONE probed verdict beside three unprobed ones must not report four as
+    # clean. The CANNOT_TELL branch was fixed first and this one was missed --
+    # the same fault surviving in the branch next door.
+    mixed = finding([
+        {"ts": now - 400, "kind": "cousin_probe", "tool": "plan",
+         "exit_code": 0, "bare": False, "stdout": "ok", "stderr": ""},
+        {"ts": now - 390, "kind": "cousin_verdict", "verdict": "ACCEPTED",
+         "rung": "r", "tried": "I ran plan", "outcome": "it worked",
+         "to_creature": "plan did what it says."},
+        {"ts": now - 300, "kind": "cousin_verdict", "verdict": "UNKNOWN",
+         "rung": "r", "error": "no-block"},
+        {"ts": now - 200, "kind": "cousin_verdict", "verdict": "UNKNOWN",
+         "rung": "r", "error": "no-block"}])
+    check("census: the OK line counts what was CHECKED, not what was seen",
+          mixed.state == detectors.OK
+          and re.search(r"\b1 verdict\(s\) in \d+h checked", mixed.msg)
+          is not None, mixed.msg)
+    check("census: and says plainly how many it could not check",
+          "2 had no probe" in mixed.msg, mixed.msg)
 
     # And one verdict tripping two census rules is still ONE verdict.
     two = finding([
@@ -4784,6 +4942,8 @@ def main():
     for fn in (test_monitor_detectors_fire_where_the_scars_happened,
                test_monitor_writes_only_its_own_directory,
                test_monitor_alarms_are_edge_triggered,
+               test_the_docker_body_carries_the_contract_the_creature_is_promised,
+               test_the_docker_drill_proves_the_keys_are_out_of_reach,
                test_a_ladder_with_every_rung_walled_never_reads_as_a_wait,
                test_the_rehearsal_cannot_touch_the_live_run,
                test_the_drills_give_the_unproven_detectors_their_red,

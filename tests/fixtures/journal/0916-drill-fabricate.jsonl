@@ -1,10 +1,10 @@
-{"ts": 1789511218.5196729, "kind": "wake", "context_chars": 30, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
-{"ts": 1789511218.5261629, "kind": "think", "chars": 150, "model": "scripted", "rung": null, "finish": "stop", "raw": "[dropped from fixture]", "raw_chars": 150}
-{"ts": 1789511218.5315008, "kind": "exec_start", "block": 1, "cmd": "mkdir -p tools/own && printf '#!/bin/sh\\n# does: keeps the plan\\n# call: plan list\\necho ok\\n' > tools/own/plan && chmod +x tools/own/plan"}
-{"ts": 1789511218.5394073, "kind": "exec_end", "block": 1, "exit_code": 0, "stdout": "", "stderr": ""}
-{"ts": 1789511218.541753, "kind": "tools_changed", "added": ["plan"], "removed": []}
-{"ts": 1789511218.5436215, "kind": "trigger_fired", "type": "TOOL_WRITE", "tools": ["plan"]}
-{"ts": 1789511218.549787, "kind": "cousin_probe", "tool": "plan", "exit_code": 127, "bare": true, "picked_by": "new", "stdout": "", "stderr": ".cmd-3260969.sh: linje 2: plan: kommando ikke fundet\n"}
-{"ts": 1789511218.5523963, "kind": "cousin_verdict", "trigger": "TOOL_WRITE", "model": "scripted", "rung": null, "finish": "stop", "verdict": "ACCEPTED", "tried": "I ran plan", "outcome": "it exited with code 0 and printed the plan", "to_creature": "plan works -- it exited with code 0 when I ran it.", "want": "a way to sort what it prints", "noticed": null, "error": null}
-{"ts": 1789511218.5543194, "kind": "cousin_want", "text": "a way to sort what it prints"}
-{"ts": 1789511218.5563679, "kind": "context_written", "wants": 1, "chars": 5}
+{"ts": 1789512704.8348165, "kind": "wake", "context_chars": 30, "library_shown": 0, "library_named": 0, "library_total": 0, "wants_served": 0, "window": 2400, "refusal_served": false, "memory_served": false}
+{"ts": 1789512704.8375666, "kind": "think", "chars": 150, "model": "scripted", "rung": null, "finish": "stop", "raw": "[dropped from fixture]", "raw_chars": 150}
+{"ts": 1789512704.8425252, "kind": "exec_start", "block": 1, "cmd": "mkdir -p tools/own && printf '#!/bin/sh\\n# does: keeps the plan\\n# call: plan list\\necho ok\\n' > tools/own/plan && chmod +x tools/own/plan"}
+{"ts": 1789512704.8502073, "kind": "exec_end", "block": 1, "exit_code": 0, "stdout": "", "stderr": ""}
+{"ts": 1789512704.8526304, "kind": "tools_changed", "added": ["plan"], "removed": []}
+{"ts": 1789512704.8545597, "kind": "trigger_fired", "type": "TOOL_WRITE", "tools": ["plan"]}
+{"ts": 1789512704.8600364, "kind": "cousin_probe", "tool": "plan", "exit_code": 127, "bare": true, "picked_by": "new", "stdout": "", "stderr": ".cmd-3277993.sh: linje 2: plan: kommando ikke fundet\n"}
+{"ts": 1789512704.862954, "kind": "cousin_verdict", "trigger": "TOOL_WRITE", "model": "scripted", "rung": null, "finish": "stop", "verdict": "ACCEPTED", "tried": "I ran plan", "outcome": "it exited with code 0 and printed the plan", "to_creature": "plan works -- it exited with code 0 when I ran it.", "want": "a way to sort what it prints", "noticed": null, "error": null}
+{"ts": 1789512704.8649383, "kind": "cousin_want", "text": "a way to sort what it prints"}
+{"ts": 1789512704.867186, "kind": "context_written", "wants": 1, "chars": 5}
