@@ -96,15 +96,30 @@ and for the next session that should re-derive nothing:
 |---|---|
 | `status.md` | the page: alarms first, then what it cannot tell, weather, counts per window **each naming its engine**, the library with its run record, the latest wants / verdicts / skips |
 | `status.json` | the same, for a program |
+| `ALARM` | **present only while something needs a human**, one line per standing alarm; removed the moment the last one clears. The one-glance answer to "is anything wrong right now?" |
 | `alarms.jsonl` | one line when a finding **enters** or **leaves** ALARM — nothing between. `tail` it to see what changed since you last looked |
 | `regression/<sha>-<start>.md` | written **once** per engine start, an hour in: the hour after against the hour before, on the correctness indicators |
 | `state.json` | the runner's memory (last states, since-when); derived, delete it and it rebuilds |
 
 Every finding is one of **OK / ALARM / CANNOT_TELL / INFO** — a detector with
-too few events says so rather than reporting OK. Only an ALARM that needs a
-human makes the run exit 1, so `systemctl --user --failed` says exactly when to
-look. The unit is read-only over everything but `live/monitor` (`PrivateUsers=yes`
-makes that real), and nothing it produces is shown to either inhabitant.
+too few events says so rather than reporting OK. The unit is read-only over
+everything but `live/monitor` (`PrivateUsers=yes` makes that real), and nothing
+it produces is shown to either inhabitant.
+
+**Three exit codes, because two could not tell a finding from a dead
+instrument** (corrected 2026-09-15, after `cousin-monitor.service failed` was
+read — correctly, for what systemd shows — as *the monitor is not running*):
+
+| | |
+|---|---|
+| **0** | ran; nothing needs a human |
+| **1** | ran; a standing alarm needs a human. The unit declares this a **success** (`SuccessExitStatus=1`); the signal is the `ALARM` file and the page |
+| **2** | **the monitor itself broke.** The only thing that puts the unit in `failed` |
+
+So `systemctl --user --failed` now means exactly one thing: *go fix the
+monitor*. A monitor that has stopped running altogether is caught by neither
+that nor `ALARM` — the page's **first line carries the time it was written**,
+which is why that line is first.
 
 Each detector is proven against a slice of the real journal where its scar
 happened — `tests/fixtures/journal/`, replay one with

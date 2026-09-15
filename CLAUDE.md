@@ -38,6 +38,15 @@ against the directory rather than typed: see
 
 ### Handover — updated 2026-09-15 ~01:30, read this before touching anything
 
+**Is anything wrong right now?** `ls live/monitor/ALARM` — that file exists
+only while something needs a human, and carries the standing alarms. **Is the
+monitor alive?** the first line of `status.md` carries the time it was written.
+**Is the monitor itself broken?** `systemctl --user --failed` — and that now
+means only that, because the unit declares the alarm exit code a success
+(`SuccessExitStatus=1`, 2026-09-15). Before that fix a standing alarm left
+`cousin-monitor.service` in `failed`, which Tue read as *the monitor is not
+running* — the correct reading of that signal, and not what it meant.
+
 **Read `live/monitor/status.md` on the laptop before deriving anything by
 hand.** A monitor exists as of 2026-09-15 (`monitor/`, `ARCHITECTURE.md` §15):
 `cousin-monitor.timer` regenerates that page every five minutes — alarms first,
@@ -654,6 +663,25 @@ was measured, with what, and on what date.*
   than compounding capability. It is the open question this project now turns
   on, it is a BRIEF matter, and it is frozen until it can be measured properly
   rather than patched at midnight.
+
+- **AN INSTRUMENT SPOKE IN THE VOICE OF THE THING IT WATCHES, AND ITS READER
+  CONCLUDED IT WAS DEAD.** 2026-09-15, found by Tue rather than by me: *"not
+  sure why the monitor is not running."* It was running — 272 runs, the last
+  ninety seconds earlier — but `cousin-monitor.service` sat in `failed`,
+  because I had made a standing alarm exit 1 and written in the unit that this
+  makes `systemctl --user --failed` *"say exactly when to look"*. A `failed`
+  unit is indistinguishable from a crashed script, so one face served both
+  *the engine has a problem* and *your instrument is dead* — and the reading
+  he took is the correct reading of that signal. Fifth appearance of **a
+  checker that cannot distinguish the thing it measures**, and the first where
+  the confusion was about the checker's OWN health. **Invariant: a monitor's
+  failure is never reported in the same channel as its findings.** Three exit
+  codes now (0 / 1 finding / 2 the monitor broke), `SuccessExitStatus=1` so
+  `failed` means only *go fix the monitor*, and the standing state is a file
+  whose presence is the signal (`live/monitor/ALARM`, removed when the last
+  alarm clears) rather than a unit state that has to be interpreted. A monitor
+  that stops running entirely is caught by neither, which is why the page's
+  first line is the time it was written.
 
 - **ALPHABETICAL ORDER WAS AN IMPLICIT CHOOSER IN TWO PLACES, AND IT
   MANUFACTURED A DAY OF TWINS.** 2026-09-15, found at 18:55 in the monitor's

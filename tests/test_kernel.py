@@ -3876,7 +3876,16 @@ def test_monitor_alarms_are_edge_triggered():
     check("edge: the parser alarm is RAISED once, with its evidence",
           len(first) == 1 and first[0]["to"] == "ALARM" and first[0]["evidence"],
           str(first)[:200])
-    check("edge: and a raised alarm makes the run exit 1", rc == 1, rc)
+    check("edge: and a raised alarm makes the run exit 1",
+          rc == monstatus.EXIT_ALARM, rc)
+    # THE STANDING STATE, beside the edges. The log says what CHANGED and the
+    # page says everything; neither answers "is anything wrong right now?"
+    # without being read.
+    alarm_file = os.path.join(root, "monitor", monstatus.ALARM_FILE)
+    check("edge: a standing alarm is a FILE whose presence is the signal",
+          os.path.exists(alarm_file)
+          and "commands_lost_parser" in open(alarm_file, encoding="utf-8").read(),
+          os.path.exists(alarm_file))
     monstatus.run_once(root, repo=None, now=now + 60)
     monstatus.run_once(root, repo=None, now=now + 120)
     check("edge: two more runs with the alarm still standing write NOTHING",
@@ -3887,9 +3896,75 @@ def test_monitor_alarms_are_edge_triggered():
     check("edge: when the hour passes the alarm is CLEARED, once",
           len(cl) == 2 and cl[1]["from"] == "ALARM" and cl[1]["to"] != "ALARM",
           str(cl)[:300])
+    # Two hours on, the parser alarm has cleared -- and the journal is now two
+    # hours stale, so `engine_silent` correctly stands in its place. The file
+    # is the STANDING SET, never a history: it must have dropped the one and
+    # picked up the other.
+    standing = open(alarm_file, encoding="utf-8").read() if os.path.exists(alarm_file) else ""
+    check("edge: a cleared alarm leaves the ALARM file, and a newly standing "
+          "one enters it", "commands_lost_parser" not in standing
+          and "engine_silent" in standing, standing[:200])
+
+    # And when nothing stands at all, the file is REMOVED rather than left to
+    # go stale -- proven by a transition, not by never having created one.
+    rows2 = [r for r in _fixture("0914-healthy-hour") if r["kind"] != "cousin_probe"]
+    d2 = tmpdir()
+    root2 = _monitor_root("0914-healthy-hour", d2)
+    quiet = os.path.join(root2, "monitor", monstatus.ALARM_FILE)
+    _md, _data, rc2 = monstatus.run_once(root2, repo=None,
+                                         now=float(_fixture("0914-healthy-hour")[-1]["ts"]))
+    check("edge: the control hour's chooser fault creates the file",
+          os.path.exists(quiet) and rc2 == monstatus.EXIT_ALARM, rc2)
+    with open(os.path.join(root2, "journal.jsonl"), "w", encoding="utf-8") as f:
+        for r in rows2:
+            f.write(json.dumps(r) + "\n")
+    _md, _data, rc3 = monstatus.run_once(root2, repo=None, now=float(rows2[-1]["ts"]))
+    check("edge: and once nothing needs a human the file is REMOVED, and the "
+          "run exits clean", not os.path.exists(quiet) and rc3 == monstatus.EXIT_OK,
+          (os.path.exists(quiet), rc3))
+    shutil.rmtree(d2, ignore_errors=True)
     st = json.load(open(os.path.join(root, "monitor", "state.json"), encoding="utf-8"))
     check("edge: the state remembers since-when, per finding",
           "since" in st and "commands_lost_parser" in st["since"], str(st)[:200])
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_broken_monitor_does_not_report_as_a_finding():
+    """An instrument that fails must not speak in the voice of the thing it
+    watches.
+
+    2026-09-15: the monitor exited 1 whenever a finding needed a human, and
+    the unit left that in `failed` -- indistinguishable from a crashed script.
+    Tue read `cousin-monitor.service failed` as *the monitor is not running*,
+    which is the correct reading of that signal and not what it meant. Three
+    outcomes now, never two, and the unit declares 1 a success so that
+    `failed` means exactly one thing: go fix the monitor.
+    """
+    from monitor import __main__ as monmain, status as monstatus
+    codes = (monstatus.EXIT_OK, monstatus.EXIT_ALARM, monstatus.EXIT_BROKEN)
+    check("exit: nothing-needed, a finding, and a broken monitor are three "
+          "different codes", len(set(codes)) == 3, codes)
+    d = tmpdir()
+    root = _monitor_root("0914-healthy-hour", d)
+    real = monstatus.run_once
+
+    def boom(*_a, **_k):
+        raise RuntimeError("the monitor itself is broken")
+    err = io.StringIO()
+    keep = sys.stderr
+    try:
+        monstatus.run_once = boom
+        sys.stderr = err
+        rc = monmain.main(["status", "--root", root, "--no-write"])
+    finally:
+        monstatus.run_once = real
+        sys.stderr = keep
+    check("exit: a monitor that raises exits BROKEN, never the alarm code",
+          rc == monstatus.EXIT_BROKEN, rc)
+    check("exit: and it says so, rather than leaving a traceback to be read as "
+          "a finding about the engine",
+          "MONITOR failed" in err.getvalue() and "not a finding" in err.getvalue(),
+          err.getvalue()[-200:])
     shutil.rmtree(d, ignore_errors=True)
 
 
@@ -4181,6 +4256,13 @@ def test_the_monitor_unit_is_read_only_over_the_evidence():
     check("unit: it runs the monitor's status command, read-only flags none",
           any(l.startswith("ExecStart=") and "-m monitor status" in l for l in svc),
           svc)
+    # FROM THE MODULE, never typed: a producer and a checker that each carry
+    # their own copy of a number drift, and this pair decides whether a
+    # `failed` unit means "the engine needs you" or "the monitor is dead".
+    from monitor import status as monstatus
+    check("unit: the alarm exit code is declared a SUCCESS, so `failed` means "
+          "the monitor itself broke and nothing else",
+          "SuccessExitStatus=%d" % monstatus.EXIT_ALARM in svc, svc)
     check("unit: the mkdir runs OUTSIDE the sandbox (+), or the read-only live/ "
           "refuses it", any(l.startswith("ExecStartPre=+") for l in svc), svc)
     check("timer: every five minutes, persistent",
@@ -4192,6 +4274,7 @@ def main():
     for fn in (test_monitor_detectors_fire_where_the_scars_happened,
                test_monitor_writes_only_its_own_directory,
                test_monitor_alarms_are_edge_triggered,
+               test_a_broken_monitor_does_not_report_as_a_finding,
                test_monitor_page_names_its_engine_and_windows,
                test_the_monitor_unit_is_read_only_over_the_evidence,
                test_the_probe_never_defaults_to_the_last_name,

@@ -63,7 +63,21 @@ def main(argv=None):
     if args.cmd in (None, "status"):
         root = getattr(args, "root", "live")
         repo = getattr(args, "repo", None)
-        md, data, rc = status.run_once(root, repo, write=not getattr(args, "no_write", False))
+        try:
+            md, data, rc = status.run_once(
+                root, repo, write=not getattr(args, "no_write", False))
+        except Exception:
+            # THE MONITOR ITSELF BROKE, and that is its own exit code. An
+            # instrument that fails must not report in the same voice as the
+            # thing it watches -- exit 1 means "a finding needs a human", and
+            # a traceback wearing that code would read as an ordinary alarm
+            # while the page silently went stale.
+            import traceback
+            traceback.print_exc()
+            sys.stderr.write("\nThe MONITOR failed, which is not a finding "
+                             "about the engine. The page may be stale; its "
+                             "first line carries the time it was written.\n")
+            return status.EXIT_BROKEN
         if getattr(args, "json", False):
             import json
             print(json.dumps(data, indent=1, default=str))

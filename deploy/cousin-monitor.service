@@ -15,9 +15,31 @@ WorkingDirectory=%h/growing-cousin
 ExecStartPre=+/bin/mkdir -p %h/growing-cousin/live/monitor
 ExecStart=/usr/bin/python3 -m monitor status --root %h/growing-cousin/live --repo %h/growing-cousin
 
-# Exit 1 means an alarm needs a human, and the unit is then `failed` until
-# the next run clears it -- so `systemctl --user --failed` says exactly when
-# to look. The timer keeps firing regardless. Nothing else is a failure.
+# **EXIT 1 IS A SUCCESS, AND SAYING OTHERWISE COST A MISREADING.** 1 means the
+# monitor RAN and something it found needs a human; 2 means the monitor itself
+# broke. Until 2026-09-15 exit 1 left the unit in `failed`, and this comment
+# claimed that made `systemctl --user --failed` "say exactly when to look" --
+# but a `failed` unit is indistinguishable from a crashed script, so the
+# signal gave the same face to "the engine has a problem" and "your instrument
+# is dead". Tue read it as *the monitor is not running*, which is the correct
+# reading of that signal and not what it meant.
+#
+# Now `failed` means exactly one thing: THIS UNIT IS BROKEN, go fix the
+# monitor. What needs a human about the ENGINE is the presence of
+# live/monitor/ALARM (removed the moment the last alarm clears) and the page
+# itself. And a monitor that has stopped running altogether is caught by
+# neither -- the page's first line carries the time it was written, which is
+# why that line is first.
+#
+# VERIFIED BY EFFECT, 2026-09-15, because a directive read back off a unit
+# proves it was parsed and never that it works (CLAUDE.md §5). Three
+# throwaway units on this laptop: with this directive, `exit 1` reads
+# `inactive` / `Result=success` and does not appear in `systemctl --user
+# --failed`; without it, `exit 1` reads `failed`; with it, `exit 2` still
+# reads `failed`. Note that systemd reports ExecMainStatus=0 for the declared
+# success, so nothing in systemd can say whether an alarm stands -- that is
+# the ALARM file's job, and the reason it exists.
+SuccessExitStatus=1
 
 # READ-ONLY OVER THE EVIDENCE, structurally. The monitor may write only its
 # own directory; the journal, the context and the creature's tools are

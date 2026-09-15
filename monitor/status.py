@@ -26,6 +26,25 @@ STATUS_MD = "status.md"
 STATUS_JSON = "status.json"
 ALARMS = "alarms.jsonl"
 STATE = "state.json"
+ALARM_FILE = "ALARM"
+
+# THREE OUTCOMES, NEVER TWO. Until 2026-09-15 the monitor exited 1 whenever an
+# alarm needed a human, and the unit's own comment claimed that made
+# `systemctl --user --failed` "say exactly when to look". It said no such
+# thing: a unit sitting in `failed` is indistinguishable from one whose script
+# crashed, so the signal answered "is something wrong?" with the same face for
+# "the engine has a problem" and "your instrument is dead". Tue read it, at a
+# glance, as *the monitor is not running* -- which is the correct reading of
+# that signal, and the fifth time in this project a checker could not
+# distinguish the thing it measures.
+#
+# So: 0 nothing needs a human, 1 the monitor RAN and something needs a human
+# (the unit declares this a success -- see SuccessExitStatus in
+# `deploy/cousin-monitor.service`), 2 the monitor itself broke, which is the
+# only thing that may ever put the unit in `failed`.
+EXIT_OK = 0
+EXIT_ALARM = 1
+EXIT_BROKEN = 2
 
 ENGINE_UNIT = "cousin-engine.service"
 UNITS = ("cousin-engine.service", "cousin-observer.service",
@@ -533,8 +552,21 @@ def run_once(root, repo=None, now=None, write=True):
                                    prev.get("since", {}), ctx.now)
     data = build_data(ctx, findings, since, changes)
     md = render_md(data)
+    human = detectors.alarms(findings)
     if write:
         os.makedirs(mon, exist_ok=True)
+        # THE STANDING STATE, as a file whose PRESENCE is the signal. The edge
+        # log says what changed and the page says everything; neither answers
+        # "is anything wrong right now?" without being read. This does, to a
+        # human glancing at `ls` and to any script, and it is removed the
+        # moment the last alarm clears -- so a stale ALARM file cannot outlive
+        # what it reports.
+        alarm_path = os.path.join(mon, ALARM_FILE)
+        if human:
+            write_atomic(alarm_path, "".join(
+                "%s: %s\n" % (f.name, f.msg) for f in human))
+        elif os.path.exists(alarm_path):
+            os.remove(alarm_path)
         if changes:
             with open(os.path.join(mon, ALARMS), "a", encoding="utf-8") as f:
                 for c in changes:
@@ -548,7 +580,7 @@ def run_once(root, repo=None, now=None, write=True):
         for f in findings:
             if f.name == "deploy_regression":
                 write_regression_report(mon, f)
-    return md, data, (1 if detectors.alarms(findings) else 0)
+    return md, data, (EXIT_ALARM if human else EXIT_OK)
 
 
 def replay(rows, step=1, detector_set=None):
