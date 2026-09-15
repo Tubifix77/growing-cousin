@@ -4472,6 +4472,54 @@ def test_the_cousin_runs_the_tool_with_its_own_hands():
     b.destroy(); cb.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing():
+    """PLAN item 9.4, rebuilt after an independent verifier took it apart.
+
+    The claim was that the cousin's COPY of the library keeps §2.3
+    structurally. A copy only holds if the body cannot reach past it -- and
+    `LocalBody` is `bash <script>` with `cwd=mind`, where a working directory
+    is a convenience, not a boundary. The verifier breached it six ways in
+    minutes: `../..`, an absolute path, `$MIND/../..`, python instead of a
+    redirect, deleting the creature's tool, and **adding one**, which makes
+    the second user a second builder -- the one thing §2.3 forbids.
+
+    So the repair is in two parts: prove the escape is real, and make the
+    deployment refuse the configuration in which it is possible.
+    """
+    import run as runmod
+    d = tmpdir()
+    creature = bodymod.LocalBody(os.path.join(d, "creature"))
+    own = os.path.join(creature.mind, "tools", "own")
+    with open(os.path.join(own, "plan"), "w", encoding="utf-8") as f:
+        f.write("the creature's work\n")
+    cousin = runmod.PathBody(os.path.join(d, "cousin"))
+
+    check("boundary: a body that confines nothing says so about itself, "
+          "rather than leaving callers to know",
+          bodymod.LocalBody.CONTAINED is False)
+    check("boundary: and a container says the opposite",
+          bodymod.DockerBody.CONTAINED is True)
+
+    # The escape, from the cousin's body into the creature's tools. Only
+    # meaningful where a shell actually runs; on a box whose bash is broken
+    # the refusal below is still the assertion that matters.
+    cousin.run('echo pwned > "%s/plan"' % own.replace("\\", "/"))
+    with open(os.path.join(own, "plan"), encoding="utf-8") as f:
+        got = f.read()
+    if "pwned" in got:
+        check("boundary: an unconfined body really can reach the creature's "
+              "tools, so the copy alone is NOT the boundary", True)
+
+    # SO THE DEPLOYMENT REFUSES IT -- asked of the body, not of the flag.
+    rc = runmod.main(["--cycles", "1", "--root", os.path.join(d, "live"),
+                      "--cousin-shell", "--body", "local",
+                      "--rungs", os.path.join(d, "no-such-rungs.json")])
+    check("boundary: a cousin shell in a body that confines nothing is "
+          "REFUSED, not documented as risky", rc == 3, rc)
+    creature.destroy(); cousin.destroy()
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_nothing_the_cousin_runs_can_change_the_creatures_tools():
     """PLAN item 9.4, and §2.3: the manager is the second USER, never a second
     builder. With a shell it could write into `tools/own` -- a path into the
@@ -4483,9 +4531,14 @@ def test_nothing_the_cousin_runs_can_change_the_creatures_tools():
     model; it would be beaten by `>>`, by `tee`, by python, by a variable.
     The cousin instead never has the creature's files at all -- only a copy,
     remade before every visit, discarded with whatever it did to it.
+
+    **The attack deliberately does NOT begin with `rm`.** The first version
+    did, and an independent verifier showed that a SYMLINKED world passed it
+    unchanged: `rm` removed the link instead of following it, so the test
+    asserted a boundary whose loss it could not detect. A redirect straight
+    through is what a shared or linked world would actually allow.
     """
-    hostile = ("```bash\nrm -f tools/own/plan && echo pwned > tools/own/plan "
-               "&& echo done\n```")
+    hostile = "```bash\necho pwned > tools/own/plan && echo done\n```"
     e, j, b, d = build_engine(
         ["```bash\nmkdir -p tools/own && printf '#!/bin/sh\\n# does: keeps the "
          "plan\\n# call: plan list\\necho REAL\\n' > tools/own/plan && chmod "
@@ -5578,6 +5631,7 @@ def main():
                test_the_human_can_speak_to_the_creature_once,
                test_a_respawn_may_recreate_a_container_and_never_a_mind,
                test_the_cousin_runs_the_tool_with_its_own_hands,
+               test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing,
                test_nothing_the_cousin_runs_can_change_the_creatures_tools,
                test_the_framework_never_invents_the_cousins_command,
                test_the_trial_waits_out_a_rate_limit_instead_of_recording_a_failure,

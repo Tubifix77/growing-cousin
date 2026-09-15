@@ -61,6 +61,17 @@ class LocalBody:
     container available. Not a sandbox: it is for running OUR fixtures, never
     untrusted input."""
 
+    # NOTHING HERE CONFINES ANYTHING, and callers must be able to ask rather
+    # than know. `run` is `bash <script>` with `cwd=self.mind`: a working
+    # directory is a convenience, not a boundary, and `..`, an absolute path
+    # or `$MIND/../..` walks straight out of it.
+    #
+    # Added 2026-09-16 after an independent verifier breached the cousin's
+    # supposed boundary six ways in this body -- including ADDING a tool to
+    # the creature's library, which makes the second user a second builder,
+    # the one thing §2.3 exists to forbid.
+    CONTAINED = False
+
     def __init__(self, root=None, can_respawn=True):
         # can_respawn=False models the case the parent actually hit: the body is
         # gone AND bringing it back fails too. A body that merely died is
@@ -231,6 +242,11 @@ class DockerBody:
     # scar with a different spelling.
     MIND = "/mind"
     HANDS = "/hands"
+
+    # A CONTAINER IS A BOUNDARY. Only what is bind-mounted exists inside it,
+    # so a body whose mount is its own mind cannot reach anything else --
+    # which is what lets the cousin's copy be structural rather than a guard.
+    CONTAINED = True
 
     def __init__(self, container, image=None, mind=None, init=True,
                  recreate=None):

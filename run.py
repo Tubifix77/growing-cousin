@@ -334,7 +334,7 @@ def ensure_container(container, image, host_body, timeout=120):
     return body
 
 
-def main():
+def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--cycles", type=int, default=10)
     ap.add_argument("--body", choices=("local", "docker"), default="local",
@@ -374,7 +374,7 @@ def main():
                          "used to be quoted here is a design estimate from the "
                          "parent, never measured on this engine; vitals.py "
                          "carries the real ratio.)")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     if args.fresh and os.path.isdir(args.root):
         shutil.rmtree(args.root, ignore_errors=True)
@@ -502,6 +502,28 @@ def main():
                                            args.image, host)
         else:
             cousin_body = host
+        # **A COUSIN SHELL IN AN UNCONFINED BODY IS A SECOND BUILDER.** The
+        # copy of the library is what keeps §2.3 -- the manager never writes
+        # the creature's tools -- and a copy only holds if the body cannot
+        # reach past it. `LocalBody` cannot stop that: it is `bash <script>`
+        # with `cwd=mind`, and a working directory is a convenience, not a
+        # boundary. An independent verifier breached it six ways in minutes,
+        # including ADDING a tool to the creature's library.
+        #
+        # So the deployment refuses the combination outright rather than
+        # documenting the danger. Asked of the body, not of the flag: one
+        # producer, one checker.
+        if not getattr(cousin_body, "CONTAINED", False):
+            sys.stderr.write(
+                "REFUSED: --cousin-shell needs a body that confines what it "
+                "runs, and %s does not.\nThe cousin chooses its own bash; "
+                "without confinement the copy of the library it is given is "
+                "a\nconvention rather than a boundary, and it can reach the "
+                "creature's own tools --\nwhich makes the second USER a "
+                "second BUILDER (CLAUDE.md §2.3).\nRun with --body docker, "
+                "or without --cousin-shell.\n"
+                % type(cousin_body).__name__)
+            return 3
         print("cousin shell: %s (library copied in per visit, hands withheld)"
               % (args.container + "-user" if args.body == "docker"
                  else host.root))
