@@ -3977,8 +3977,9 @@ def test_monitor_detectors_fire_where_the_scars_happened():
     #    that is not must say so rather than be excused.
     rows = _fixture("0914-healthy-hour")
     tl = monstatus.replay(rows, step=1)
+    known = ("probe_stuck", "window_reread")
     raised = [c for c in tl if c["to"] == "ALARM" and c.get("human")
-              and c["name"] != "probe_stuck"]
+              and c["name"] not in known]
     check("replay: the control hour raises NOTHING else a human must look at",
           not raised, str([(c["name"], c["msg"][:60]) for c in raised])[:400])
     stuck = _first_raise(tl, "probe_stuck")
@@ -3986,6 +3987,14 @@ def test_monitor_detectors_fire_where_the_scars_happened():
           "5 of 5, the chooser's default",
           stuck is not None and stuck["evidence"].get("tool") == "view-subtask-logs",
           str(stuck)[:200])
+    # The SECOND fault it turned out to carry. Cut as a healthy hour on
+    # 2026-09-14, when neither detector existed; each new detector has found
+    # something in it. That is what a control is for, and it is why it stays
+    # a real slice rather than being trimmed until it looks clean.
+    reread = _first_raise(tl, "window_reread")
+    check("replay: and the one found later -- a tool read four times inside an "
+          "hour without being changed",
+          reread is not None and "plan" in reread["msg"], str(reread)[:200])
 
     # E. 2026-09-15: the same want six times behind ACCEPTs of a usage line
     #    the cousin could not get past; view-subtask-logs probed 28 of 30
@@ -4079,8 +4088,10 @@ def test_monitor_writes_only_its_own_directory():
     # for nothing else.
     human = [f["name"] for f in data["findings"]
              if f["state"] == "ALARM" and f.get("human")]
-    check("monitor: the control hour exits 1 for the chooser fault it carries, "
-          "and for nothing else", rc == 1 and human == ["probe_stuck"], (rc, human))
+    check("monitor: the control hour exits 1 for the two faults it carries, "
+          "and for nothing else",
+          rc == 1 and sorted(human) == ["probe_stuck", "window_reread"],
+          (rc, sorted(human)))
     check("monitor: the page says the engine is UNKNOWN when the journal "
           "never said (pre-43eb8af), rather than guessing",
           "unknown" in md.split("## Alarms")[0], md[:400])
@@ -4152,7 +4163,8 @@ def test_monitor_alarms_are_edge_triggered():
     # `complaint_fidelity` is right to raise. Removing only the probes would
     # have made this a test of a fixture nobody could produce.
     rows2 = [r for r in _fixture("0914-healthy-hour")
-             if r["kind"] not in ("cousin_probe", "cousin_verdict")]
+             if r["kind"] not in ("cousin_probe", "cousin_verdict")
+             and "tools/own/" not in (r.get("cmd") or "")]
     d2 = tmpdir()
     root2 = _monitor_root("0914-healthy-hour", d2)
     quiet = os.path.join(root2, "monitor", monstatus.ALARM_FILE)
@@ -4173,6 +4185,60 @@ def test_monitor_alarms_are_edge_triggered():
     check("edge: the state remembers since-when, per finding",
           "since" in st and "commands_lost_parser" in st["since"], str(st)[:200])
     shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_window_decision_is_watched_rather_than_just_recorded():
+    """PLAN item 13. The 2,400-character window is deliberately NOT being
+    grown -- *don't fix what has no symptom*. A decision recorded and then
+    unwatched is indistinguishable from one forgotten, so the symptom that
+    would reopen it has a detector: the creature reading one of its tools
+    over and over without changing it, which is exactly what 2026-09-13
+    looked like (`cat tools/own/plan` six times in fifteen minutes, shown
+    1,200 characters each time, built nothing).
+    """
+    from monitor import detectors
+    now = time.time()
+
+    def rows(n, write_at=None, gap=60):
+        out = []
+        for i in range(n):
+            out.append({"ts": now - 20000 + i * gap, "kind": "exec_start",
+                        "cmd": "cat tools/own/plan"})
+            out.append({"ts": now - 20000 + i * gap + 1, "kind": "exec_end",
+                        "exit_code": 0, "stdout": "#!/bin/sh"})
+            if write_at == i:
+                out.append({"ts": now - 20000 + i * gap + 2, "kind": "trigger_fired",
+                            "type": "TOOL_WRITE", "tools": ["plan"]})
+        return out
+
+    quiet = detectors.window_reread(detectors.Context(rows(3), now=now))
+    check("window: three reads is not yet a pattern",
+          quiet.state == detectors.OK, "%s %s" % (quiet.state, quiet.msg))
+    stuck = detectors.window_reread(detectors.Context(rows(6), now=now))
+    check("window: six reads with no change is the 2026-09-13 shape",
+          stuck.state == detectors.ALARM and "plan" in stuck.msg,
+          "%s %s" % (stuck.state, stuck.msg))
+    check("window: and it refuses to announce a cause it has not measured",
+          "Measure the window before tuning" in stuck.msg, stuck.msg)
+    # DENSITY, NOT A TOTAL. Six reads spread over six hours is a creature
+    # consulting a file; six inside fifteen minutes is one stuck in front of
+    # it. The first version counted the six-hour total and fired on a control
+    # fixture that was doing ordinary work.
+    spread = detectors.window_reread(
+        detectors.Context(rows(6, gap=5400), now=now))
+    check("window: the same six reads spread over hours is NOT the fault",
+          spread.state == detectors.OK, "%s %s" % (spread.state, spread.msg))
+    # Reading a file you are actively rewriting is how anyone edits.
+    editing = detectors.window_reread(
+        detectors.Context(rows(6, write_at=4), now=now))
+    check("window: reads are counted only since the last time it CHANGED the "
+          "tool, so ordinary editing is not an alarm",
+          editing.state == detectors.OK, "%s %s" % (editing.state, editing.msg))
+    plan = _docs().get("PLAN.md", "")
+    item13 = re.search(r"^###\s*13\.[^\n]*\n(.*?)(?=^###\s|\Z)", plan, re.M | re.S)
+    body = re.sub(r"\s+", " ", item13.group(1)).lower() if item13 else ""
+    check("window: the board records it as a decision, naming the detector "
+          "that watches it", "window_reread" in body, body[:200])
 
 
 def test_the_brief_can_be_scored_against_cases_it_never_saw():
@@ -5074,6 +5140,7 @@ def main():
     for fn in (test_monitor_detectors_fire_where_the_scars_happened,
                test_monitor_writes_only_its_own_directory,
                test_monitor_alarms_are_edge_triggered,
+               test_the_window_decision_is_watched_rather_than_just_recorded,
                test_the_brief_can_be_scored_against_cases_it_never_saw,
                test_the_docker_body_carries_the_contract_the_creature_is_promised,
                test_the_docker_drill_proves_the_keys_are_out_of_reach,

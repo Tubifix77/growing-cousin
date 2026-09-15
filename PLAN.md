@@ -212,7 +212,7 @@ unprompted.
 - **12.1** `systemctl --user enable --now growing-spine`.
 - **12.2** §4's era note records the date, so no figure crosses it silently.
 
-### 13. `[ ]` The 2400-character window — explicitly NOT doing
+### 13. `[x]` The 2400-character window — explicitly NOT doing
 
 *Don't fix what has no symptom.* It stays on the board as a decision, not as
 something forgotten.
@@ -220,6 +220,19 @@ something forgotten.
 - **13.1** Recorded as not-doing, with the symptom that would reopen it: the
   creature re-reading one tool across consecutive wakes without editing it.
 - **13.2** A detector for that symptom, or a stated reason there is none.
+
+> **Done 2026-09-16. The decision stands and is now WATCHED**, because a
+> decision recorded and then unwatched is indistinguishable from one
+> forgotten. `window_reread` fires when the creature reads one of its own
+> tools four or more times without changing it — the 2026-09-13 shape, where
+> it read `plan` six times in fifteen minutes through a 1,200-character window
+> and built nothing. Reads are counted only since the last time it *changed*
+> that tool, so ordinary editing is not an alarm.
+>
+> It reports the pattern and refuses to announce the cause: a creature may
+> reread a file for its own reasons, and a cap changed without a before/after
+> across several windows, split by rung, is superstition (§5). **If this
+> fires, the next step is a measurement, not a bigger number.**
 
 ---
 

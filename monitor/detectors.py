@@ -781,6 +781,80 @@ def deploy_regression(ctx):
                    ev, human=False)
 
 
+# The 2026-09-13 waste pattern, exactly: `plan` had grown to 4,022 bytes, the
+# creature ran `cat tools/own/plan` SIX times in FIFTEEN MINUTES, was shown
+# 1,200 characters each time, and built nothing.
+#
+# **Density, not a six-hour count.** The first version asked for four reads
+# anywhere in six hours and fired on a control fixture where the creature
+# read one tool four times across the whole window -- which is a creature
+# consulting a file, not one trapped in front of it. Four inside an hour is
+# the shape that cost a day; four spread over six is ordinary work.
+REREAD_MIN = 4
+REREAD_SPAN_SECS = 3600
+READ_TOOL_RE = re.compile(
+    r"\b(?:cat|head|tail|less|more|sed\s+-n|python3?\s+-c[^\n]*open)\b[^\n|;]*?"
+    r"(?:tools/own/|/mind/tools/own/|\$MIND/tools/own/)([A-Za-z0-9_.\-]+)")
+
+
+def window_reread(ctx):
+    """Is the creature reading one of its tools over and over without
+    changing it?
+
+    PLAN item 13 is a decision NOT to grow the 2,400-character output window,
+    on the rule *don't fix what has no symptom*. This is the symptom, so that
+    the decision is watched rather than merely recorded.
+
+    It is not proof the window is too small -- a creature can reread a file
+    for its own reasons -- which is why it reports the pattern and names the
+    measurement that would settle it, rather than announcing a cause.
+    """
+    recent = ctx.recent(RECENT_H)
+    reads, writes = collections.defaultdict(list), collections.defaultdict(list)
+    for r in recent:
+        if r.get("kind") == "exec_start":
+            cmd = r.get("cmd") or ""
+            for m in READ_TOOL_RE.finditer(cmd):
+                reads[m.group(1)].append(_ts(r))
+            for t in derive.tools_written(cmd):
+                writes[t].append(_ts(r))
+        elif r.get("kind") == "trigger_fired" and r.get("type") == "TOOL_WRITE":
+            for t in r.get("tools") or []:
+                writes[t].append(_ts(r))
+    stuck = {}
+    for tool, when in reads.items():
+        if len(when) < REREAD_MIN:
+            continue
+        # Only the reads since the last time it CHANGED the thing. Reading a
+        # tool you are actively rewriting is how anyone edits.
+        last_write = max(writes.get(tool) or [0])
+        after = sorted(t for t in when if t > last_write)
+        # The densest run: how many of those fall inside one hour of each
+        # other. A sliding window, because the fault is being STUCK, and a
+        # total over six hours cannot tell stuck from thorough.
+        worst = 0
+        for i, t0 in enumerate(after):
+            n = sum(1 for t in after[i:] if t - t0 <= REREAD_SPAN_SECS)
+            worst = max(worst, n)
+        if worst >= REREAD_MIN:
+            stuck[tool] = worst
+    if stuck:
+        worst = max(stuck, key=lambda k: stuck[k])
+        return Finding("window_reread", ALARM,
+                       "the creature read `%s` %d times within an hour without "
+                       "changing it (%s) -- the 2026-09-13 shape, where it read one tool "
+                       "six times through a 1,200-character window and built "
+                       "nothing. Measure the window before tuning it: a cap is "
+                       "a guess until a before/after says otherwise"
+                       % (worst, stuck[worst], dict(stuck)),
+                       {"tools": stuck, "window_hours": RECENT_H},
+                       scar="two caps in series, and the one that was tuned was "
+                            "not the one that acts")
+    return Finding("window_reread", OK,
+                   "no tool reread %d+ times inside an hour without being "
+                   "changed, in %dh" % (REREAD_MIN, RECENT_H))
+
+
 def body_unrecoverable(ctx):
     """The body stopped answering and could not be brought back.
 
@@ -961,7 +1035,7 @@ ALL = (engine_silent, gave_up, unusable_verdicts, commands_lost,
        served_context_contract, tool_vanished, selfcheck_disproven,
        restart_owed, ladder_dry, journal_integrity, twin_pressure,
        deploy_regression, want_repeated, probe_stuck, complaint_fidelity,
-       body_unrecoverable)
+       body_unrecoverable, window_reread)
 
 
 def run_all(ctx, detectors=ALL):

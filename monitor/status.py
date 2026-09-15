@@ -82,6 +82,12 @@ RUNBOOK = {
                      "A want the cousin cannot verify (bare probe) or whose answers "
                      "it cannot see (hidden tool) repeats forever; the fix is in the "
                      "framework's probe or listing, never in the creature.",
+    "window_reread": "This is the SYMPTOM that would reopen PLAN item 13 (the "
+                     "2400-character window), not proof of it. Read the raw "
+                     "thinks: is it re-reading because it cannot see the whole "
+                     "file, or for its own reasons? A cap changed without a "
+                     "before/after across several windows, split by rung, is "
+                     "superstition (§5).",
     "body_unrecoverable": "Stop the bleeding first -- that is not an intervention "
                           "(§1.2). Check whether the creature removed its own "
                           "$MIND; `LocalBody.respawn` does not rebuild the tree, "
