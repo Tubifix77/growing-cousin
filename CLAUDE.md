@@ -82,6 +82,21 @@ owed; do not work it out from `git log` and systemd by hand again.
 non-zero and systemd restarts it, bounded to 5 starts per 30 minutes; the page's
 `gave_up` and `engine_silent` findings say so if that ever stops being true.
 
+**The creature lives in a container as of 2026-09-16** (`--body docker`, PLAN
+item 7). Its world is a bind mount of `live/body/mind` at `/mind`, our hands
+read-only at `/hands`; `~/keys`, the host home, this repo and the sibling
+project do not exist inside it. **Its library is on the HOST**, so removing or
+rebuilding the container costs nothing it built — `docker rm growing-cousin-body`
+is safe and the engine recreates it. `selfcheck` re-proves `keys_unreadable`
+at every start.
+
+**`rehearse.py` manufactures faults on a scratch root** — give-up, body death,
+walled rung, torn journal, silence, a fabricated verdict, the container. It
+refuses the live root, any git checkout and the sibling project, asks before
+it destroys anything, and watches the live root's whole tree across every
+drill. Use it before believing a path works; three real bugs came out of its
+first run, and two of them were in the harness itself.
+
 **The first day of the monitor, read 2026-09-15 18:55 (18 hours unattended):**
 `commands_lost[gemini]` raised 00:50 (3/20) and cleared 03:25, never flapped —
 the floor stands, nothing to tune. `served_context_contract` raised 07:00 when
@@ -705,6 +720,59 @@ was measured, with what, and on what date.*
   that stops running entirely is caught by neither, which is why the page's
   first line is the time it was written.
 
+- **A GUARD THAT RUNS AFTER THE DESTRUCTION IS A COMMENT.** 2026-09-16, found
+  by an independent verifier who pointed the new drill harness at a simulated
+  live root. `rehearse.main()` cleared each target with `shutil.rmtree` and
+  *then* asked `scratch_root` whether it was allowed one — so it printed
+  `REFUSED` having already deleted a subtree of the deployment, including a
+  file under `tools/own`, which §2.1 makes a hard boundary. The real `live/`
+  survived only because none of its seven entries happens to share a name with
+  a drill. The same guard also allowed `~/growing-cousin` (the live unit's
+  WorkingDirectory) and **`~/growing-spine`** outright — §2.6's hard boundary,
+  which the harness would have created and removed directories inside without
+  a murmur. **Invariant: ask before destroying, and check every ancestor, not
+  the leaf.** It now refuses the sibling by name and refuses any git checkout,
+  because a checkout is somebody's working tree. The gate reproduces the exact
+  attack and asserts the file is still there afterwards.
+
+  Worth keeping for its shape: this is the THIRD version of that guard. The
+  first checked the path it was given (missed `<live>/tool-gone`), the second
+  walked ancestors (missed the destruction ordering), the third asks first.
+  Each version was written against the failure the previous one had just
+  shown, which is what a guard's history looks like when it is being earned
+  rather than assumed.
+
+- **A LADDER THAT HAD ALREADY DIAGNOSED A DEAD CREDENTIAL FORGOT IT ON THE
+  NEXT CALL.** 2026-09-16, found by the give-up drill — which is what the
+  drill is for. `ladder()` walls a rung by adding it to a set and skipping it
+  thereafter, so the second time every rung is walled, `tried` is empty and
+  `all_walled=bool(tried) and all(...)` came out **False**. `default_is_wait`
+  says in as many words that a rejected credential is not a wait, *"because
+  waiting cannot fix it and a loop that waits politely forever on a broken key
+  looks exactly like one that is working"* — and the ladder contradicted it
+  from the second call onward. An engine whose every credential had been
+  rejected would have waited 600 × 150s: **twenty-five hours looking healthy
+  while nothing could ever answer it.** **The first call was honest**, which
+  is why nothing that only ever looked at a first failure could see it, and
+  why it took manufacturing the fault to find it. Fixed by asking about the
+  RUNGS rather than about what this call happened to attempt.
+
+- **THE EDIT THAT WAS COMMITTED AWAY, AND A GATE THAT COULD NOT SEE WHICH BODY
+  IT DEPLOYS.** 2026-09-16. The unit was changed to `--body docker`; a file
+  shuffle then copied a stale copy over it; the commit shipped and the engine
+  deployed with the creature still on `LocalBody` — keys readable, exactly as
+  before — while the commit message described the change as done. **Nothing in
+  the gate noticed**, because every assertion about that unit was about
+  restart bounds and sandboxing and none about which body the engine runs.
+  §5's oldest systemd scar is *a setting that is present, parsed and live can
+  still do nothing*; this is its mirror, and it is harder to see, because
+  there is no directive to read back — only an absence. The same start also
+  showed an `ExecStartPre` image build that could never succeed (buildx writes
+  under `~/.docker`, which `ProtectHome=read-only` forbids), hidden by its own
+  `-` prefix: **an advisory step that always fails is worse than no step.**
+  Both are asserted now, and the body assertion was verified red against the
+  exact version that shipped.
+
 - **ALPHABETICAL ORDER WAS AN IMPLICIT CHOOSER IN TWO PLACES, AND IT
   MANUFACTURED A DAY OF TWINS.** 2026-09-15, found at 18:55 in the monitor's
   first evening read, eighteen hours after it began. (1) `pick_target`'s
@@ -1132,10 +1200,19 @@ before marking it done.
 being shown both the library and each tool's run record (§5). That is the
 project's open question and it is a brief matter, frozen pending measurement.
 
-**Open, and Tue's:** the creature's shell shares a uid with the engine so the
-key files remain readable (`DockerBody` or `LoadCredential` closes it); whether
-the 2400-character output window should grow; and no production evidence pack
-is committed, so nothing here is checkable by anyone who was not present.
+**Open, and Tue's:** whether the 2400-character output window should grow
+(PLAN item 13 — explicitly not doing, with the symptom that would reopen it).
+
+> **CLOSED 2026-09-16: the creature's shell no longer shares a uid with the
+> engine's key files.** It runs in a container (`--body docker`, PLAN item 7)
+> whose world is a bind mount of `live/body/mind` and nothing else. From
+> inside it, `~/keys`, the host home, this repo and the sibling project do not
+> exist. `selfcheck` carries `keys_unreadable` and re-proves it at every
+> start; the first start under the container body reported `ok: True` — every
+> bound this deployment relies on proven, by effect, rather than believed.
+>
+> **CLOSED 2026-09-15: the evidence pack.** `evidence/` carries a hashed
+> manifest per run; the tarball stays on the laptop.
 
 ### Previous state — 2026-09-13, run 2 opening (deployed; the loop closes, throughput is the limit)
 

@@ -23,7 +23,7 @@ Status: `[ ]` not started · `[~]` in flight · `[x]` done and verified.
 
 ## Phase 0 — clear the board (no engine restart)
 
-### 1. `[ ]` The complaint-fidelity census runs by itself
+### 1. `[x]` The complaint-fidelity census runs by itself
 
 `census.py` is the only thing that checks the manager — `CLAUDE.md` §6.1's
 oldest open item — and nothing has ever invoked it on a schedule. An
@@ -42,7 +42,7 @@ costume.
 - **1.7** It reports and never gates: the monitor writes nothing outside
   `live/monitor/`, still asserted.
 
-### 2. `[ ]` The chat channel is a scheduled intention, not a silence
+### 2. `[x]` The chat channel is a scheduled intention, not a silence
 
 Tue, 2026-09-16: **it stays.** It has sat in every "not built" list since
 2026-09-11 without ever being decided either way.
@@ -52,7 +52,7 @@ Tue, 2026-09-16: **it stays.** It has sat in every "not built" list since
 - **2.2** The reason for the slot is recorded: it adds a surface to the
   creature's context, so it must not land while phases 3–4 are measuring.
 
-### 3. `[ ]` The inherited library is recorded as NOT executed
+### 3. `[x]` The inherited library is recorded as NOT executed
 
 §6.2 says *"Decided 2026-09-10: copy"*. Run 2 started from nothing. The
 doctrine claims a thing that never happened, and the refutation path it was
@@ -61,7 +61,7 @@ chosen for — a known-answer test set — was never taken.
 - **3.1** §6.2 states the decision was not executed and why.
 - **3.2** It is bound to run 3 (item 11) with the tagging requirement intact.
 
-### 4. `[ ]` The cousin's audit has a named trigger
+### 4. `[x]` The cousin's audit has a named trigger
 
 §6.4 currently ends *"No named trigger yet — this needs one."*
 
@@ -70,7 +70,7 @@ chosen for — a known-answer test set — was never taken.
 - **4.2** The reason is stated: an audit by an agent that can only run things
   bare is confident garbage by construction.
 
-### 5. `[ ]` The evidence tarball's home is recorded
+### 5. `[x]` The evidence tarball's home is recorded
 
 Tue, 2026-09-16: **laptop only**; the hashed manifest is what the repo
 carries.
@@ -82,7 +82,7 @@ carries.
 
 ## Phase 1 — make the untriggered paths triggerable
 
-### 6. `[ ]` The fault-injection rehearsal
+### 6. `[~]` The fault-injection rehearsal
 
 Eight board items in one build. These paths are deployed and have **never
 once fired in production**, so "it works" rests entirely on the gate — and
@@ -110,7 +110,7 @@ the gate structurally cannot test the systemd half.
 
 ## Phase 2 — close the oldest security hole
 
-### 7. `[ ]` The creature's shell cannot read the engine's keys
+### 7. `[~]` The creature's shell cannot read the engine's keys
 
 Open since 2026-09-13 and named in §7 as Tue's. The child environment is
 already an allow-list; the key **files** remain readable by anything running
