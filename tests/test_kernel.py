@@ -4613,16 +4613,6 @@ def _prov_data(monstatus, derivemod, root, library):
     return monstatus.build_data(ctx, [], {}, [])
 
 
-def _prov_data(monstatus, derivemod, root, library):
-    """The smallest real `build_data` shape the renderer needs, with a real
-    Context so this exercises the wiring rather than a hand-built dict."""
-    from monitor import detectors as det
-    ctx = det.Context([], now=1789516000.0)
-    ctx.root = root
-    ctx.library = set(library)
-    return monstatus.build_data(ctx, [], {}, [])
-
-
 def test_the_cull_has_an_owner_and_a_trigger():
     """PLAN item 10. §4 draws the line between a hold with a named trigger
     and a date, and inaction in the costume of caution. The cull had neither
@@ -4942,9 +4932,19 @@ def test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing():
     cousin.run('echo pwned > "%s/plan"' % own.replace("\\", "/"))
     with open(os.path.join(own, "plan"), encoding="utf-8") as f:
         got = f.read()
-    if "pwned" in got:
+    # NEVER A BARE `True` INSIDE AN `if`. This used to be exactly that, so if
+    # `LocalBody` ever stopped being breachable the assertion would DISAPPEAR
+    # from the run rather than report -- the test going quieter, not redder,
+    # about its own premise. A verifier found it. Now the premise is asserted
+    # when it can be tested and stated when it cannot, and nothing vanishes.
+    if cousin.responds():
         check("boundary: an unconfined body really can reach the creature's "
-              "tools, so the copy alone is NOT the boundary", True)
+              "tools, so the copy alone is NOT the boundary",
+              "pwned" in got, got[:80])
+    else:
+        check("boundary: the escape could not be attempted -- this body does "
+              "not run commands here, so the refusal below carries the whole "
+              "assertion", True, "body does not respond")
 
     # SO THE DEPLOYMENT REFUSES IT -- asked of the body, not of the flag.
     rc = runmod.main(["--cycles", "1", "--root", os.path.join(d, "live"),
@@ -5432,6 +5432,26 @@ def test_the_docker_drill_proves_the_keys_are_out_of_reach():
           "it, rather than one the drill invented",
           ev.get("recreate_is_the_deployments") is True,
           ev.get("recreate_is_the_deployments"))
+    # A DRILL MUST NOT REBUILD PRODUCTION. It used the deployment's own image
+    # tag and ran `docker build -t` on it, so a drill handed the live engine
+    # an image nobody asked for at its next respawn -- through a channel
+    # 6.7's live-root watch cannot see, because an image is not a file under
+    # `live/`. The harness refuses live roots, checkouts and the sibling
+    # project, and then overwrote production sideways.
+    check("docker drill: it builds its OWN image, never the deployment's",
+          ev.get("image_is_not_the_deployments") is True
+          and ev.get("image") != ev.get("deployed_image"),
+          (ev.get("image"), ev.get("deployed_image")))
+    # THE MOUNT OPTIONS, BY EFFECT. Losing `:ro` on the hands or `--user`
+    # would pass every capability check here and every assertion in the gate,
+    # whose respawn test mocks `subprocess.run` outright.
+    check("docker drill: our hands are read-only INSIDE the body -- protected "
+          "scar tissue, a mount option rather than a convention",
+          ev.get("hands_read_only") is True, ev.get("hands_read_only"))
+    check("docker drill: and nothing in there runs as root, at the host's "
+          "own uid so what the creature writes stays readable by the engine",
+          ev.get("not_root") is True and ev.get("uid_matches_the_host") is True,
+          (ev.get("not_root"), ev.get("uid_matches_the_host")))
     check("docker drill: with every one of the creature's tools still there "
           "-- a respawn that rebuilds a MIND is not a recovery",
           ev.get("tools_survived_respawn") is True,

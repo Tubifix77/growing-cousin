@@ -479,7 +479,21 @@ def drill_body(root):
 
 # --------------------------------------------------------------- the body
 
-IMAGE = "growing-cousin-body"
+# ITS OWN TAG, NOT THE DEPLOYMENT'S. The drill used `growing-cousin-body` --
+# the exact tag `run.py:DOCKER_IMAGE` and the live unit use -- and ran
+# `docker build -t` on it. So a drill silently rebuilt the image the
+# deployment adopts at its next respawn, and 6.7's live-root watch could not
+# possibly see it: a docker image is not a file under `live/`. The harness
+# refuses live roots, git checkouts and the sibling project, and then
+# overwrote production through a channel nobody was watching.
+#
+# Found 2026-09-16 by a verifier who declined to run `rehearse.py all` during
+# a measurement window because of it -- which is the finding as much as the
+# tag is. Built from the SAME `deploy/Dockerfile`, so what it proves is that
+# file; what it must never do is hand the deployment an image nobody asked
+# for.
+IMAGE = "growing-cousin-drill-image"
+DEPLOYED_IMAGE = "growing-cousin-body"
 CONTAINER = "growing-cousin-drill-body"
 
 
@@ -530,7 +544,11 @@ def drill_docker(root, live_root=None, keys_dir=None):
                 shutil.copy2(src, os.path.join(own, n))
                 copied.append(n)
 
-    ev = {"image": IMAGE, "container": CONTAINER, "tools_copied": len(copied)}
+    ev = {"image": IMAGE, "container": CONTAINER,
+          "deployed_image": DEPLOYED_IMAGE,
+          "image_is_not_the_deployments": IMAGE != DEPLOYED_IMAGE,
+          "dockerfile": os.path.join("deploy", "Dockerfile"),
+          "tools_copied": len(copied)}
     b = _docker("build", "-t", IMAGE, "-f",
                 os.path.join(HERE, "deploy", "Dockerfile"),
                 os.path.join(HERE, "deploy"))
@@ -575,6 +593,21 @@ def drill_docker(root, live_root=None, keys_dir=None):
         # CAPABILITY -- each one a thing 46 tools need.
         ev["mind_writable"] = yes("touch .drill-canary && rm -f .drill-canary")
         ev["hands_on_path"] = yes("command -v tool-edit >/dev/null")
+        # THE MOUNT OPTIONS, BY EFFECT. `ensure_container` mounts our hands
+        # `:ro` because they are protected scar tissue and the creature has
+        # no business editing them -- under `PathBody` that was a convention
+        # and here it is supposed to be a mount option. Nothing tested it:
+        # a verifier pointed out that losing `:ro`, or `--user`, would pass
+        # every capability check in this drill and every assertion in the
+        # gate, whose respawn test mocks `subprocess.run` entirely.
+        ev["hands_read_only"] = no(
+            "printf x >> %s/tool-edit" % bodymod.DockerBody.HANDS)
+        ev["tool_edit_still_intact"] = yes(
+            "command -v tool-edit >/dev/null && tool-edit --help >/dev/null "
+            "2>&1 || true")
+        ev["not_root"] = no("test \"$(id -u)\" = 0")
+        ev["uid_matches_the_host"] = yes(
+            "test \"$(id -u)\" = %d" % os.getuid())
         ev["own_tools_on_path"] = (
             yes("command -v %s >/dev/null" % copied[0]) if copied else None)
         ev["python3"] = yes("python3 -c 'import sys; sys.exit(0)'")

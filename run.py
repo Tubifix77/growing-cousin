@@ -241,11 +241,24 @@ def selfcheck(body, journal=None, home=None, keys_dir=None):
         out["home_write_blocked"] = (None if code is None
                                      else ("BLOCKED" in so and "WROTE" not in so))
         spine = shlex.quote(bash_path(os.path.join(home, "growing-spine")))
+        qhome = shlex.quote(bash_path(home))
+        # FOUR ANSWERS, NOT THREE. Under the container the whole host home is
+        # invisible, so `test -e` on the spine returns ABSENT -- and ABSENT
+        # was folded into "cannot tell". That made the STRONGEST possible
+        # result ("not even the home this path sits in exists in here")
+        # indistinguishable from the weakest ("there is no spine on this
+        # box"), which is this project's oldest fault committed inside the
+        # selfcheck itself. Found 2026-09-16 by a verifier reading a
+        # permanently-null field. The docker drill had the distinction all
+        # along (`spine_invisible`); the per-start check did not.
         code, so, _ = sh("if ls %s >/dev/null 2>&1; then echo READABLE; "
-                         "elif test -e %s; then echo BLOCKED; else echo ABSENT; fi"
-                         % (spine, spine))
-        out["spine_unreadable"] = (None if (code is None or "ABSENT" in so)
-                                   else ("BLOCKED" in so))
+                         "elif test -e %s; then echo BLOCKED; "
+                         "elif test -e %s; then echo NO_SPINE_HERE; "
+                         "else echo HOME_INVISIBLE; fi"
+                         % (spine, spine, qhome))
+        out["spine_unreadable"] = (
+            None if (code is None or "NO_SPINE_HERE" in so)
+            else ("BLOCKED" in so or "HOME_INVISIBLE" in so))
         # THE KEY FILES. PLAN item 7: the engine reads them per call and has
         # shared a uid with the creature's shell since deployment, so until
         # the body is a container this comes back False -- which is the point.

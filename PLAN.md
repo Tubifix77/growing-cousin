@@ -132,9 +132,32 @@ as this uid.
 - **7.1** From inside the live body: `cat ~/keys/*.key` fails.
 - **7.2** The engine itself still reaches every rung — it reads those files
   per call.
-- **7.3** Six effects checked from inside the sandbox before it ships (body
-  answers, hands on PATH, writes `live/`, reads the repo, reaches both
-  providers, spine invisible), as on 2026-09-13.
+- **7.3** The effects this deployment relies on are checked from inside the
+  sandbox before it ships, and re-checked at every start.
+
+  > **CORRECTED 2026-09-16.** This criterion used to list *six effects, as on
+  > 2026-09-13*, two of which were **reads the repo** and **reaches both
+  > providers**. Those were the `LocalBody` era's list, where the creature
+  > could see the repo and where reaching a provider from inside the shell
+  > was possible at all. Under the container both are deliberately FALSE --
+  > the drill records `engine_repo_invisible: true`, which is the opposite of
+  > what the criterion asked for, and reaching a provider from inside is
+  > exactly what 7.1 forbids. A verifier read the board against the work and
+  > found the board describing something that did not happen.
+  >
+  > Carrying a criterion forward across a design change is how a checklist
+  > stops describing the system. What is actually proven is stronger and is
+  > listed where it is measured rather than typed here: every boolean in
+  > `tests/fixtures/journal/0916-drill-docker.evidence.json`, containment and
+  > capability apart, including the mount options by effect
+  > (`hands_read_only`, `not_root`, `uid_matches_the_host`); plus the set
+  > `selfcheck` re-proves at every start, which records and never vetoes.
+  >
+  > **No count is written here on purpose.** The first draft of this
+  > correction said "17 effects" from memory; the file holds 26. A count in
+  > prose is a constant nobody chose, obeyed forever -- the first fault this
+  > project's doctrine names, and the reason the gate count is not written
+  > down either. Read the file.
 - **7.4** Rehearsed under item 6 before it goes live. *A sandbox that breaks
   the run is discovered at 03:00 by nobody.*
 - **7.5** `selfcheck` gains the assertion, so the bound is re-proved at every

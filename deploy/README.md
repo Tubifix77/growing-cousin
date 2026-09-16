@@ -168,3 +168,32 @@ first, which matters when a rung call is in progress and the free tier is thin.
 only" commit also touched `run.py`; comparing the two revisions' ASTs with
 docstrings stripped showed the only executable difference was an argparse help
 string, so it genuinely needed none — but that was verified rather than assumed.
+
+## Speaking to the creature, and hearing back
+
+Both directions exist and neither was documented, which a verifier pointed out
+2026-09-16: the gate proved the channel and production had no way to reach it.
+
+**To say something to it**, write `live/chat/inbox.md` on the laptop:
+
+```bash
+mkdir -p ~/growing-cousin/live/chat && \
+  echo "your message here" >> ~/growing-cousin/live/chat/inbox.md
+```
+
+It is delivered **once**, on the next wake, and then recorded in
+`live/chat/read.log` rather than deleted — clearing the inbox destroys
+nothing, and the creature is never handed the same message twice. The
+directory does not exist until somebody writes to it; that is not a fault.
+
+**To hear back**, read `live/body/mind/outbox.md`. The creature writes it with
+`say`, its own hand, appending and never rewriting, because this is testimony.
+You do not have to watch for it: the monitor's `creature_said` finding surfaces
+the newest message on `live/monitor/status.md`.
+
+> **The creature has NOT been told `say` exists** (PLAN item 14.5).
+> `CREATURE-PROMPT.md` is frozen until the brief's unfreeze, and a new
+> surface arriving mid-measurement makes every number on either side
+> incomparable. So in practice the channel is one-way today. The gate refuses
+> to let that be forgotten: every file in `hands/` must be named in the
+> prompt or recorded as deliberately withheld.

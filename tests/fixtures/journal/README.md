@@ -27,7 +27,7 @@ fixture is the evidence and the test is the claim.
 ## The drill fixtures (`0916-drill-*`), and where they come from
 
 The five slices above are **cut from production**: real hours of the real
-journal, in which the scar really happened. The six below are not. They are
+journal, in which the scar really happened. The ones below are not. They are
 **manufactured**, by `rehearse.py` on the laptop, because the faults they
 carry have never occurred in production -- the engine has never gone silent,
 never given up, never torn its journal, never lost a tool off PATH -- and
@@ -45,6 +45,8 @@ the file whose entire job is provenance is the fault it exists to prevent.
 | `0916-drill-fabricate.jsonl` | `rehearse.py fabricate` | a verdict testifying to an exit code no probe ever produced |
 | `0916-drill-giveup.{jsonl,evidence.json}` | `rehearse.py giveup` | the supervisor abandoning a run, and systemd's half of that chain |
 | `0916-drill-docker.evidence.json` | `rehearse.py docker` | the container destroyed and required back, with the keys unreachable from inside |
+
+**Count deliberately not written here.** The line above said "six" while the table had seven rows and the directory held 8 files -- a stale count in the file whose only job is provenance, one commit after it was rebuilt for exactly that. A count in prose is a constant nobody chose; count the directory.
 
 All produced 2026-09-16 on the laptop against scratch roots under `/tmp`,
 never against `live/`; the harness watches the live root across every drill
