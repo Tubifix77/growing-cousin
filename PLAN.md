@@ -82,7 +82,7 @@ carries.
 
 ## Phase 1 — make the untriggered paths triggerable
 
-### 6. `[~]` The fault-injection rehearsal
+### 6. `[x]` The fault-injection rehearsal
 
 Eight board items in one build. These paths are deployed and have **never
 once fired in production**, so "it works" rests entirely on the gate — and
@@ -123,7 +123,7 @@ the gate structurally cannot test the systemd half.
 
 ## Phase 2 — close the oldest security hole
 
-### 7. `[~]` The creature's shell cannot read the engine's keys
+### 7. `[x]` The creature's shell cannot read the engine's keys
 
 Open since 2026-09-13 and named in §7 as Tue's. The child environment is
 already an allow-list; the key **files** remain readable by anything running
@@ -208,7 +208,7 @@ have no scoreboard.
 
 ## Phase 4 — the boundary question
 
-### 9. `[~]` The cousin gets its own shell
+### 9. `[~]` The cousin gets its own shell  — built and live; 9.5 is MEASURING (window opened 2026-09-16 02:49)
 
 Tue, 2026-09-16, choosing the direction. §4 assigns *running the test* to the
 cousin, and the framework only ever invokes a tool **bare** — so the cousin
@@ -259,7 +259,38 @@ shell"* since 2026-09-10.
 > cousin now runs arbitrary bash of its own choosing, which is why it does so
 > in a container with a copy.
 
-### 10. `[~]` Who may propose a cull
+> **THE BEFORE WINDOW, RE-CUT 2026-09-16 02:45 AND SPLIT BY RUNG**, because
+> the table above is not. An aggregate over a heterogeneous ladder measures
+> neither instrument (§0), and 9.5 asks for the split in as many words.
+> Twelve hours of journal ending at the moment the shell went live:
+>
+> | | |
+> |---|---|
+> | probes | **38** — 34 bare (no arguments possible), 4 unflagged old-path; 5 exited 0 |
+> | verdicts by rung | `gemini/gemma-4-31b-it` ACCEPTED 15, RETURNED 2 · `cloudflare/llama-3.3-70b` RETURNED 1 |
+> | wants | 15, **8 distinct** |
+>
+> **THE FIRST HOUR OF THE SHELL IS DISCARDED, and why is the finding.**
+> Between 01:42 and 02:47 the journal holds **9 triggers fired** (5
+> `TOOL_WRITE`, 4 `DONE_CLAIM`) and **0 `cousin_probe`**. Nine visits were
+> summoned and every one vanished without trace: choosing the invocation is a
+> model call, every rung was at 429, and the exception left `evidence()`
+> before anything was appended. So that hour cannot be compared with anything
+> — its probe count is an undercount of unknown size — and it is thrown away
+> out loud rather than folded into the after-window.
+>
+> Fixed the same night; a probe that reaches nobody is now recorded as
+> `chosen_by="ladder_dry"` with `exit_code=None`, and no consumer counts it
+> as a run or a failure. **The after-window therefore starts at the restart
+> on `02d3460`, 2026-09-16 02:49**, the first engine to carry that fix — and
+> the first whose `engine_start` names its body (`DockerBody`, contained).
+>
+> **Read it no sooner than 48 hours in**, and read `lost` beside `worked /
+> asked / failed` on the page: on a tier this dry the lost count may be the
+> largest number there, and a collapse in *asked-for-arguments* means nothing
+> if the probes simply never happened.
+
+### 10. `[x]` Who may propose a cull
 
 Deliberately deferred until item 9 produces data: a library that is finally
 *used properly* may consolidate itself — the creature has done it twice
@@ -296,7 +327,7 @@ unprompted.
 
 ## Phase 5 — settle
 
-### 11. `[~]` Run 3
+### 11. `[~]` Run 3  — 11.2 and 11.3 met; the run itself is deliberately not taken
 
 - **11.1** Clean start on a framework that has stopped changing weekly.
 - **11.2** Carries item 3's decision, with every inherited tool tagged at t=0
@@ -389,7 +420,7 @@ something forgotten.
 
 ## After the plan
 
-### 14. `[~]` The chat channel (item 2's build)
+### 14. `[~]` The chat channel (item 2's build)  — 14.1–14.4 met; 14.5 rides with the brief's unfreeze, and is now watched
 
 Slotted here because it adds a surface to the creature's context and must not
 land while anything is being measured.
@@ -419,7 +450,7 @@ land while anything is being measured.
 > hand list in the same change that unfreezes the brief.** Recorded here so
 > the unfreeze does not quietly forget it.
 
-### 15. `[~]` Should a body that cannot be respawned end the run?
+### 15. `[x]` Should a body that cannot be respawned end the run?
 
 **Found by item 6's body drill, 2026-09-16 — a genuinely open design
 question, not a bug with an obvious fix.** `LocalBody.respawn` sets its alive

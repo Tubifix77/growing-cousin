@@ -43,6 +43,30 @@ order they are being done, one at a time, each with acceptance criteria that
 can be checked rather than asserted, and each verified by a reader who did not
 build it. Do not start work that is not on it; do not leave work off it.
 
+**Where the board stands after the verification round of 2026-09-16 03:00.**
+Items 1-8, 10, 13 and 15 are `[x]`. Three remain `[~]` and each for a stated
+reason, not for want of work:
+
+- **9** is built and live; **9.5 is MEASURING.** Its after-window opened at
+  02:49 on engine `02d3460` and should not be read before 2026-09-18.
+- **11** -- 11.2 and 11.3 are met; run 3 itself is deliberately not taken.
+- **12** reverses Tue's standing pause on the spine. His call, not mine.
+- **14** -- 14.1-14.4 met; 14.5 (telling the creature `say` exists) rides
+  with the brief's unfreeze and is now WATCHED rather than merely recorded.
+
+**Four independent verifiers have now read this work and every round found
+something real.** The last two returned eleven findings between them, of
+which four were defects rather than prose: an assertion that was green over a
+symlinked breach, a tautology shipped by the commit announcing that
+tautologies had been removed, a probe that vanished nine times in production,
+and an inheritance tag nothing read. **Do not treat your own assessment as
+sufficient.** Spawn a verifier that did not build the thing, hand it the
+criteria, and tell it plainly that previous rounds found real defects.
+
+**If you are about to compare probe counts across 2026-09-16 01:42-02:47,
+don't.** That hour is discarded: nine cousin visits were summoned and none
+was journalled. `PLAN.md` item 9 says why.
+
 **Tue's decisions, 2026-09-16**, so the next session does not reopen them:
 
 - **The chat channel stays** — wanted, not abandoned, and **scheduled as item
@@ -761,6 +785,65 @@ was measured, with what, and on what date.*
   alarm clears) rather than a unit state that has to be interpreted. A monitor
   that stops running entirely is caught by neither, which is why the page's
   first line is the time it was written.
+
+- **I REMOVED THREE TAUTOLOGIES AND SHIPPED A FOURTH IN THE SAME COMMIT, AND
+  THE ONE I LEFT STANDING WAS GREEN OVER A TOTAL BREACH.** 2026-09-16, both
+  halves found by independent verifiers, neither by me and neither by the
+  gate.
+
+  (1) `test_nothing_the_cousin_runs_can_change_the_creatures_tools` took
+  `before` and `after` from the **same side of the visit** -- both after
+  `run_cycle()` -- so `before == after` was true by construction. Proven dead
+  rather than argued: with `sync_cousin_world` replaced by a SYMLINK to the
+  creature's own `tools/own`, so that the two inhabitants shared one world,
+  it still printed *PASS boundary: and the creature's tools are
+  BYTE-IDENTICAL afterwards* while the file on disk said `pwned`. The
+  property §2.3 rests on had one guard where it appeared to have two.
+
+  (2) The commit that removed three tautologies replaced one of them with
+  `not getattr(Engine, "cousin_may_write", False)` -- against an attribute
+  that has never existed anywhere in this repo. `getattr` returns False,
+  `not False` is True, and the check passed under every possible
+  implementation. Written while removing exactly that fault, in the same
+  file, in the same hour.
+
+  **Invariant: a check that cannot go red is worse than no check**, because
+  it occupies the place where a real one would be looked for -- and *a test
+  that has never been seen red is a guess* applies to the assertion as much
+  as to the suite. Both were fixed by making the breach and watching the new
+  version fail: the boundary test now spends a second cycle so the visit is
+  summoned by a `DONE_CLAIM` that touches no file, and what stands in the
+  cull test is the only honest thing it can say -- that the assertions it
+  defers to are still in the file to be run.
+
+- **THE PROBE THAT VANISHED: nine visits happened, none was recorded, and the
+  page would have read it as the cousin working less.** 2026-09-16, found by
+  a verifier reading the live journal rather than by any test. Giving the
+  cousin its own shell (item 9) turned the probe into a MODEL call --
+  `choose_invocation` asks it what to type -- and on a dry free tier that
+  raises, leaving `evidence()` before anything was appended. Measured live
+  between 01:42 and 02:47, with all four rungs at 429: **9 `trigger_fired`,
+  0 `cousin_probe`.** The cousin's world had even been copied, 49 tools, at a
+  second the journal otherwise records only a trigger and five
+  `rung_declined`.
+
+  **The lost probe is the small half.** The loss was INVISIBLE, and item 9.5
+  exists to compare probe counts before and after this very change. The old
+  bare path journalled the probe *before* asking anyone and could not lose
+  one; the new path loses one whenever the tier is dry, which on free rungs
+  is most of the time. The after-window would have come in low and the
+  shortfall would have read as a finding about the design -- the fourteenth
+  appearance of *the framework manufactures work and the creature is billed
+  for it*, this time billing the cousin.
+
+  Recorded now as `chosen_by="ladder_dry"`, `exit_code=None`, and re-raised
+  unchanged, because what an unreachable ladder MEANS is still the
+  supervisor's decision. **All three readers had to change in the same
+  commit** -- `library.use_history` would have told both inhabitants their
+  user ran a tool it never reached, and the page's `probe_record` would have
+  counted a dry free tier as `failed`, which is this page announcing that the
+  creature's floor is broken. That is the 2026-09-15 invariant again: when a
+  field makes a distinction, every consumer needs the third answer.
 
 - **A GUARD THAT RUNS AFTER THE DESTRUCTION IS A COMMENT.** 2026-09-16, found
   by an independent verifier who pointed the new drill harness at a simulated
