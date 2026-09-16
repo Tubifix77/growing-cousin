@@ -645,3 +645,61 @@ without asking. The decision does not follow from it:
 > production.** That would mean a container that could not be rebuilt, which
 > is a different fault from the one this decision covers and deserves its own
 > answer rather than this one stretched over it.
+
+---
+
+### 16. `[ ]` The cousin, not us, notices when a tool serves nothing
+
+**Tue, 2026-09-16, and it is the right instinct:** *"the reasoning if a tool
+furthers the mission or is a circle jerk of bureaucracy should rest on the
+cousin to pick up on and ask the creature for a better why or a way to
+re-engineer the tool to further the cause."*
+
+He is right that the judgement is misplaced. On 2026-09-16 **I** read the
+library and concluded it was a bureaucracy administering its own paperwork
+(§4). That is precisely the judgement §4's function table gives to the
+**cousin** — *need statement: what I cannot do* — and a finding that only
+exists because a human read fifty files is, by rule 2 of CLAUDE.md §1, not
+fixed at all.
+
+**But the rule cannot simply be added to the brief, because the cousin has
+nothing to measure "furthers the mission" AGAINST.** Today it is told to be a
+user of these tools and to judge whether they work for it. A user of a
+task-tracker, asked only *does this work*, will ask for task-tracker features
+forever — and that is exactly what 50 tools of plan/archive/subtask
+bookkeeping are. The loop closes honestly and drifts, because nothing in it
+points outward. Ask a judge with no job to rule on *is this useful* and you
+get confident garbage, which is the failure §6.4 already names for audits.
+
+So this item is **not** "add a rule". It is the open design question
+underneath it:
+
+- **16.1** The cousin is given something it is TRYING TO DO — a standing
+  purpose beyond *exercise whatever was just built*. A user with a real job
+  notices an unhelpful tool without being told to look for one.
+- **16.2** The rule states a LACK, never a task (§4). *"I still cannot do X"*,
+  never *"re-engineer this tool"* — the creature owns the shape of the
+  solution or it is taking dictation, and that boundary is what makes this a
+  second user rather than a second builder.
+- **16.3** Scored against `trial/heldout-cases.json` before it ships: a
+  DIRECTION across several reps, split by model, detection and correction
+  reported together. The brief is ONE artifact and every rule changes every
+  verdict it produces (§5, 2026-09-11).
+- **16.4** A control: the change must not turn the cousin into a refuser.
+  Held-out ACCEPTED cases stay accepted.
+
+**SEQUENCING, and it is not optional.** This is a brief change, and item 9's
+measurement window is open. Shipping it now confounds the one measurement two
+days were spent building an instrument for — §5's top scar, five changes in
+four hours with no baseline. Worse, `trial/` spends the same shared free tier
+the live engine and the spine are on, so even SCORING it now perturbs the run
+it would be scored against.
+
+> **Order: draft the rule now (costs nothing), score it when item 9's window
+> closes (2026-09-18), ship it with a before/after or not at all.**
+
+**What is already true and needed no decision:** the framework half was fixed
+2026-09-16 — the probe chooser now sends the cousin to tools whose outcome
+nobody knows rather than to ones already proven, so the cousin gets the
+evidence it needs to form this judgement at all. Visibility first, always;
+the brief comes after.
