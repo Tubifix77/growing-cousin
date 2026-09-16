@@ -5277,11 +5277,26 @@ def test_the_rehearsal_cannot_touch_the_live_run():
     precious = os.path.join(victim, "tools", "own", "plan")
     with open(precious, "w", encoding="utf-8") as f:
         f.write("the creature's work\n")
+    # BYTE-IDENTICAL, and here that is a claim worth making: nothing is
+    # writing this simulated root, so a modification in place cannot hide in
+    # the engine's churn the way it can against the real deployment. PLAN 6.7
+    # promised byte-identity while the instrument compared path NAMES only;
+    # a verifier called that, and this is where the stronger claim holds.
+    before = rehearse.live_snapshot(live, digest=True)
     rc = rehearse.main(["tool-gone", "--scratch", live])
+    after = rehearse.live_snapshot(live, digest=True)
     check("rehearse: running against a live root exits non-zero", rc != 0, rc)
     check("rehearse: AND NOTHING WAS DELETED -- the guard runs before the "
           "harness clears its workspace, not after",
           os.path.exists(precious), "the drill destroyed %s" % precious)
+    check("rehearse: nor MODIFIED -- every file under the root is "
+          "byte-identical afterwards",
+          before == after,
+          sorted(set(before or {}) ^ set(after or {}))
+          or [k for k in (before or {}) if after.get(k) != before[k]])
+    with io.open(precious, encoding="utf-8") as f:
+        check("rehearse: and the creature's file still says what it said",
+              f.read() == "the creature's work\n", "")
 
 
 def test_the_drills_give_the_unproven_detectors_their_red():

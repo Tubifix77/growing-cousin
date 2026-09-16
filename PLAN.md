@@ -104,7 +104,20 @@ the gate structurally cannot test the systemd half.
   and the gate asserts the matching detector fires on it: `gave_up`,
   `engine_silent`, `journal_integrity`, `tool_vanished`. These four have no
   red-proof from real data today.
-- **6.7** The live root is byte-identical before and after every drill.
+- **6.7** No drill creates or removes a path anywhere under the live
+  root, watched across the whole run rather than inside one drill, with
+  the baseline taken before the harness's own first destructive act.
+  **Byte-identity is deliberately NOT claimed against the running
+  deployment**, and the earlier wording of this criterion did claim it:
+  the engine appends to the journal every few seconds and the creature
+  rewrites its own tools, so everything under that root is its churn by
+  definition, and a checker promising bytes there would report a breach
+  on every run -- the oldest scar in this project, in the instrument
+  built to catch breaches. Where nothing is writing the root, bytes ARE
+  decidable and are asserted: `live_snapshot(digest=True)`, and the gate
+  drives a real drill at a simulated live root and requires every file
+  under it unchanged to the byte. Corrected 2026-09-16 after a verifier
+  found the prose promising more than the instrument delivered.
 
 ---
 

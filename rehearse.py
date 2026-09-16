@@ -99,25 +99,48 @@ def may_use(root):
         cur = parent
 
 
-def live_snapshot(live):
+def live_snapshot(live, digest=False):
     """Every path under the live root, relative and sorted, or None if there
-    is no such root.
+    is no such root. With `digest`, the bytes of every file too.
 
-    NOT a hash of the journal: the engine appends to that every few seconds,
-    so hashing it could never come back unchanged and the check reported a
-    breach on every run -- a checker that cannot distinguish the thing it
-    measures. What a drill can actually do to the live root is CREATE or
-    REMOVE things in it, which is what this sees, recursively, so a deletion
-    three levels down inside `tools/own` shows up.
+    **Against a RUNNING engine, byte-identity is not a property anything can
+    assert, and claiming it would be a checker that cannot distinguish the
+    thing it measures.** The engine appends to the journal every few seconds
+    and the creature rewrites its own tools; everything under the live root
+    is its churn by definition. So the default is the strongest claim that
+    can actually hold while the deployment runs: no path was CREATED or
+    REMOVED, recursively, so a deletion three levels inside `tools/own` shows
+    up. PLAN 6.7 said "byte-identical" for a while and a verifier was right
+    to call that unbacked.
+
+    `digest=True` is for a root NOTHING is writing -- the simulated live root
+    in the gate, or the real one with the engine stopped. There byte-identity
+    IS decidable, and the gate asserts it, because that is the case where a
+    modification-in-place would otherwise pass unseen.
     """
     live = os.path.realpath(os.path.expanduser(str(live)))
     if not os.path.isdir(live):
         return None
-    out = []
+    out = {} if digest else []
     for dp, dn, fn in os.walk(live):
         for n in list(dn) + list(fn):
-            out.append(os.path.relpath(os.path.join(dp, n), live))
-    return sorted(out)
+            p = os.path.join(dp, n)
+            rel = os.path.relpath(p, live)
+            if not digest:
+                out.append(rel)
+                continue
+            if os.path.isfile(p) and not os.path.islink(p):
+                h = hashlib.sha1()
+                try:
+                    with io.open(p, "rb") as f:
+                        for chunk in iter(lambda: f.read(65536), b""):
+                            h.update(chunk)
+                    out[rel] = h.hexdigest()
+                except OSError as e:
+                    out[rel] = "unreadable: %s" % e.__class__.__name__
+            else:
+                out[rel] = "(dir)" if os.path.isdir(p) else "(link)"
+    return out if digest else sorted(out)
 
 
 def scratch_root(root):
@@ -629,15 +652,23 @@ def main(argv=None):
         except RefusedLiveRoot as e:
             sys.stderr.write("REFUSED, nothing touched: %s\n" % e)
             return 3
-    for base in bases:
-        if os.path.isdir(base):
-            shutil.rmtree(base, ignore_errors=True)
-
+    # THE BASELINE COMES FIRST. It used to be taken after the loop below,
+    # so the harness's own first destructive act -- clearing last run's
+    # workspaces -- happened OUTSIDE the window that watches the live root.
+    # The ancestor guard above makes that safe today, which is exactly the
+    # argument that retires a check; the ordering is still backwards, and
+    # this file's guard is on its third version precisely because each
+    # version was written against the failure the last one had just shown.
+    #
     # EVERY drill, not just the one that happened to look. 6.7 says the live
     # root is unchanged before and after; checking it inside a single drill
     # left the other four unwatched.
     live_root = args.live_root or os.path.expanduser("~/growing-cousin/live")
     live_before = live_snapshot(live_root)
+
+    for base in bases:
+        if os.path.isdir(base):
+            shutil.rmtree(base, ignore_errors=True)
 
     for name in names:
         base = os.path.join(args.scratch, name)
