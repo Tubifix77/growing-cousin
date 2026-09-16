@@ -668,6 +668,69 @@ def journal_integrity(ctx):
     return Finding("journal_integrity", OK, "%d rows parse, in order" % len(ctx.rows))
 
 
+
+# DECLARED FLOORS, never learned. Four hours is long enough that a quiet
+# afternoon does not fire it and short enough that fifteen hours cannot
+# pass again; three probes is the fewest that can distinguish "always"
+# from "twice".
+COUSIN_STARVED_H = 4
+COUSIN_STARVED_MIN = 3
+
+
+def cousin_starved(ctx):
+    """Probes reaching nobody while the CREATURE is served on the same rungs.
+
+    **The asymmetry is the whole signal.** A dry free tier starves both
+    inhabitants together -- that is weather, and `ladder_dry` already says so.
+    One agent being served while the other never is cannot be weather: it is
+    something about how that agent's call is made.
+
+    Written 2026-09-16 after exactly that went unseen for fifteen hours. The
+    cousin's command-choosing call was asked through the ladder that rejects
+    any reply without a VERDICT block, so every correct answer walled a rung
+    and every probe was lost: **112 probes, 112 lost, 0 verdicts -- and 112
+    creature thinks in the same window on the same rungs.** Both numbers were
+    on the page, in adjacent rows, and nothing put them side by side.
+
+    Three states, and the middle one matters: with no probes at all this says
+    CANNOT TELL rather than OK, because a cousin that is never summoned looks
+    identical to one that is summoned and always fails -- and the second is
+    the fault this exists for.
+    """
+    recent = ctx.recent(COUSIN_STARVED_H)
+    probes = [r for r in recent if r.get("kind") == "cousin_probe"]
+    thinks = [r for r in recent if r.get("kind") == "think"]
+    if len(probes) < COUSIN_STARVED_MIN:
+        return Finding("cousin_starved", CANNOT_TELL,
+                       "%d probe(s) in %dh; need %d to tell a starved cousin "
+                       "from a quiet one" % (len(probes), COUSIN_STARVED_H,
+                                             COUSIN_STARVED_MIN),
+                       human=False)
+    lost = [p for p in probes if p.get("exit_code") is None]
+    if len(lost) < len(probes):
+        return Finding("cousin_starved", OK,
+                       "%d of %d probes reached the tool" %
+                       (len(probes) - len(lost), len(probes)),
+                       {"probes": len(probes), "lost": len(lost)})
+    if not thinks:
+        # Everything is starved. That IS the weather, and `ladder_dry` owns it.
+        return Finding("cousin_starved", INFO,
+                       "every probe lost (%d) and the creature was not served "
+                       "either -- the tier is dry for both, which is weather"
+                       % len(lost), {"probes": len(probes), "thinks": 0},
+                       human=False)
+    return Finding(
+        "cousin_starved", ALARM,
+        "EVERY probe reached nobody (%d of %d in %dh) while the creature was "
+        "served %d times on the same rungs. A dry tier starves both; one "
+        "agent served and the other never is something about how the "
+        "cousin's call is MADE -- its ladder's usability predicate, its "
+        "budget, its prompt -- not about the free tier"
+        % (len(lost), len(probes), COUSIN_STARVED_H, len(thinks)),
+        {"probes": len(probes), "lost": len(lost), "thinks": len(thinks),
+         "last_error": (lost[-1].get("error") or "")[:200]},
+        scar="a second caller inherited the first one's contract")
+
 # The sibling project's unit. Named here rather than in the caller so the
 # detector and the unit list cannot drift apart.
 SPINE_UNIT = "growing-spine.service"
@@ -1173,7 +1236,7 @@ ALL = (engine_silent, gave_up, unusable_verdicts, commands_lost,
        restart_owed, ladder_dry, journal_integrity, twin_pressure,
        deploy_regression, want_repeated, probe_stuck, complaint_fidelity,
        body_unrecoverable, window_reread, creature_said,
-       shared_tier_contested)
+       shared_tier_contested, cousin_starved)
 
 
 def run_all(ctx, detectors=ALL):

@@ -3666,6 +3666,70 @@ def test_the_inherited_library_is_recorded_as_not_executed():
           "ARCHITECTURE §11 does not record that it was never done")
 
 
+def test_a_starved_cousin_is_told_apart_from_a_dry_tier():
+    """The asymmetry nobody was watching, and it cost fifteen hours.
+
+    On 2026-09-16 the cousin's command-choosing call was asked through the
+    ladder that rejects any reply without a VERDICT block, so every correct
+    answer walled a rung: **112 probes, 112 lost, 0 verdicts -- and 112
+    creature thinks in the same window, on the same rungs.** Both numbers
+    were on the status page, in adjacent rows, and nothing put them side by
+    side. `ladder_dry` said INFO the whole time, correctly, because the tier
+    WAS thin -- and that is exactly why a second signal was needed: thin for
+    everyone is weather, thin for one agent is a bug in how that agent is
+    asked.
+
+    Three states, and the middle one is the load-bearing one: with too few
+    probes this says CANNOT TELL, never OK, because a cousin that is never
+    summoned looks identical to one that is summoned and always fails, and
+    the second is the fault this exists for. *Cannot tell is not permission.*
+    """
+    from monitor import detectors as det
+    now = 1789576576.0
+
+    def ctx_of(n_probes, n_lost, n_thinks, hours_ago=1.0):
+        rows = []
+        ts = now - hours_ago * 3600
+        for i in range(n_probes):
+            rows.append({"ts": ts + i, "kind": "cousin_probe", "tool": "plan",
+                         "exit_code": (None if i < n_lost else 0),
+                         "chosen_by": ("ladder_dry" if i < n_lost else "cousin"),
+                         "error": "LadderExhausted: unusable: no-block"})
+        for i in range(n_thinks):
+            rows.append({"ts": ts + i, "kind": "think", "rung": "gemini"})
+        c = det.Context(sorted(rows, key=lambda r: r["ts"]), now=now)
+        return c
+
+    f = det.cousin_starved(ctx_of(10, 10, 12))
+    check("starved: every probe lost while the creature is served is an ALARM",
+          f.state == det.ALARM, (f.state, f.msg[:90]))
+    check("starved: and it says plainly this is NOT the free tier",
+          "not about the free tier" in f.msg, f.msg[-80:])
+    check("starved: a human is told", f.human is True, f.human)
+    check("starved: the evidence carries the error, so the runbook has "
+          "something to read", "no-block" in (f.evidence.get("last_error") or ""),
+          f.evidence)
+
+    f2 = det.cousin_starved(ctx_of(10, 10, 0))
+    check("starved: both starved together is weather, not a fault -- that is "
+          "`ladder_dry`'s job and this one stands down",
+          f2.state == det.INFO, (f2.state, f2.msg[:90]))
+
+    f3 = det.cousin_starved(ctx_of(10, 4, 12))
+    check("starved: probes that reach the tool clear it",
+          f3.state == det.OK, (f3.state, f3.msg[:90]))
+
+    f4 = det.cousin_starved(ctx_of(1, 1, 12))
+    check("starved: too few probes is CANNOT TELL, never OK -- a cousin never "
+          "summoned reads like one summoned and always failing",
+          f4.state == det.CANNOT_TELL, (f4.state, f4.msg[:90]))
+
+    # OLD ENOUGH TO BE OUT OF THE WINDOW is not a finding.
+    f5 = det.cousin_starved(ctx_of(10, 10, 12, hours_ago=48))
+    check("starved: and it looks at a window rather than at all of history",
+          f5.state == det.CANNOT_TELL, (f5.state, f5.msg[:90]))
+
+
 def test_the_shared_tier_is_watched_and_the_doctrine_cannot_drift_from_it():
     """PLAN item 12, and the reason it needed an instrument rather than a line.
 
@@ -6374,6 +6438,7 @@ def main():
                test_every_hand_the_creature_has_is_one_it_has_been_told_about,
                test_the_chat_channel_is_a_scheduled_intention,
                test_the_inherited_library_is_recorded_as_not_executed,
+               test_a_starved_cousin_is_told_apart_from_a_dry_tier,
                test_the_shared_tier_is_watched_and_the_doctrine_cannot_drift_from_it,
                test_the_cousins_audit_has_a_named_trigger,
                test_the_evidence_tarballs_home_is_recorded,

@@ -119,6 +119,13 @@ RUNBOOK = {
                              "correct §4 or stop the spine. Whether it RUNS "
                              "is Tue's standing decision and PLAN item 12 is "
                              "his call -- this reports, and never acts.",
+    "cousin_starved": "The cousin's calls are failing where the creature's "
+                      "are not, so this is NOT the free tier. Read the "
+                      "`error` on a lost probe: on 2026-09-16 every one said "
+                      "`unusable: no-block` because the command-choosing call "
+                      "was asked through the ladder that demands a VERDICT "
+                      "block. Check the predicate, the budget and the prompt "
+                      "of the cousin's call before suspecting the rungs.",
     "tool_vanished": "A body/PATH fault, not the creature: the relative-root scar. "
                      "Check PathBody.run's PATH export and that the root is absolute.",
     "selfcheck": "A bound this deployment relies on does NOT hold. Read the "

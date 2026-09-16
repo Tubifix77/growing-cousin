@@ -306,6 +306,18 @@ shell"* since 2026-09-10.
 > `chosen_by="ladder_dry"` with `exit_code=None`, and no consumer counts it
 > as a run or a failure.
 >
+> **THAT WINDOW IS VOID, AND WHY IS THE WHOLE FINDING. Reopened
+> 2026-09-16 18:36:16, engine `3f20c3f`.** Fifteen hours produced **112
+> probes, 112 of them lost, 0 verdicts, 0 wants** while the creature thought
+> 112 times on the same rungs. The cousin's shell had never once worked: the
+> command-choosing call was asked through the ladder that rejects any reply
+> without a VERDICT block, so every model that answered correctly was judged
+> unusable and every rung walled. See §5.
+>
+> **Item 9 was therefore not "live" between 01:42 and 18:36 in any sense that
+> matters** — it was live and inert, which is the state this project's
+> doctrine says is hardest to see. Read the after-window from 18:36 only.
+>
 > **THE AFTER-WINDOW STARTS 2026-09-16 03:19:13, ENGINE `221b978`.** It was
 > opened at 02:49 on `02d3460` and re-opened half an hour later rather than
 > left to span two engines: §0's rule is that every figure names its

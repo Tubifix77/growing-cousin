@@ -848,6 +848,44 @@ was measured, with what, and on what date.*
   cull test is the only honest thing it can say -- that the assertions it
   defers to are still in the file to be run.
 
+- **A SECOND CALLER INHERITED THE FIRST ONE'S CONTRACT, AND THE COUSIN'S
+  SHELL WAS INERT FOR FIFTEEN HOURS WITH A GREEN GATE.** 2026-09-16, found
+  by a morning checkup reading the page.
+
+      probes worked / asked / failed / unqualified / lost
+      since 03:19 (221b978):   0 / 0 / 0 / 0 / 112
+      verdicts 0    wants 0    creature thinks 112
+
+  Item 9 gave the cousin its own shell by adding a SECOND call — *what would
+  you like to run?* — whose answer is a bash block. It was asked through
+  `ask_cousin`, built with `reject=unusable_reply`: reject any reply with no
+  VERDICT block. So every model that answered the question **correctly** was
+  judged unusable, each rung walled in turn, the ladder exhausted, and the
+  probe was lost. `answered but unusable: no-block`, 98 times.
+
+  **`backends.ladder`'s own comment had already written the rule**: *the
+  predicate is the CALLER's, because only the caller knows what a usable
+  reply looks like.* A new caller arrived and silently took the old one's.
+  **Invariant: a predicate belongs to a QUESTION, not to an agent** — one
+  ladder per contract, sharing quota state, because what we know about a
+  rung's quota is a fact about the rung while what counts as a usable reply
+  is a fact about what was asked. And the asymmetry is the tell: for a
+  verdict, no block is a FAILURE; for an invocation, no block is an ANSWER,
+  which `choose_invocation` already said in as many words.
+
+  **Two things built the night before made it findable at all**, and neither
+  existed a day earlier: a probe that reaches nobody is journalled as
+  `chosen_by="ladder_dry"` rather than vanishing, and `lost` is its own
+  column. Without them the page would have shown no probes and no fault. The
+  instrument found the defect in the very feature it was built to measure,
+  on its first morning — which is the argument for building it, and the
+  argument against ever reading "0 probes" as quiet.
+
+  **The gate was green throughout** because nothing drove `choose_invocation`
+  through a real ladder with the real predicate; every test used a scripted
+  backend that rejects nothing. *A test suite proves what it asserts and
+  nothing more* — fourth time that sentence has been paid for here.
+
 - **THE PROBE THAT VANISHED: nine visits happened, none was recorded, and the
   page would have read it as the cousin working less.** 2026-09-16, found by
   a verifier reading the live journal rather than by any test. Giving the
