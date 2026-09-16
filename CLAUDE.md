@@ -494,13 +494,35 @@ guess with authority it has not earned.
   unpaused for 27 hours, because a decision with nobody holding it is a
   decision nobody takes.
 
-  **The spine should be STOPPED while item 9's window is open.** Three
-  reasons, none of them close: the tier is shared and the cousin now costs
-  TWO calls per visit, so it is the agent that starves first and it is the
-  agent under measurement; the comparison the spine exists for is already
-  suspended (§4 above) and void on throughput, so nothing is lost by pausing
-  it; and Tue's own stated intent on 2026-09-13 was exactly this, undone by
-  an accident rather than by a decision. Restoring it is the least surprising
+  ~~**The spine should be STOPPED while item 9's window is open.**~~
+  **RETRACTED WITHIN THE HOUR, and the retraction is the lesson.** Tue asked
+  the obvious question — *"if we run until morning without stress why not
+  share the thing with growing spine? is it a metric you try to get?"* — and
+  it was right.
+
+  **The premise was never checked.** I wrote *the cousin starves first* and
+  acted on it. Measured afterwards, over the 25.5 hours the spine WAS running
+  and sharing the tier: **270 thinks, 69 probes, 27 verdicts, 22 wants —
+  1.1 verdicts an hour.** The cousin was not starving. Today's silence was
+  the `unusable_invocation` bug and nothing else. That is §5's top scar
+  committed again: a behavioural claim believed before the harness was ruled
+  out.
+
+  **And stopping it BREAKS the measurement it was stopped for.** Item 9's
+  before-window was taken spine-ON. §4 says numbers either side of that line
+  are not comparable in either direction — so an after-window taken on a
+  cleared tier cannot be compared with it at all. Two days building an
+  instrument, and the first act was to point it at the wrong condition.
+
+  **The shared tier is not a handicap to be engineered around. It is the
+  condition the comparison exists to run in** (§4: same hardware, same
+  network, same shared quota — *the only configuration in which the
+  comparison means anything*), and §4 already calls a cleared tier the less
+  honest one.
+
+  **So: the spine runs, and item 9's after-window is taken under it.** The
+  only thing a cleared tier buys is a faster confirmation of a bug fix, and
+  that is a diagnostic convenience, not a measurement condition. Restoring it is the least surprising
   act available.
 
   **Trigger to restart it: when item 9's after-window closes** (48 h from
@@ -882,6 +904,35 @@ was measured, with what, and on what date.*
   summoned by a `DONE_CLAIM` that touches no file, and what stands in the
   cull test is the only honest thing it can say -- that the assertions it
   defers to are still in the file to be run.
+
+- **I CLEARED THE CONDITION THE MEASUREMENT WAS SUPPOSED TO BE TAKEN IN, TO
+  MAKE THE MEASUREMENT EASIER.** 2026-09-16, caught by Tue in one sentence:
+  *"if we run until morning without stress why not share the thing with
+  growing spine? is it a metric you try to get?"*
+
+  The spine had come back up by accident and I stopped it, reasoning that the
+  shared free tier would starve the cousin during item 9's window. **The
+  premise was never measured.** Over the 25.5 hours the spine actually was
+  running and sharing: 270 thinks, 69 probes, **27 verdicts**, 22 wants —
+  1.1 verdicts an hour. The cousin was not starving; it was broken, by the
+  bug one scar up. Top-scar again: a behavioural claim believed before the
+  harness was ruled out, by someone quoting that scar the same day.
+
+  **The worse half is what it did to the measurement.** Item 9's before-window
+  is spine-ON. §4 says numbers either side of that line are not comparable in
+  either direction. So clearing the tier would have made the after-window
+  incomparable to the before-window — two days spent building an instrument,
+  and the first act was to point it at a condition it could not be read in.
+
+  **Invariant: a shared, contended, unreliable free tier is the CONDITION
+  THIS SYSTEM IS DESIGNED FOR, not an obstacle between us and a clean
+  number.** Optimising it away produces a figure about a machine nobody runs.
+  Clearing it is a diagnostic convenience — legitimate for confirming a fix
+  in an hour, never for taking a measurement — and any window that spans the
+  change is void, exactly as if the engine SHA had changed inside it.
+
+  Generalises past this ladder: whenever the fix for *the measurement is
+  hard* is *change the environment*, the result measures the new environment.
 
 - **A SECOND CALLER INHERITED THE FIRST ONE'S CONTRACT, AND THE COUSIN'S
   SHELL WAS INERT FOR FIFTEEN HOURS WITH A GREEN GATE.** 2026-09-16, found

@@ -306,6 +306,12 @@ shell"* since 2026-09-10.
 > `chosen_by="ladder_dry"` with `exit_code=None`, and no consumer counts it
 > as a run or a failure.
 >
+> **AND THE WINDOW RESTARTS AGAIN WHEN THE SPINE IS BACK UP.** It must be
+> taken spine-ON to be comparable with the spine-ON before-window (69 probes,
+> 27 verdicts, 25.5 h). The 18:36-18:50 sliver was spine-on, the gap after it
+> was not, and nothing happened in either — 0 probes — so nothing is lost by
+> restarting the clock at the moment the spine returns.
+>
 > **THAT WINDOW IS VOID, AND WHY IS THE WHOLE FINDING. Reopened
 > 2026-09-16 18:36:16, engine `3f20c3f`.** Fifteen hours produced **112
 > probes, 112 of them lost, 0 verdicts, 0 wants** while the creature thought
@@ -476,7 +482,16 @@ unprompted.
 > the fix; the sentence was not.** No test guarded this item and no detector
 > mentioned the spine, which is the channel that let 27 hours pass.
 >
-> **DECIDED 2026-09-16: STOP IT while item 9's window is open.** This entry
+> **DECIDED, THEN RETRACTED THE SAME HOUR — the spine RUNS.** Tue asked why
+> a tier we are not stressing should not be shared, and whether exclusivity
+> was a metric being chased. Both halves landed. The premise *the cousin
+> starves first* was never measured: over the 25.5 spine-ON hours it made 69
+> probes and **27 verdicts**, 1.1 an hour. And the before-window is spine-ON,
+> so a cleared-tier after-window is not comparable to it — stopping the spine
+> broke the very comparison it was meant to protect. The shared tier is the
+> designed condition, not an obstacle. Superseded reasoning follows.
+>
+> ~~**STOP IT while item 9's window is open.**~~ This entry
 > previously called it Tue's; he corrected that the same day — he is the
 > customer, not the architect, and an operational question filed as his is a
 > question nobody answers. That filing is a large part of why it ran unpaused
