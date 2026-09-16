@@ -201,6 +201,8 @@ not a midnight patch.**
 | "is it healthy?" / "what happened overnight?" | `cat live/monitor/status.md`, then `tail live/monitor/alarms.jsonl`. Grepping the journal by hand is how the tool-write count was undersold by half. |
 | "`plan` has 30 real failures" | 36 of `subagent-orchestrator`'s 43 probes and 30 of `plan`'s 31 predate the `bare` flag and are **unqualified**, not failures — and `plan` was probed 30 times because it was the **alphabetically last tool** and the chooser defaulted to it (§5, 2026-09-15). The library now says so to both inhabitants; it used to say FAILED. |
 | "the cousin keeps asking for the same thing" / "the creature keeps building twins" | check `probe_stuck` and `want_repeated` on the page FIRST. On 2026-09-15 six identical wants and five twins were the chooser sending the cousin to `view-subtask-logs` bare, 28 of 30 visits. |
+| "the cousin ran it with arguments and it exited non-zero, so the tool failed" | **Not knowable by the framework.** Since the cousin chooses the arguments (item 9) it may have invented an ID and the tool may have correctly said so. The library reports exit codes AND the cousin's own verdicts per tool; the word FAILED was retired 2026-09-16 after `view-subtask-logs task-123` rendered as *NEVER WORKED (1 real failures)*. Read the verdict, not the exit. |
+| "the cousin's container is running, so the deploy took" | A running container may predate the configuration: on 2026-09-16 the cousin's came back after a deploy with no `/hands` mount and no `recall`, reused as it stood. `ensure_container` now compares MOUNTS and recreates on drift. Check `docker inspect -f '{{json .Mounts}}' growing-cousin-body-user`, not `is-active`. |
 
 **Habits this session had to learn the hard way**, all cheap and all mine:
 
@@ -220,6 +222,19 @@ not a midnight patch.**
   start` — and the tool's timeout killed it between the wait and the start,
   leaving the engine stopped with a STOP file for ninety seconds. Nothing
   would have restarted it. Stop; confirm; start; confirm — four calls.
+- **A patch script writes to a sibling file and renames it.** `open(path,
+  "w")` truncates BEFORE the constructor can fail. On 2026-09-16 an illegal
+  `newline="\\n"` — a shell escape typed into a Python file through the
+  Write tool — raised after the truncate and left `kernel/cousin.py` at 0
+  bytes until `git checkout` put it back. The heredoc scar through a
+  different layer: escapes do not survive crossing a boundary, whichever
+  boundary it is. Write bytes to `path.tmp`, `os.replace`.
+- **Never `git add -A` unscoped in a tree that holds a live root or its
+  archive.** Eighty files of run 1 — journal, engine log, the creature's
+  tools — went to the public repo that way on 2026-09-16, because
+  `.gitignore` guarded the name `live/` and the archive was called something
+  else. `test_no_live_root_is_tracked_by_git_whatever_it_is_called` asserts
+  the CONTENT now; the ignore file covers the names. Scope every add.
 
 **Nothing in `live/` is committed** — but the per-run evidence pack now exists:
 `python3 -m monitor pack --root live --out ~/growing-cousin-evidence --run run-2`
@@ -980,7 +995,76 @@ was measured, with what, and on what date.*
   Generalises past this ladder: whenever the fix for *the measurement is
   hard* is *change the environment*, the result measures the new environment.
 
-- **A SECOND CALLER INHERITED THE FIRST ONE'S CONTRACT, AND THE COUSIN'S
+- **THE COUSIN'S NEW MACHINERY, READ END TO END: FOUR FAULTS THAT WERE OURS
+  AND WOULD HAVE BEEN BILLED TO THE CREATURE, AND TWO SUSPECTS THAT WERE
+  NOT.** 2026-09-16, Tue's request: *inspect everything for bugs and
+  especially the new additions to the cousin part*. Every suspect was
+  checked against the live journal before being called a fault, and the
+  two that did not survive are kept here because the method is the point.
+
+  (1) **`bare=False` hard-coded on the shell path** — the 2026-09-14
+  misreading rebuilt through the new door. Once the cousin composes the
+  command the harness knows nothing about arguments unless it looks, and it
+  did not: `view-subtask-logs task-123`, exit 1 because the tool correctly
+  said *task-123 not found* to an ID the cousin had been told to invent,
+  rendered to both inhabitants as *NEVER WORKED for them (1 real
+  failures)*. Confirmed on all six probes of the evening. `bare` is now read
+  off the command, and **the word FAILED left the library**: with arguments
+  the cousin chose, the exit code is a fact and the failure is a judgement
+  the framework cannot make. The line reports exits beside what its user
+  SAID — verdicts carry `tool` now — and nothing else.
+
+  (2) **The cousin's world was two directories out of a world.** `tools/own`
+  and `data` were copied; `state/memory.json`, the mind's loose files, and
+  the `recall`/`remember` hands were not — and `compare-with-baseline` reads
+  its baseline through `recall`. In the cousin's shell it fails for a reason
+  that is ours, the cousin reports it faithfully, the creature is billed:
+  the relative-root scar, through the copy meant to keep §2.3. The whole
+  mind is mirrored per visit now, and the cousin gets a USER's hands only.
+  `remember` writes to the copy, which the next visit discards — asserted by
+  attack.
+
+  (3) **A running container was reused whatever it was mounted with.**
+  `ensure_container` asked one question — `.State.Running` — so the
+  cousin's container, created before the hands mount existed, came back
+  after the deploy that added it with no `/hands` and no `recall`, while the
+  code that had just shipped said the mount was there. Present in the code,
+  absent from the running thing: §5's oldest systemd shape, container
+  flavour. Mounts are compared now and drift recreates, which costs nothing
+  a container holds.
+
+  (4) **The cousin's body was never proven before use.** The creature's gets
+  `ensure_body` before every block; the cousin's did not, so a dead cousin
+  container returned an OCI error with `setup_failed=True` and `evidence()`
+  read `.code` and `.stderr` off it as though a tool had run — then asked
+  the cousin to judge the creature on it. Red-proven: the shipped code
+  recorded `exit 128 "body is down"` as the tool's result **and the cousin
+  accepted it.** A fabricated complaint with the framework as author. Now:
+  proven first; if it cannot come back the probe is LOST, no verdict is
+  asked, the cycle fails and the supervisor's bound acts.
+
+  Also found and fixed in the same pass: the invocation model call — the
+  second per visit — left no trace in the journal (rung, model, finish,
+  proposal all discarded); only the first line of the cousin's block ran,
+  silently; the container ran `sh -c` (dash) where the contract names bash.
+
+  **Two suspects retracted by evidence.** A regex reported a credential in
+  the creature's memory; byte-for-byte against the four real key files, 0
+  hits in 213 live files and 0 in the 79 archive files that had been pushed
+  — `sk-` matches inside `subtask-`. And 19 dash "syntax errors" since the
+  container went live were the creature pasting its own `| `-prefixed
+  transcript, not dialect: zero dash-only signatures in 307 commands. The
+  bash fix shipped anyway as promise-keeping, labelled as costing nil. **A
+  finding is what survives the harness being ruled out, and both of these
+  did not** — the top scar in this section, applied to the reviewer.
+
+  **Invariant, and it is the same one four times:** *the cousin's shell is
+  a body of ours, and every bound the creature's body has, it needs too* —
+  a proven liveness check, a world that is the creature's whole world, an
+  interpreter that is the one promised, and a record of what actually ran.
+  Half a body is a new way to manufacture testimony.
+
+ AND THE COUSIN'S
   SHELL WAS INERT FOR FIFTEEN HOURS WITH A GREEN GATE.** 2026-09-16, found
   by a morning checkup reading the page.
 

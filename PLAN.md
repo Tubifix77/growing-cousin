@@ -338,7 +338,25 @@ shell"* since 2026-09-10.
 > `restart_owed` will correctly say a restart is owed, and it is owed
 > deliberately.
 >
-> **THAT WINDOW IS VOID, AND WHY IS THE WHOLE FINDING. Reopened
+> **REOPENED AGAIN AT 2026-09-16 20:14:20 (engine `85349ac`), AND THIS TIME THE INSTRUMENT WAS READ FIRST.**
+> Tue's review request found four faults in the shell path itself (§5,
+> 2026-09-16 "read end to end"): `bare=False` hard-coded, so a rejected
+> invented ID rendered as a real failure; a cousin world missing `state/`
+> and the `recall`/`remember` hands two tools depend on; a container reused
+> with stale mounts after the deploy that changed them; and a cousin body
+> never proven before use, so its death would have become a verdict. The
+> 18:36 and 20:06 windows measured a shell with those faults in it. The
+> record from 2026-09-16 20:14:20 (engine `85349ac`) on is the first taken with the shell whole. Read it
+> no sooner than 48 hours in, and read `lost` beside the exit columns.
+>
+> **The library line changed under both inhabitants in this window** — the
+> word FAILED became exit codes beside verdicts. That is a context change
+> and it is inside the window on purpose: the alternative was measuring a
+> cousin against a display that told it a tool it had just used correctly
+> had NEVER WORKED. The change is one-way and dated; nothing before it is
+> comparable on the "what the library said" axis, and nothing needs to be.
+>
+ Reopened
 > 2026-09-16 18:36:16, engine `3f20c3f`.** Fifteen hours produced **112
 > probes, 112 of them lost, 0 verdicts, 0 wants** while the creature thought
 > 112 times on the same rungs. The cousin's shell had never once worked: the
@@ -807,3 +825,38 @@ sorts my job cleanly:
 
 > **Trigger: after item 16 is scored.** Moving the judgement before the judge
 > has a job to measure against is item 16's mistake with more machinery.
+
+---
+
+### 18. `[x]` The cousin path reviewed end to end — and what stays open
+
+Tue, 2026-09-16, on Fable 5.1: *"inspect everything for bugs and especially
+the new additions to the cousin part — for architectural issues."* The
+findings and fixes are in CLAUDE.md §5 (*read end to end*) and the commits
+`2746b48` onward; every new test was red against the code that shipped, and
+the gate count is not written here for the reason §0 gives. What this item records is **what was seen and NOT
+fixed**, with its reason and trigger, so it does not become a thing nobody
+remembers:
+
+- **18.1 Both containers have network.** The creature needs it for `fetch`;
+  the cousin does not obviously need it, and it runs bash written by a
+  third-party model with a copy of the creature's world. Nothing sensitive is
+  in that copy today (0 real keys, byte-for-byte). *Trigger: the first time
+  anything key-shaped or personal lands in `data/` or `state/` — the pack's
+  scan will say so — the cousin's container goes `--network none`.*
+- **18.2 The library listing is 42% of every wake** (12 KB of 29 KB) and the
+  invocation prompt carries it too. Tuning, not correctness (§5 split), so it
+  waits for a before/after. *Trigger: item 9's window closes.*
+- **18.3 The cousin cannot discover what exists before it acts.** Told to
+  *make up plausible inputs*, it invents IDs and every tool correctly refuses
+  them. The whole-block change lets it look up then call; whether it does is
+  a brief and workflow matter — items 16 and 17.
+- **18.4 A rebuilt image is not adopted by a running container.**
+  `ensure_container` now compares mounts; it does not compare the image id,
+  so after a Dockerfile change the container keeps the old image until
+  recreated. *Trigger: the next Dockerfile change — add the image-id
+  comparison in the same commit, with the same shape of test as the mount
+  drift.*
+- **18.5 `deploy_regression` did not see the shell's fifteen silent hours.**
+  Its floors are for the creature's indicators; `cousin_starved` now covers
+  the cousin. Left as is, noted so the next reader does not expect it to.
