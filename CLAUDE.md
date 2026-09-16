@@ -682,6 +682,52 @@ guess with authority it has not earned.
   Tool counts stay recorded but are no longer the decision variable: a library
   that doubles while nothing runs is worse than one that does not grow at all.
 
+  > **THE LIBRARY WAS READ, TOOL BY TOOL, 2026-09-16 — and the twin reading
+  > is refuted a second time. The real finding is different and worse.**
+  > Static only: `compile()` and `bash -n`, nothing executed (§2.1).
+  >
+  > **Mechanically it is in better shape than any reading here has assumed.**
+  > 50 tools, 106 KB, 3,350 lines. **50 of 50 start clean.** 50 of 50 carry a
+  > `# does:` line. **48 of 50 call at least one other tool**, and not one is
+  > an orphan that neither calls nor is called. Three shared stores carry
+  > everything — `archive.json` (10 tools), `plan.json` (9),
+  > `subtask_logs.json` (7). One stub marker in fifty files. And over the
+  > whole of run 2 the cousin has recorded **exactly one tool that really
+  > failed it**: `compare-subtask-logs-baseline`, twice.
+  >
+  > **The families are not twins, they are wrapper stacks.** Measured by
+  > whether a tool NAMES a sibling in its source: `archive-*` — nine of ten
+  > wrap `archive`; `plan-*` — eight of nine wrap `plan`; `compare-*` is a
+  > four-level stack (`compare-subtask-logs` does the work, a pairwise
+  > wrapper calls it, an N-way wrapper calls that, and a fourth recalls the
+  > baseline from memory so the user need not pass it). Each layer adds
+  > exactly one thing. Only **two** near-reimplementations exist in the whole
+  > library: `subtask-log-filter-by-parent` and `-by-statuscode`, which
+  > rebuild the loader instead of calling it.
+  >
+  > **What is actually wrong is the SUBJECT, not the shape.** Exactly one
+  > tool reaches outside the creature's own world: `fetch`. The other
+  > forty-nine manage plans, archive entries, and the sub-task logs of an
+  > orchestrator that executes tasks from the plan. **It is a bureaucracy
+  > administering its own paperwork.** The loop closes, the wants progress,
+  > the composition is real — and none of it is pointed at anything. That is
+  > a far more interesting failure than duplication and it is invisible to
+  > every count this file has tracked.
+  >
+  > **And the listing now costs 42% of every wake**: the library block is
+  > 12,097 chars (~3,000 tokens) of a 29,124-char (~7,300-token) served
+  > context, regenerated every cycle, growing with the library. Tue's
+  > decision that both inhabitants see it every time stands (§4) — but it is
+  > no longer a rounding error, and `served_context_contract` already reports
+  > 10 of 50 shown by name only.
+  >
+  > **Read the "never worked" column with the harness in mind**, per the top
+  > scar: 19 of 50 have never returned 0 for the cousin, and almost every one
+  > is *asked for arguments* — a bare probe. `view-subtask-logs` alone was
+  > probed **54 times bare**. Whether those tools work for a user who can
+  > type arguments is exactly what item 9's window is measuring, and is not
+  > knowable before it.
+
   Until that fires, the brief is not to be touched: two changes at once and
   neither is measurable.
 
