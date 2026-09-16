@@ -19,9 +19,11 @@
  "real_tool": "path",
  "real_tool_ran": true,
  "real_tool_ran_after_respawn": true,
+ "recreate_is_the_deployments": true,
  "requests": true,
  "respawn_works": true,
  "spine_invisible": true,
+ "started_via": "run.ensure_container",
  "tools_copied": 49,
  "tools_survived_respawn": true
 }

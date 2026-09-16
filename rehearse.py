@@ -539,18 +539,23 @@ def drill_docker(root, live_root=None, keys_dir=None):
         ev["build_error"] = (b.stderr or "")[-400:]
         return ev
     _docker("rm", "-f", CONTAINER)
-    uid = "%d:%d" % (os.getuid(), os.getgid())
-    r = _docker("run", "-d", "--init", "--name", CONTAINER, "--user", uid,
-                "--memory", "1g", "--pids-limit", "256",
-                "-v", "%s:%s" % (mind, bodymod.DockerBody.MIND),
-                "-v", "%s:%s:ro" % (bindir, bodymod.DockerBody.HANDS),
-                IMAGE, "sleep", "infinity")
-    ev["container_started"] = (r.returncode == 0)
-    if r.returncode != 0:
-        ev["run_error"] = (r.stderr or "")[-400:]
+    # THROUGH THE DEPLOYMENT'S OWN FUNCTION, never a copy of its argv. This
+    # used to hand-roll `docker run` with the same flags written out again,
+    # so a drift in `ensure_container` -- a lost `:ro` on the hands, a wrong
+    # `-v`, a dropped `--user` -- would have been invisible here AND in the
+    # gate, whose respawn test monkeypatches `subprocess.run` to a canned
+    # success. A verifier found it by checking the real one by hand and
+    # noticing nothing in the repo did. Two copies of a mount list drift, and
+    # this one is the boundary PLAN item 7 rests on.
+    shell.mind, shell.bin = mind, bindir
+    try:
+        body = runmod.ensure_container(CONTAINER, IMAGE, shell)
+        ev["container_started"] = True
+    except Exception as e:
+        ev["container_started"] = False
+        ev["run_error"] = ("%s: %s" % (type(e).__name__, e))[-400:]
         return ev
-
-    body = bodymod.DockerBody(CONTAINER, image=IMAGE, mind=mind)
+    ev["started_via"] = "run.ensure_container"
     try:
         ev["body_answers"] = body.responds()
 
@@ -592,12 +597,11 @@ def drill_docker(root, live_root=None, keys_dir=None):
         # creature's world intact. The first version called `respawn()` on a
         # running container -- a `docker restart` no-op -- and reported it as
         # evidence, which a verifier called a mock proving a mock.
-        body.recreate = lambda: _docker(
-            "run", "-d", "--init", "--name", CONTAINER, "--user", uid,
-            "--memory", "1g", "--pids-limit", "256",
-            "-v", "%s:%s" % (mind, bodymod.DockerBody.MIND),
-            "-v", "%s:%s:ro" % (bindir, bodymod.DockerBody.HANDS),
-            IMAGE, "sleep", "infinity")
+        # The way back is the one `ensure_container` handed it, so this
+        # exercises the deployment's recovery rather than the drill's idea of
+        # one. Nothing is assigned to `body.recreate` here on purpose.
+        ev["recreate_is_the_deployments"] = callable(
+            getattr(body, "recreate", None))
         before_tools = sorted(os.listdir(own))
         _docker("rm", "-f", CONTAINER)
         ev["container_really_gone"] = (

@@ -4664,16 +4664,28 @@ def test_the_human_can_speak_to_the_creature_once():
                 except OSError:
                     pass
         return out
-    before = tree(hb.root)
+    # WATCHED FROM ABOVE THE BODY, not from inside it. The first version
+    # walked `hb.root`, and a verifier pointed out that the criterion says
+    # *nothing else anywhere* while the check said *nothing else under the
+    # body* -- `PathBody` puts HOME inside the body, so it caught a stray
+    # `~/.say-leak`, and would have missed a write to an absolute path beside
+    # it. Watching the whole scratch tree covers the body, its HOME, and
+    # anything landing next to them.
+    #
+    # What stays unwatched, stated rather than implied: a write to an
+    # arbitrary absolute path elsewhere on the machine. That is unbounded and
+    # no walk can close it; what closes it is that `say` is nine lines of our
+    # own code, appending to one path built from $MIND.
+    before = tree(d)
     hb.run('say "a second message"')
-    after = tree(hb.root)
+    after = tree(d)
     # The body writes its own command script into the mind on every run, so
     # that is the harness and not `say`; everything else must be untouched.
     touched = sorted(k for k in set(before) | set(after)
                      if before.get(k) != after.get(k)
                      and ".cmd-" not in k)
     check("chat: saying something changes exactly one file, and it is the "
-          "outbox", touched == [os.path.join("mind", "outbox.md")], touched)
+          "outbox", [t for t in touched] == [os.path.relpath(out, d)], touched)
 
     # 14.3 -- and somebody READS it. When `say` shipped, `outbox.md` was read
     # by no detector, no page and no document: a channel whose far end nobody
@@ -5326,6 +5338,20 @@ def test_the_docker_drill_proves_the_keys_are_out_of_reach():
           ev.get("container_really_gone"))
     check("docker drill: and it came back", ev.get("respawn_works") is True,
           ev.get("respawn_works"))
+    # THROUGH THE DEPLOYMENT'S OWN CODE, not the drill's copy of it. The
+    # drill used to hand-roll `docker run` with the mounts written out a
+    # second time, and the gate's respawn test monkeypatches `subprocess.run`
+    # to a canned success -- so a drift in `ensure_container`'s mounts (a
+    # lost `:ro` on the hands, a wrong `-v`) was invisible to both, and the
+    # boundary item 7 rests on is exactly those mounts.
+    check("docker drill: the container was created by the deployment's own "
+          "`ensure_container`, so a drift in its mounts fails here",
+          ev.get("started_via") == "run.ensure_container",
+          ev.get("started_via"))
+    check("docker drill: and the way back was the one that function handed "
+          "it, rather than one the drill invented",
+          ev.get("recreate_is_the_deployments") is True,
+          ev.get("recreate_is_the_deployments"))
     check("docker drill: with every one of the creature's tools still there "
           "-- a respawn that rebuilds a MIND is not a recovery",
           ev.get("tools_survived_respawn") is True,
