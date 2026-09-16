@@ -4331,13 +4331,17 @@ def test_the_cull_has_an_owner_and_a_trigger():
     doc = _doc_head(_docs().get("CLAUDE.md", ""))
     check("cull: and the doctrine file says so where decisions live",
           "who may propose a cull" in doc.lower(), "")
-    # THE PART THAT MUST NOT DRIFT: the cousin never gains a write path.
-    from kernel import cycle as cyclemod
-    src = io.open(cyclemod.__file__.replace(".pyc", ".py"),
-                  encoding="utf-8").read()
-    check("cull: and the cousin's world is a COPY, so the boundary is "
-          "structural rather than promised",
-          "def sync_cousin_world" in src, "")
+    # THE PART THAT MUST NOT DRIFT: the cousin never gains a write path. That
+    # is asserted BEHAVIOURALLY by `test_nothing_the_cousin_runs_can_change_
+    # the_creatures_tools` and by the refusal in
+    # `test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing`. What
+    # was here before was `"def sync_cousin_world" in src` -- a grep for a
+    # function name the author had just written, which passes for an empty
+    # body. A verifier named it as a tautology and was right.
+    check("cull: and the boundary it depends on is asserted by behaviour "
+          "elsewhere, not by a grep here",
+          callable(getattr(Engine, "sync_cousin_world", None))
+          and not getattr(Engine, "cousin_may_write", False))
 
 
 def test_the_human_can_speak_to_the_creature_once():
@@ -4504,6 +4508,27 @@ def test_a_respawn_may_recreate_a_container_and_never_a_mind():
           "framework", lb.respawn() is False)
     check("respawn: and it does not quietly recreate the world either",
           not os.path.isdir(own), own)
+
+    # THE WIRING, which is what actually changed: only the thing that knows
+    # the mounts can hand a body a way back, so `ensure_container` supplies
+    # one. Without this the decision is a docstring.
+    import run as runmod
+    if hasattr(os, "getuid"):
+        class FakeHost(object):
+            mind, bin = "/host/mind", "/host/bin"
+
+        class R(object):
+            returncode, stdout, stderr = 0, "true", ""
+        import subprocess as _sp
+        keep = _sp.run
+        try:
+            _sp.run = lambda *a, **k: R()
+            got = runmod.ensure_container("c", "img", FakeHost())
+        finally:
+            _sp.run = keep
+        check("respawn: the container body is handed a way back by whatever "
+              "knows its mounts -- without that, the decision is a docstring",
+              callable(getattr(got, "recreate", None)), got)
     shutil.rmtree(d, ignore_errors=True)
 
 
@@ -4962,6 +4987,22 @@ def test_the_docker_drill_proves_the_keys_are_out_of_reach():
           "is countable rather than asserted",
           isinstance(ev.get("credentials_checked"), int)
           and ev["credentials_checked"] > 0, ev.get("credentials_checked"))
+    # PLAN 15.3, the only proof that means anything: the container is really
+    # DESTROYED and really comes back, with the creature's world intact. The
+    # first version called respawn() on a running container -- a no-op
+    # `docker restart` -- and reported it as evidence.
+    check("docker drill: the container was really gone before the respawn",
+          ev.get("container_really_gone") is True,
+          ev.get("container_really_gone"))
+    check("docker drill: and it came back", ev.get("respawn_works") is True,
+          ev.get("respawn_works"))
+    check("docker drill: with every one of the creature's tools still there "
+          "-- a respawn that rebuilds a MIND is not a recovery",
+          ev.get("tools_survived_respawn") is True,
+          ev.get("tools_survived_respawn"))
+    check("docker drill: and a tool it wrote still runs in the new container",
+          ev.get("real_tool_ran_after_respawn") is True,
+          ev.get("real_tool_ran_after_respawn"))
 
 
 def test_a_ladder_with_every_rung_walled_never_reads_as_a_wait():

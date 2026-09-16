@@ -2,6 +2,7 @@
  "bash": true,
  "body_answers": true,
  "container": "growing-cousin-drill-body",
+ "container_really_gone": true,
  "container_started": true,
  "credentials_checked": 4,
  "engine_holds_credentials": true,
@@ -17,8 +18,10 @@
  "python3": true,
  "real_tool": "path",
  "real_tool_ran": true,
+ "real_tool_ran_after_respawn": true,
  "requests": true,
  "respawn_works": true,
  "spine_invisible": true,
- "tools_copied": 46
+ "tools_copied": 49,
+ "tools_survived_respawn": true
 }

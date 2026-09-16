@@ -425,3 +425,31 @@ without asking. The decision does not follow from it:
 - **15.2** Whatever is chosen, the creature's existing tools are never
   silently replaced by an empty tree (§2.1 — its tools are its world).
 - **15.3** A drill proves the chosen behaviour end to end.
+
+> **DECIDED 2026-09-16, and item 7 is what decided it.** The decision was
+> living only in a code docstring until a verifier pointed out that the board
+> carried no answer at all — and that the docstring answered a *different*
+> question from the one asked.
+>
+> **The rule is about WHAT is recreated, not about who does it:**
+>
+> > **A respawn may recreate a CONTAINER, and must never recreate a MIND.**
+>
+> A container is a process with an interpreter in it; the creature's world is
+> a bind mount on the host, so rebuilding one destroys nothing. A mind IS the
+> creature's world: rebuilding it hands back an empty tree and calls that a
+> recovery, which is §2.1 broken by the framework — the parent's worst
+> failure mode wearing a recovery's clothes.
+>
+> **The question as asked — should a body that cannot be respawned END the
+> run — is therefore answered NO for the deployment**, because the deployed
+> body is a container and it can always be brought back. For `LocalBody` the
+> gap stays open by choice: raising would make systemd restart and
+> `LocalBody.__init__` would silently recreate the world empty, which is
+> worse than looping. It is alarmed instead (`body_unrecoverable`), which is
+> the response §4 allows without asking.
+>
+> **Trigger to reopen: the first time `body_unrecoverable` fires in
+> production.** That would mean a container that could not be rebuilt, which
+> is a different fault from the one this decision covers and deserves its own
+> answer rather than this one stretched over it.

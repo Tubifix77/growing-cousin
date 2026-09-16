@@ -544,8 +544,28 @@ def drill_docker(root, live_root=None, keys_dir=None):
                 break
         else:
             ev["real_tool_ran"] = None
-        # The respawn this body really can do, unlike LocalBody's.
+        # THE RESPAWN, PROVEN THE ONLY WAY THAT MEANS ANYTHING (PLAN 15.3):
+        # by DESTROYING the container and requiring it back with the
+        # creature's world intact. The first version called `respawn()` on a
+        # running container -- a `docker restart` no-op -- and reported it as
+        # evidence, which a verifier called a mock proving a mock.
+        body.recreate = lambda: _docker(
+            "run", "-d", "--init", "--name", CONTAINER, "--user", uid,
+            "--memory", "1g", "--pids-limit", "256",
+            "-v", "%s:%s" % (mind, bodymod.DockerBody.MIND),
+            "-v", "%s:%s:ro" % (bindir, bodymod.DockerBody.HANDS),
+            IMAGE, "sleep", "infinity")
+        before_tools = sorted(os.listdir(own))
+        _docker("rm", "-f", CONTAINER)
+        ev["container_really_gone"] = (
+            _docker("inspect", "-f", "{{.State.Running}}",
+                    CONTAINER).returncode != 0)
         ev["respawn_works"] = body.respawn()
+        ev["tools_survived_respawn"] = (sorted(os.listdir(own)) == before_tools
+                                        and bool(before_tools))
+        ev["real_tool_ran_after_respawn"] = (
+            body.run(ev.get("real_tool") or "true", timeout=60).code == 0
+            if ev.get("real_tool") else None)
     finally:
         _docker("rm", "-f", CONTAINER)
 
