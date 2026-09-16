@@ -304,9 +304,16 @@ shell"* since 2026-09-10.
 >
 > Fixed the same night; a probe that reaches nobody is now recorded as
 > `chosen_by="ladder_dry"` with `exit_code=None`, and no consumer counts it
-> as a run or a failure. **The after-window therefore starts at the restart
-> on `02d3460`, 2026-09-16 02:49**, the first engine to carry that fix — and
-> the first whose `engine_start` names its body (`DockerBody`, contained).
+> as a run or a failure.
+>
+> **THE AFTER-WINDOW STARTS 2026-09-16 03:19:13, ENGINE `221b978`.** It was
+> opened at 02:49 on `02d3460` and re-opened half an hour later rather than
+> left to span two engines: §0's rule is that every figure names its
+> instrument, and a window whose code changed inside it names two. Half an
+> hour was the whole cost of keeping that clean. That start also reports
+> `unproven: []` for the first time — `spine_unreadable` had been
+> permanently null under the container because *hidden* and *absent* read
+> identically, and now reads `True`.
 >
 > **Read it no sooner than 48 hours in**, and read `lost` beside `worked /
 > asked / failed` on the page: on a tier this dry the lost count may be the
