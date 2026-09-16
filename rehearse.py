@@ -270,6 +270,15 @@ def drill_silence(root):
 
 # ------------------------------------------------------------------ systemd
 
+# DELIBERATELY NOT THE LIVE UNIT'S NUMBERS. The deployment allows 5
+# starts in 1800s; a drill honouring those would take half an hour to
+# reach `failed` and nobody would run it. So what this proves is the
+# MECHANISM -- on-failure restart, bounded, ending in `failed` carrying
+# the supervisor's exit code -- while the live numbers are asserted off
+# the unit file itself by `test_the_unit_bounds_its_own_restarting`.
+# The bounds are recorded in the evidence so `n_restarts: 2` can never
+# be read back as the production bound: a figure from a standin quoted
+# as the real rung's is this project's oldest reporting fault.
 UNIT = """[Unit]
 Description=Growing Cousin GIVE-UP DRILL (throwaway; scratch root only)
 StartLimitIntervalSec=120
@@ -290,6 +299,14 @@ RestartSec=1
 StandardOutput=append:{root}/engine.log
 StandardError=append:{root}/engine.log
 """
+
+
+# DERIVED from the template above, never typed a second time: two
+# copies of a constant drift and no test notices.
+DRILL_BOUNDS = dict(
+    (k, int(v)) for k, v in
+    (l.split("=", 1) for l in UNIT.splitlines()
+     if l.startswith("StartLimit")))
 
 # A rung whose key file does not exist. `read_key` raises `no credential`,
 # `classify_error` WALLs that, the ladder exhausts all-walled, and the
@@ -394,6 +411,9 @@ def drill_giveup(root, live_root=None, wait_secs=120):
     # can get wrong.
     ev["live_unchanged"] = bool(before) and live_snapshot(live) == before
     ev["live_paths_watched"] = len(before or ())
+    # The bounds this drill ran under, so its restart count is never
+    # mistaken for the deployment's. See DRILL_BOUNDS.
+    ev["bounds_used"] = dict(DRILL_BOUNDS)
 
     _sysd("stop", name)
     _sysd("reset-failed", name)

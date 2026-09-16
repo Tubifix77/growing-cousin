@@ -1,4 +1,8 @@
 {
+ "bounds_used": {
+  "StartLimitBurst": 2,
+  "StartLimitIntervalSec": 120
+ },
  "exit_code": 5,
  "final_state": "failed",
  "kinds": {
@@ -12,7 +16,7 @@
   "think_deferred": 10,
   "wake": 10
  },
- "live_paths_watched": 141,
+ "live_paths_watched": 227,
  "live_unchanged": true,
  "loop_end_fault": true,
  "loop_end_reason": "5 consecutive failures",

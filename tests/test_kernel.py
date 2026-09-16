@@ -5307,8 +5307,17 @@ def test_the_drills_give_the_unproven_detectors_their_red():
     drills manufacture each fault on a scratch root and keep the journal.
 
     The fixtures are produced by `rehearse.py` on the laptop and committed;
-    this asserts what they must contain, so a drill that stops reproducing
-    its fault fails here rather than passing quietly.
+    this replays the DETECTORS against them and asserts each one fires.
+
+    **What it does NOT do, corrected 2026-09-16 after a verifier read the
+    claim against the code:** it does not re-run the drills. The fixtures are
+    static recordings, so a regression in `rehearse.py` -- a drill that
+    stopped reproducing its fault -- leaves this green. The sentence here
+    used to say the opposite, which is a docstring making a claim the
+    instrument does not keep, in a suite whose parent project named that
+    exact fault. Re-running the drills needs docker, systemd and a scratch
+    filesystem; it is a thing a human does before believing a path works,
+    and `tests/fixtures/journal/README.md` says so where the fixtures live.
     """
     from monitor import derive, detectors, status as monstatus
 
@@ -5455,6 +5464,27 @@ def test_the_giveup_drill_proves_the_chain_systemd_owns():
           "selfcheck could record a DISPROVEN bound rather than only ever "
           "passing", ev.get("selfcheck_home_write_blocked") is False,
           ev.get("selfcheck_home_write_blocked"))
+
+    # WHICH BOUNDS IT RAN UNDER. A verifier pointed out that the drill uses
+    # 2 starts in 120s while the deployment allows 5 in 1800 -- so the
+    # mechanism is proven and the production numbers are not, and nothing
+    # said so. `n_restarts: 2` read as the live bound is a figure from a
+    # standin quoted as the real rung's, which is the reporting fault this
+    # project keeps a whole section of doctrine about.
+    bounds = ev.get("bounds_used") or {}
+    check("giveup drill: the evidence names the bounds it ran under",
+          int(bounds.get("StartLimitBurst", 0)) > 0
+          and int(bounds.get("StartLimitIntervalSec", 0)) > 0, bounds)
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    unit = io.open(os.path.join(repo, "deploy", "cousin-engine.service"),
+                   encoding="utf-8").read()
+    deployed = dict((l.split("=", 1)[0], l.split("=", 1)[1].strip())
+                    for l in unit.splitlines() if l.startswith("StartLimit"))
+    check("giveup drill: and they are NOT the deployment's, stated rather "
+          "than left for a reader to assume",
+          int(deployed.get("StartLimitIntervalSec", 0))
+          != int(bounds.get("StartLimitIntervalSec", 0)),
+          (bounds, deployed))
 
 
 def test_the_census_runs_by_itself():
