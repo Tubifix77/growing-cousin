@@ -235,7 +235,11 @@ def probe_record(rows):
     -- the same three the library shows, plus the honest fourth for probes
     written before `bare` was recorded, which CANNOT be classified and must
     not be counted as failures (that misreading is CLAUDE.md §5's top scar)."""
-    rec = {"worked": 0, "asked": 0, "failed": 0, "unqualified": 0,
+    # `nonzero`, not `failed`, since 2026-09-16: once the cousin chooses the
+    # arguments a non-zero exit may be the tool correctly refusing an ID the
+    # cousin invented, and this page cannot tell. The verdict can, and the
+    # library line now carries it. This is the count of what happened.
+    rec = {"worked": 0, "asked": 0, "nonzero": 0, "unqualified": 0,
            "lost": 0}
     for r in rows:
         if r.get("kind") != "cousin_probe":
@@ -253,7 +257,7 @@ def probe_record(rows):
         elif r.get("bare"):
             rec["asked"] += 1
         else:
-            rec["failed"] += 1
+            rec["nonzero"] += 1
     return rec
 
 

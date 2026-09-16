@@ -26,14 +26,40 @@ from kernel.cycle import Engine
 from kernel.journal import Journal
 
 
-def install_hands(body):
+# The hands a USER of the creature's tools needs, as opposed to the hands a
+# BUILDER needs. `recall` reads the memory some tools store their state in
+# (`compare-with-baseline` reads its baseline back through it); `remember`
+# writes it. Both act on `$MIND`, and the cousin's `$MIND` is a copy remade
+# per visit, so `remember` in the cousin's shell changes nothing the creature
+# will ever see. `tool-new` and `tool-edit` are building; `say` is the
+# creature's half of the human channel. Neither is a user's.
+USER_HANDS = ("recall", "remember")
+
+
+def install_hands(body, only=None):
     """The creature's hands go on PATH inside the body. They are OURS: protected
-    scar tissue, never edited to work around something the creature did."""
+    scar tissue, never edited to work around something the creature did.
+
+    `only` names the subset a body gets. The cousin's body used to get NONE,
+    which kept it from building (right) and also kept it from running any
+    tool that reads the creature's memory through `recall` (wrong, and
+    invisible: the tool failed in the cousin's shell for a reason that was
+    ours, the cousin reported it faithfully, and the creature was billed).
+    """
     dest = os.path.join(body.root, "bin")
     os.makedirs(dest, exist_ok=True)
+    if only is not None:
+        # A subset is exact: anything else already there is a hand this body
+        # must not have, whoever put it there.
+        for n in os.listdir(dest):
+            if n not in only:
+                try:
+                    os.unlink(os.path.join(dest, n))
+                except OSError:
+                    pass
     for n in os.listdir(os.path.join(HERE, "hands")):
         src = os.path.join(HERE, "hands", n)
-        if not os.path.isfile(src):
+        if not os.path.isfile(src) or (only is not None and n not in only):
             continue
         dst = os.path.join(dest, n)
         shutil.copy2(src, dst)
@@ -530,6 +556,9 @@ def main(argv=None):
     cousin_body = None
     if args.cousin_shell:
         host = PathBody(os.path.join(args.root, "cousin-body"))
+        # A USER's hands only -- `recall` and `remember` -- never a builder's.
+        # `ensure_container` mounts them read-only because `bin` is set.
+        host.bin = install_hands(host, only=USER_HANDS)
         if args.body == "docker":
             cousin_body = ensure_container(args.container + "-user",
                                            args.image, host)
@@ -557,9 +586,10 @@ def main(argv=None):
                 "or without --cousin-shell.\n"
                 % type(cousin_body).__name__)
             return 3
-        print("cousin shell: %s (library copied in per visit, hands withheld)"
+        print("cousin shell: %s (the creature's world copied in per visit; "
+              "user hands %s; builder hands withheld)"
               % (args.container + "-user" if args.body == "docker"
-                 else host.root))
+                 else host.root, ", ".join(USER_HANDS)))
 
     # The creature's identity is SERVED, never written into the managed file.
     # Conflating them meant the cousin could not write direction without

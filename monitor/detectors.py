@@ -883,16 +883,18 @@ def regression_table(before, after):
         worse.append("UNKNOWN verdict share %s -> %s"
                      % (_share_str(ub, mb["verdicts"]), _share_str(ua, ma["verdicts"])))
 
-    def pfail(m):
+    def pnonzero(m):
+        # A regression indicator, not a verdict on the tools: a JUMP in the
+        # non-zero share across a deploy is a smoke alarm whatever the cause.
         p = m["probes"]
-        n = p["worked"] + p["asked"] + p["failed"]
-        v, _ = derive.share(p["failed"], n)
+        n = p["worked"] + p["asked"] + p["nonzero"]
+        v, _ = derive.share(p["nonzero"], n)
         return v, n
-    (pb, nb), (pa, na) = pfail(mb), pfail(ma)
-    rows.append(("probes FAILED / qualified probes", _share_str(pb, nb), _share_str(pa, na)))
+    (pb, nb), (pa, na) = pnonzero(mb), pnonzero(ma)
+    rows.append(("probes exited non-zero / qualified probes", _share_str(pb, nb), _share_str(pa, na)))
     if (pa is not None and na >= REG_PROBE_MIN and pa >= REG_PROBE_FAILED_SHARE
             and (pb is None or pa >= 2 * pb)):
-        worse.append("probe failure share %s -> %s" % (_share_str(pb, nb), _share_str(pa, na)))
+        worse.append("probe non-zero share %s -> %s" % (_share_str(pb, nb), _share_str(pa, na)))
 
     for label, key in (("wakes", "wakes"), ("thinks", "thinks"), ("commands", "commands"),
                        ("verdicts", "verdicts"), ("wants", "wants"),

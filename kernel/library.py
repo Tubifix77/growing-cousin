@@ -74,12 +74,25 @@ def use_history(journal):
     if journal is None:
         return out
     try:
-        rows = journal.read(kinds=["cousin_probe"])
+        rows = journal.read(kinds=["cousin_probe", "cousin_verdict"])
     except Exception:
         return out
     for r in rows:
         name = (r.get("tool") or "").strip()
         if not name:
+            continue
+        if r.get("kind") == "cousin_verdict":
+            # WHAT ITS USER SAID, per tool. A fact about testimony, and the
+            # only honest replacement for the *FAILED* the framework used to
+            # compute from an exit code: once the cousin chooses the
+            # arguments, a non-zero exit is not the framework's to judge.
+            v = r.get("verdict")
+            if v in ("ACCEPTED", "RETURNED"):
+                rec = out.setdefault(name, {"runs": 0, "ok": 0, "asked": 0,
+                                            "unqualified": 0, "nonzero": 0,
+                                            "accepted": 0, "returned": 0,
+                                            "last_code": None})
+                rec["accepted" if v == "ACCEPTED" else "returned"] += 1
             continue
         if r.get("exit_code") is None:
             # NOTHING RAN -- the ladder never answered when the cousin was
@@ -89,7 +102,9 @@ def use_history(journal):
             # that has still never been probed.
             continue
         rec = out.setdefault(name, {"runs": 0, "ok": 0, "asked": 0,
-                                    "unqualified": 0, "last_code": None})
+                                    "unqualified": 0, "nonzero": 0,
+                                    "accepted": 0, "returned": 0,
+                                    "last_code": None})
         rec["runs"] += 1
         if r.get("exit_code") == 0:
             rec["ok"] += 1
@@ -106,6 +121,12 @@ def use_history(journal):
             # working, not failing -- the brief says so explicitly -- and
             # counting it as a failure is the framework inventing a complaint.
             rec["asked"] += 1
+        else:
+            # NON-ZERO, WITH ARGUMENTS ITS USER CHOSE. Not "failed": the
+            # cousin may have invented the ID and the tool may have correctly
+            # said so. That judgement is the cousin's and arrives as a
+            # verdict; this is the count of what happened.
+            rec["nonzero"] += 1
         rec["last_code"] = r.get("exit_code")
     return out
 
@@ -154,9 +175,9 @@ def status(rec):
         return "its user has NEVER run this"
     n, ok, asked = rec["runs"], rec.get("ok", 0), rec.get("asked", 0)
     unq = rec.get("unqualified", 0)
+    nonzero = rec.get("nonzero", max(0, n - ok - asked - unq))
     times = "once" if n == 1 else "%d times" % n
     code = rec.get("last_code")
-    failed = n - ok - asked - unq
     # A bare call that got a usage message back is not a failure, so it is
     # never reported as one. It is still worth saying, because "your user
     # keeps reaching for this without knowing how to call it" is real.
@@ -166,18 +187,30 @@ def status(rec):
         # Neither a failure nor a success: the record cannot say which.
         note += (", and %s from before the call was recorded (unknown "
                  "outcome)" % ("once" if unq == 1 else "%d times" % unq))
-    if failed == 0 and ok == 0:
-        return "its user ran this %s%s, never getting further" % (times, note)
-    if failed == 0:
-        return ("its user ran this %s and it worked" % times if n == 1
-                else "its user ran this %s, and it worked every time it was "
-                     "called properly%s" % (times, note))
+    # WHAT ITS USER SAID. "FAILED" and "NEVER WORKED" were retired 2026-09-16:
+    # once the cousin chooses the arguments, a non-zero exit may be the tool
+    # correctly refusing an invented ID, and the framework cannot tell. The
+    # verdict can, and it is a fact about testimony, so it is reported as
+    # such -- beside the exit codes, never instead of them.
+    acc, ret = rec.get("accepted", 0), rec.get("returned", 0)
+    said = ""
+    if acc or ret:
+        said = " -- its user accepted it %s and returned it %s" % (
+            "once" if acc == 1 else "%d times" % acc,
+            "once" if ret == 1 else "%d times" % ret)
+    if nonzero == 0 and ok == 0:
+        return "its user ran this %s%s, never getting further%s" % (times, note, said)
+    if nonzero == 0:
+        return (("its user ran this %s and it worked" % times if n == 1
+                 else "its user ran this %s, and it worked every time it was "
+                      "called properly%s" % (times, note)) + said)
     if ok == 0:
-        return ("its user ran this %s and it has NEVER WORKED for them "
-                "(%d real failures%s); the last exited %s"
-                % (times, failed, note, code))
-    return ("its user ran this %s, %d worked and %d FAILED%s; the last exited %s"
-            % (times, ok, failed, note, code))
+        return ("its user ran this %s and it has never exited 0 for them "
+                "(%d exited non-zero with arguments its user chose%s); the "
+                "last exited %s%s" % (times, nonzero, note, code, said))
+    return ("its user ran this %s: %d exited 0 and %d exited non-zero with "
+            "arguments its user chose%s; the last exited %s%s"
+            % (times, ok, nonzero, note, code, said))
 
 
 def render(tools_dir, journal=None, exclude=None, limit=LIBRARY_LIMIT,

@@ -111,6 +111,51 @@ def scan_secrets(paths):
     return hits
 
 
+def real_keys(keys_dir=None):
+    """The actual credentials on this box, byte for byte, when readable.
+
+    Shapes are a guess about what a key looks like; this is the thing itself.
+    2026-09-16: a shape scan first refused a live pack on 216 tool names, and
+    the same evening a hand-rolled shape scan reported the creature's memory
+    held a credential -- it was `subtask-log-filter` again. Meanwhile the one
+    decisive check, *is any real key in these bytes*, had never been run. It
+    is run now, and the manifest says how many were checked, so "0 key-shaped
+    strings" is never mistaken for "0 keys".
+
+    Only the values are read, only into memory, only to be searched for.
+    Nothing here writes or prints them.
+    """
+    import glob
+    keys_dir = keys_dir or os.path.expanduser("~/keys")
+    out = {}
+    for p in sorted(glob.glob(os.path.join(keys_dir, "*.key"))):
+        try:
+            with io.open(p, encoding="utf-8", errors="replace") as f:
+                v = f.read().strip()
+        except OSError:
+            continue
+        if len(v) >= 12:
+            out[os.path.basename(p)] = v
+    return out
+
+
+def scan_real_keys(paths, keys):
+    """`[(relpath, keyname)]` for every real key found verbatim."""
+    hits = []
+    if not keys:
+        return hits
+    for rel, ap in paths:
+        try:
+            with io.open(ap, encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        except OSError:
+            continue
+        for name, v in keys.items():
+            if v in text:
+                hits.append((rel, name))
+    return hits
+
+
 def describe_hits(hits, limit=5):
     """The refusal message: where, and WHICH shapes, so a false positive is
     diagnosable from the message alone -- the first live refusal showed five
@@ -137,16 +182,23 @@ def journal_summary(path):
             "loop_starts": kinds.get("loop_start", 0)}
 
 
-def build(root, out_dir, run, repo_head=None, now=None):
+def build(root, out_dir, run, repo_head=None, now=None, keys_dir=None):
     """Write `<out_dir>/<run>-<stamp>.tar.gz` and `<...>.manifest.json`.
     Returns `(tarball_path, manifest_path, manifest)`. Raises PackRefused --
-    having written nothing -- if anything key-shaped is found."""
+    having written nothing -- if anything key-shaped is found, or if any
+    REAL key on this box appears verbatim."""
     now = time.time() if now is None else float(now)
     root = os.path.abspath(root)
     paths = candidates(root)
     hits = scan_secrets(paths)
     if hits:
         raise PackRefused(describe_hits(hits))
+    keys = real_keys(keys_dir)
+    real_hits = scan_real_keys(paths, keys)
+    if real_hits:
+        raise PackRefused("%d REAL credential(s) found verbatim: %s"
+                          % (len(real_hits), "; ".join(
+                              "%s holds %s" % h for h in real_hits[:5])))
 
     # Hash first, write second: the manifest inside the tarball must already
     # know every member.
@@ -164,7 +216,10 @@ def build(root, out_dir, run, repo_head=None, now=None):
         "run": run, "created": now, "created_str": derive.ts_str(now),
         "root": root, "tarball": base + ".tar.gz", "repo_head": repo_head,
         "files": files, "skipped": skipped, "total_bytes": total,
-        "secret_scan": "0 key-shaped strings in %d files" % len(paths),
+        "secret_scan": "0 key-shaped strings in %d files; %s" % (
+            len(paths),
+            ("0 real keys, %d checked byte-for-byte" % len(keys)) if keys
+            else "no key files were readable to check byte-for-byte"),
     }
     jp = os.path.join(root, "journal.jsonl")
     if os.path.isfile(jp):

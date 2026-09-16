@@ -671,7 +671,7 @@ class Engine:
 
         v = cousinmod.visit(self.ask_cousin, self.brief, claim, header,
                             transcript, journal=self.j, trigger=trigger,
-                            library=library)
+                            library=library, tool=target)
 
         if v.verdict == cousinmod.UNKNOWN:
             # Gates nothing. An instrument that cannot run says UNKNOWN.
@@ -804,31 +804,39 @@ class Engine:
         It can `rm -rf` its whole world and the creature will not notice.
         """
         import shutil
-        src = os.path.join(self.body.mind, "tools", "own")
+        src_mind = self.body.mind
         dst_mind = self.cousin_body.mind
-        dst = os.path.join(dst_mind, "tools", "own")
-        if os.path.isdir(dst):
-            shutil.rmtree(dst, ignore_errors=True)
-        os.makedirs(dst, exist_ok=True)
-        copied = 0
-        for n in trigmod.list_tools(src):
+        # THE WHOLE MIND, not two directories out of it. The first version
+        # copied `tools/own` and `data` and nothing else, and the creature's
+        # tools do not confine themselves to those: `compare-with-baseline`
+        # reads the baseline back with `recall`, which reads `state/memory.json`;
+        # `set-baseline` writes it with `remember`; others reach for files at
+        # the mind's root. A cousin whose world lacks them sees those tools
+        # fail for reasons that are OURS, reports it faithfully, and the
+        # creature is billed -- the relative-root scar, arriving through the
+        # copy meant to keep §2.3. A user's shell holds the creature's world
+        # as it is, not the two folders we thought of.
+        #
+        # Cleared and remade: the directory itself is the container's bind
+        # mount and must survive, so its CONTENTS are removed, never the dir.
+        # `.cmd-*` are the body's own command scripts and not part of any
+        # world.
+        os.makedirs(dst_mind, exist_ok=True)
+        for n in os.listdir(dst_mind):
+            p = os.path.join(dst_mind, n)
             try:
-                shutil.copy2(os.path.join(src, n), os.path.join(dst, n))
-                copied += 1
+                if os.path.isdir(p) and not os.path.islink(p):
+                    shutil.rmtree(p, ignore_errors=True)
+                else:
+                    os.unlink(p)
             except OSError:
                 pass
-        # Its data too, or every tool that reads a store reports an empty one
-        # and the cousin judges a working tool as useless.
-        data_src = os.path.join(self.body.mind, "data")
-        data_dst = os.path.join(dst_mind, "data")
-        if os.path.isdir(data_src):
-            if os.path.isdir(data_dst):
-                shutil.rmtree(data_dst, ignore_errors=True)
-            try:
-                shutil.copytree(data_src, data_dst)
-            except OSError:
-                pass
-        return copied
+        try:
+            shutil.copytree(src_mind, dst_mind, dirs_exist_ok=True,
+                            ignore=shutil.ignore_patterns(".cmd-*"))
+        except OSError:
+            pass
+        return len(trigmod.list_tools(os.path.join(dst_mind, "tools", "own")))
 
     def evidence(self, target, executed, picked_by=None):
         """What the cousin is shown. It runs the tool ITSELF -- the transcript
@@ -946,7 +954,6 @@ class Engine:
                     raise
                 if chosen:
                     r = self.cousin_body.run(chosen)
-                    needs_args = False
                     ran, chosen_by = chosen, "cousin"
                 else:
                     # NOTHING IS SUBSTITUTED. A user who cannot think what to
@@ -955,9 +962,29 @@ class Engine:
                     # question it was asked to put.
                     r = bodymod.ExecResult("", "", 0)
                     ran, chosen_by = None, "cousin-proposed-nothing"
+                # `bare` is READ OFF THE COMMAND, never hard-coded. It shipped
+                # as `bare=False` here, so every non-zero exit from a command
+                # the cousin composed -- including a tool correctly refusing
+                # an ID the cousin had been told to invent -- was rendered as a
+                # real failure on the page both inhabitants read every wake.
+                # See `cousin.argless`.
+                #
+                # THE INVOCATION CALL IS JOURNALLED TOO. It is a model call --
+                # the second one per visit since item 9 -- and until 2026-09-16
+                # its rung, model, finish and the cousin's full proposal were
+                # discarded on the spot, so the cost of the shell could not be
+                # split by rung and a truncated proposal could not be told from
+                # a short one. Store the raw evidence (§5, oldest scar).
+                cm = cmeta or {}
                 self.j.append("cousin_probe", tool=target, exit_code=r.code,
-                              bare=False, picked_by=picked_by, cmd=ran,
+                              bare=cousinmod.argless(ran) if ran else False,
+                              picked_by=picked_by, cmd=capped(ran or "", EXEC_CMD_CHARS) if ran else None,
                               chosen_by=chosen_by, library_copied=copied,
+                              invoke_rung=cm.get("rung"),
+                              invoke_model=cm.get("model"),
+                              invoke_finish=cm.get("done_reason"),
+                              proposal=capped(cm.get("raw") or "", EXEC_CMD_CHARS),
+                              proposal_lines=cm.get("proposal_lines"),
                               stdout=capped(r.stdout, EXEC_STDOUT_CHARS),
                               stderr=capped(r.stderr, EXEC_STDERR_CHARS))
                 if ran:

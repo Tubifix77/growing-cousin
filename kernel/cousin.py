@@ -242,7 +242,9 @@ def unusable_reply(text, meta):
 
 
 INVOKE_TEMPLATE = """You are about to judge a tool someone else built. Before
-you do, you get to USE it, in a shell of your own.
+you do, you get to USE it, in a shell of your own. The other tools listed
+below are on your PATH too, and so is `recall`, which reads back what has
+been remembered in this world.
 
 Here is what it says about itself:
 
@@ -250,13 +252,45 @@ Here is what it says about itself:
 
 {library}
 
-Write ONE ```bash block containing the command you want to run. Nothing else
-in the block. You may pass whatever arguments you judge sensible -- make up
-plausible inputs if you need them; that is what a user does.
+Write ONE ```bash block containing what you want to run. Usually that is a
+single command with the arguments you judge sensible. If you would first need
+to look something up -- an ID, a file name -- a few lines are fine: the lookup,
+then the call. Do not invent an identifier when a tool on the list would tell
+you a real one.
 
 If you genuinely cannot think of a way to invoke it, write a bash block
 containing only the tool's own name.
 """
+
+
+def argless(cmd):
+    """True when the cousin's block is a single word: the tool's name and
+    nothing else, however it was arrived at.
+
+    `bare` used to mean *the harness called it with no arguments*. Once the
+    cousin composes the command, the harness knows nothing about arguments
+    unless it looks at what was composed -- and the shell path shipped with
+    `bare=False` hard-coded, so `view-subtask-logs task-123` exiting 1 on an
+    ID the cousin had been told to invent was rendered as *NEVER WORKED for
+    them (1 real failures)*. The 2026-09-14 misreading, rebuilt through the
+    new door, on the page both inhabitants read every wake.
+
+    A heuristic and stated as one: one token across the whole block, comments
+    aside. `cd data && plan` is not bare by this test although `plan` got no
+    arguments; that error is on the side of claiming less, which is the safe
+    side for a flag whose false value used to mean *real failure*.
+    """
+    import shlex
+    toks = []
+    for line in (cmd or "").splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        try:
+            toks += shlex.split(s)
+        except ValueError:
+            toks += s.split()
+    return len(toks) <= 1
 
 
 def choose_invocation(ask, header, library=""):
@@ -281,15 +315,27 @@ def choose_invocation(ask, header, library=""):
     blocks = thinkmod.parse_blocks(reply or "")
     if not blocks:
         return None, dict(meta or {}, raw=(reply or "")[:400])
-    # The FIRST line of the FIRST block. A user runs one thing and looks at
-    # it; a chain of commands is a transcript nobody can attribute.
-    cmd = (blocks[0] or "").strip().split("\n")[0].strip()
-    return (cmd or None), dict(meta or {}, raw=(reply or "")[:400])
+    # THE WHOLE FIRST BLOCK, not its first line. Until 2026-09-16 this took
+    # `split("\n")[0]`: a cousin that wrote a lookup and then the call, or
+    # set a variable and used it, had everything after line one silently
+    # dropped -- and was then shown a transcript of a command it did not
+    # issue and asked to judge the tool on it. The framework manufacturing
+    # the cousin's own testimony. The block is the cousin's; it runs whole
+    # and is recorded whole, and attribution is unaffected because the probe
+    # carries every line of it.
+    cmd = (blocks[0] or "").strip()
+    return (cmd or None), dict(meta or {}, raw=(reply or "")[:400],
+                               proposal_lines=len(cmd.splitlines()))
 
 
 def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
-          library=""):
-    """One manager invocation, end to end. `ask(prompt) -> (text, meta)`."""
+          library="", tool=None):
+    """One manager invocation, end to end. `ask(prompt) -> (text, meta)`.
+
+    `tool` is journalled on the verdict so the library can report WHAT ITS
+    USER SAID about each tool -- accepted, returned -- which is a fact about
+    testimony, in place of the *FAILED* the framework used to compute from
+    an exit code it can no longer interpret (see `argless`)."""
     prompt = build_prompt(brief, claim, header, transcript, library)
     try:
         reply, meta = ask(prompt)
@@ -367,7 +413,7 @@ def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
             # and raising the budget fixes neither.
             fields["chars_before_strip"] = (meta or {}).get("chars_before_strip")
             fields["chars_stripped"] = (meta or {}).get("chars_stripped")
-        journal.append("cousin_verdict", trigger=trigger,
+        journal.append("cousin_verdict", trigger=trigger, tool=tool,
                        model=(meta or {}).get("model"),
                        rung=(meta or {}).get("rung"),
                        finish=(meta or {}).get("done_reason"),

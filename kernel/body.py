@@ -273,12 +273,25 @@ class DockerBody:
                 'export HOME="%s"; cd "%s" || exit 1; %s'
                 % (self.HANDS, self.MIND, self.MIND, self.MIND, self.MIND, cmd))
 
+    SHELL = "bash"
+
     def argv(self, cmd):
         """No `-e` and no `--env`: `docker exec` passes none of the host's
         environment by default, and the whole point of this body is that the
         engine's environment -- and the key files it reads -- are not in the
-        creature's world at all."""
-        return ["docker", "exec", self.container, "sh", "-c", self.compose(cmd)]
+        creature's world at all.
+
+        **`bash`, because that is the shell the contract names.** The prompt
+        says *write ```bash blocks*, the parser requires the `bash` tag, and
+        `LocalBody` ran `bash <script>` -- while this ran `sh -c`, which on
+        the image is dash. Switching bodies for item 7 changed the creature's
+        interpreter without anyone deciding to. Measured 2026-09-16 over 307
+        commands: zero dash-only failures, one bash-only construct written --
+        so the cost was nil and this is a promise-keeping fix, not a rescue.
+        It is fixed anyway, because a promise the body does not keep is the
+        relative-root scar's shape, and the next model may write `[[`."""
+        return ["docker", "exec", self.container, self.SHELL, "-c",
+                self.compose(cmd)]
 
     def responds(self):
         r = self.run("echo alive", timeout=20)

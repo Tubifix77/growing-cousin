@@ -3012,8 +3012,11 @@ def test_a_usage_refusal_is_not_counted_as_a_failure():
     needy_line = [l for l in out.splitlines() if "asked for arguments" in l]
     check("bare: the tool that always asked is NOT reported as failing",
           needy_line and "FAILED" not in needy_line[0], needy_line)
-    check("bare: and the one that really fails still says NEVER WORKED",
-          "NEVER WORKED" in out, out)
+    # "never exited 0 for them" since 2026-09-16 -- a fact. "NEVER WORKED"
+    # was a judgement the framework stopped being able to make once the cousin
+    # chose the arguments; see `library.status`.
+    check("bare: and the one that never exited 0 says so, as a fact",
+          "never exited 0 for them" in out, out)
 
     # THE DISCRIMINATION: without the bare flag the two are indistinguishable,
     # which is exactly the state that produced the wrong reading.
@@ -3119,14 +3122,15 @@ def test_a_tool_that_never_worked_says_so_to_both_inhabitants():
                  stdout="ok", stderr="")
 
     out = library.render(own, j)
-    check("floor: a tool that never worked is not shown as merely 'last failed'",
-          "NEVER WORKED" in out, out)
-    # FAILED is capitalised since 2026-09-14: it now means a real failure,
-    # not a tool that was called bare and asked for its arguments.
+    check("floor: a tool that never exited 0 is not shown as merely 'last failed'",
+          "never exited 0 for them" in out, out)
+    # Facts, not adjectives, since 2026-09-16: "exited non-zero" is what the
+    # framework knows; whether that was a failure is the cousin's verdict,
+    # which the same line now reports beside it.
     check("floor: and the mixed one reports BOTH halves of its record",
-          "1 worked and 1 FAILED" in out, out)
+          "1 exited 0 and 1 exited non-zero" in out, out)
     check("floor: a clean record still reads as clean",
-          "NEVER WORKED" not in out.split("- storey")[1], out)
+          "never exited 0" not in out.split("- storey")[1], out)
 
     hist = library.use_history(j)
     check("floor: the record counts successes, not just attempts",
@@ -3142,7 +3146,7 @@ def test_a_tool_that_never_worked_says_so_to_both_inhabitants():
         j2.append("cousin_probe", tool="floor", exit_code=2, bare=False,
                   stdout="", stderr="boom")
     check("floor: the creature is shown it every wake, not just the cousin",
-          "NEVER WORKED" in e.serve_context(), e.serve_context()[-400:])
+          "never exited 0 for them" in e.serve_context(), e.serve_context()[-400:])
     b.destroy(); shutil.rmtree(d2, ignore_errors=True)
     shutil.rmtree(d, ignore_errors=True)
 
@@ -4973,6 +4977,325 @@ def test_a_respawn_may_recreate_a_container_and_never_a_mind():
     shutil.rmtree(d, ignore_errors=True)
 
 
+_PLAN_TOOL = ("```bash\nmkdir -p tools/own && printf '#!/bin/sh\\n# does: keeps "
+              "the plan\\n# call: plan list\\necho REAL-OUTPUT\\n' > tools/own/plan "
+              "&& chmod +x tools/own/plan\n```")
+
+
+def test_a_cousin_command_is_recorded_bare_only_when_it_carried_no_arguments():
+    """`bare` is read off the command, never hard-coded.
+
+    The shell path shipped with `bare=False` on every probe. So when the
+    cousin -- told by its own prompt to *make up plausible inputs* -- ran
+    `view-subtask-logs task-123` and the tool correctly answered *task-123
+    not found* with exit 1, the library rendered *NEVER WORKED for them (1
+    real failures)* to both inhabitants every wake. The 2026-09-14 misreading
+    (thirty usage refusals read as thirty failures) rebuilt through the new
+    door, and found live on the first evening the shell worked.
+
+    The flag now means one thing whoever composed the command: the block was
+    the tool's name and nothing else.
+    """
+    import run as runmod
+    from kernel import cousin as cousinmod
+    for invoke, expect in (("```bash\nplan\n```", True),
+                           ("```bash\nplan list\n```", False)):
+        e, j, b, d = build_engine([_PLAN_TOOL], [invoke, ACCEPT_REPLY])
+        cb = runmod.PathBody(os.path.join(d, "cousin-body"))
+        e.cousin_body = cb
+        e.run_cycle()
+        probe = (j.read(kinds=["cousin_probe"]) or [{}])[-1]
+        check("bare-by-command: %r is recorded bare=%s" % (invoke.split("\n")[1], expect),
+              probe.get("bare") is expect, (probe.get("cmd"), probe.get("bare")))
+        b.destroy(); cb.destroy(); shutil.rmtree(d, ignore_errors=True)
+    check("bare-by-command: a comment does not make a call bare or not",
+          cousinmod.argless("# try it\nplan") is True)
+    check("bare-by-command: a variable set and used is not a bare call",
+          cousinmod.argless("X=plan\n$X list") is False)
+    check("bare-by-command: nothing at all is bare -- there is no command to "
+          "have carried arguments", cousinmod.argless("") is True)
+
+
+def test_the_cousins_whole_block_runs_and_the_invocation_call_is_journalled():
+    """Two silences in one probe.
+
+    `choose_invocation` took the FIRST LINE of the cousin's block, so a cousin
+    that set a variable and used it, or looked an ID up and then called the
+    tool, had everything after line one dropped -- and was then handed a
+    transcript of a command it did not issue and asked to judge on it. The
+    framework manufacturing the cousin's own testimony.
+
+    And the invocation is a MODEL call -- the second per visit since item 9
+    -- whose rung, model, finish and full proposal were thrown away on the
+    spot. The cost of the shell could not be split by rung, and a proposal
+    cut by the budget could not be told from a short one. Store the raw
+    evidence: the oldest scar in §5.
+    """
+    import run as runmod
+    e, j, b, d = build_engine([_PLAN_TOOL],
+                              ["Let me set it up first.\n```bash\nX=plan\n$X list\n```",
+                               ACCEPT_REPLY])
+    cb = runmod.PathBody(os.path.join(d, "cousin-body"))
+    e.cousin_body = cb
+    e.run_cycle()
+    probe = (j.read(kinds=["cousin_probe"]) or [{}])[-1]
+    check("whole block: both lines of the cousin's block are what ran",
+          "X=plan" in (probe.get("cmd") or "") and "$X list" in (probe.get("cmd") or ""),
+          probe.get("cmd"))
+    check("whole block: and it really ran as a block -- the second line used "
+          "the first", "REAL-OUTPUT" in (probe.get("stdout") or ""),
+          probe.get("stdout"))
+    check("whole block: the proposal's shape is recorded",
+          probe.get("proposal_lines") == 2, probe.get("proposal_lines"))
+    check("invocation call: its model is on the probe",
+          probe.get("invoke_model") == "scripted", probe.get("invoke_model"))
+    check("invocation call: and how it finished",
+          probe.get("invoke_finish") == "stop", probe.get("invoke_finish"))
+    check("invocation call: and the cousin's full reply, so a cut proposal "
+          "can be told from a short one",
+          "Let me set it up first" in (probe.get("proposal") or ""),
+          (probe.get("proposal") or "")[:80])
+    b.destroy(); cb.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_library_reports_outcomes_as_facts_and_its_users_verdicts():
+    """The word FAILED left the library on 2026-09-16, and this is why.
+
+    While the harness called every tool bare, a non-zero exit with the `bare`
+    flag off meant one thing: called properly, and it broke. Once the cousin
+    chooses the arguments the same exit means *the tool did not like what its
+    user typed* -- which may be the tool working perfectly on an ID the user
+    invented. The framework cannot tell; the cousin can, and does, in the
+    verdict it gives two seconds later. So the line reports what the
+    framework knows (exit codes) beside what the cousin said (accepted,
+    returned), and asserts nothing it cannot know.
+    """
+    import kernel.library as librarymod
+    import run as runmod
+    d = tmpdir()
+    own = os.path.join(d, "own")
+    _write_tool(own, "viewer", does="views a task", call="viewer <id>")
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    j.append("cousin_probe", tool="viewer", exit_code=1, bare=False,
+             cmd="viewer task-123", stdout="", stderr="task-123 not found")
+    j.append("cousin_verdict", tool="viewer", verdict="ACCEPTED", tried="ran it",
+             outcome="it told me the id was wrong", to_creature="fine", want="")
+    hist = librarymod.use_history(j)
+    rec = hist.get("viewer") or {}
+    check("facts: a non-zero exit with chosen arguments is counted as what it "
+          "is", rec.get("nonzero") == 1 and rec.get("ok") == 0, rec)
+    check("facts: and what its user SAID about it is counted beside it",
+          rec.get("accepted") == 1 and rec.get("returned") == 0, rec)
+    line = librarymod.status(rec)
+    check("facts: the line never calls it a failure -- that is the cousin's "
+          "word to use", "FAILED" not in line and "NEVER WORKED" not in line
+          and "real failure" not in line, line)
+    check("facts: it says what happened", "never exited 0 for them" in line
+          and "exited non-zero with arguments its user chose" in line, line)
+    check("facts: and what its user said", "accepted it once" in line, line)
+
+    j.append("cousin_probe", tool="viewer", exit_code=0, bare=False,
+             cmd="viewer task-1", stdout="ok", stderr="")
+    j.append("cousin_verdict", tool="viewer", verdict="RETURNED", tried="ran it",
+             outcome="wrong task", to_creature="it showed me the wrong one")
+    line2 = librarymod.status(librarymod.use_history(j)["viewer"])
+    check("facts: a mixed record reports both exits and both verdicts",
+          "1 exited 0 and 1 exited non-zero" in line2
+          and "accepted it once and returned it once" in line2, line2)
+
+    # A verdict from before verdicts named their tool is not counted against
+    # anything: it cannot be attributed, and guessing is the fault this file
+    # is full of.
+    j.append("cousin_verdict", verdict="RETURNED", tried="x", outcome="y",
+             to_creature="z")
+    rec3 = librarymod.use_history(j)["viewer"]
+    check("facts: an unattributed verdict counts for no tool",
+          rec3.get("returned") == 1, rec3)
+
+    # END TO END: the engine puts the tool on the verdict it journals.
+    e, j2, b, d2 = build_engine([_PLAN_TOOL], ["```bash\nplan list\n```", ACCEPT_REPLY])
+    cb = runmod.PathBody(os.path.join(d2, "cousin-body"))
+    e.cousin_body = cb
+    e.run_cycle()
+    v = (j2.read(kinds=["cousin_verdict"]) or [{}])[-1]
+    check("facts: the engine journals WHICH tool a verdict was about",
+          v.get("tool") == "plan", v)
+    b.destroy(); cb.destroy(); shutil.rmtree(d2, ignore_errors=True)
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_cousins_world_mirrors_the_creatures_and_carries_only_user_hands():
+    """The copy that keeps §2.3 was two directories out of a world.
+
+    `sync_cousin_world` copied `tools/own` and `data`. The creature's tools
+    do not confine themselves to those: `compare-with-baseline` reads its
+    baseline back with `recall`, which reads `state/memory.json`;
+    `set-baseline` writes it with `remember`; others reach for files at the
+    mind's root. And the cousin's body had NO hands at all -- right for
+    `tool-edit` and `tool-new` (a user does not build) and `say` (the
+    creature's voice to the human), wrong for `recall`, without which those
+    tools fail in the cousin's shell for a reason that is ours. The cousin
+    would report it faithfully and the creature would be billed: the
+    relative-root scar, arriving through the copy meant to keep §2.3.
+
+    A user's shell holds the creature's world as it is. `remember` in that
+    shell writes to the copy, which the next visit throws away -- so the
+    boundary is unchanged and asserted here by attack.
+    """
+    import json
+    import run as runmod
+    e, j, b, d = build_engine([""], [""])
+    own = os.path.join(b.mind, "tools", "own")
+    _write_tool(own, "plan", does="keeps the plan", call="plan list")
+    os.makedirs(os.path.join(b.mind, "state"), exist_ok=True)
+    mem = os.path.join(b.mind, "state", "memory.json")
+    with io.open(mem, "w", encoding="utf-8") as f:
+        json.dump({"baseline-parent-id": "p1"}, f)
+    with io.open(os.path.join(b.mind, "notes.txt"), "w", encoding="utf-8") as f:
+        f.write("a loose file at the root of the mind\n")
+    with io.open(os.path.join(b.mind, "data", "plan.json"), "w", encoding="utf-8") as f:
+        f.write("[]")
+    with io.open(os.path.join(b.mind, ".cmd-999.sh"), "w", encoding="utf-8") as f:
+        f.write("echo not part of any world\n")
+
+    cb = runmod.PathBody(os.path.join(d, "cousin-body"))
+    cb.bin = runmod.install_hands(cb, only=runmod.USER_HANDS)
+    e.cousin_body = cb
+    n = e.sync_cousin_world()
+    check("mirror: the tools are there, and counted", n == 1, n)
+    for rel in (("state", "memory.json"), ("notes.txt",), ("data", "plan.json")):
+        check("mirror: %s is in the cousin's world" % "/".join(rel),
+              os.path.exists(os.path.join(cb.mind, *rel)), rel)
+    check("mirror: the body's own command scripts are not part of any world",
+          not os.path.exists(os.path.join(cb.mind, ".cmd-999.sh")))
+
+    r = cb.run("command -v recall >/dev/null && command -v remember >/dev/null "
+               "&& ! command -v tool-edit >/dev/null && ! command -v tool-new "
+               ">/dev/null && ! command -v say >/dev/null && echo USER-ONLY")
+    check("hands: a user's hands and none of a builder's", "USER-ONLY" in r.stdout,
+          (r.code, r.stdout, r.stderr[:120]))
+    r2 = cb.run("recall baseline-parent-id")
+    check("hands: recall reads the creature's memory as copied",
+          "p1" in r2.stdout, (r2.code, r2.stdout, r2.stderr[:120]))
+
+    # THE ATTACK: remember in the cousin's shell must change nothing the
+    # creature will ever see, and the next visit erases it.
+    cb.run("remember baseline-parent-id HIJACKED")
+    with io.open(mem, encoding="utf-8") as f:
+        check("boundary: remember in the cousin's shell did not reach the "
+              "creature's memory", json.load(f).get("baseline-parent-id") == "p1")
+    e.sync_cousin_world()
+    r3 = cb.run("recall baseline-parent-id")
+    check("boundary: and the next visit starts from the creature's world again",
+          "p1" in r3.stdout and "HIJACKED" not in r3.stdout, r3.stdout)
+
+    # `only=` is exact: a stray builder's hand in that bin is removed.
+    stray = os.path.join(cb.root, "bin", "tool-edit")
+    with io.open(stray, "w", encoding="utf-8") as f:
+        f.write("#!/bin/sh\necho no\n")
+    runmod.install_hands(cb, only=runmod.USER_HANDS)
+    check("hands: a hand this body must not have is removed, whoever put it there",
+          not os.path.exists(stray))
+
+    # And the deployment mounts that bin into the cousin's container, read-only.
+    class FakeHost(object):
+        mind, bin = "/x/cousin/mind", "/x/cousin/bin"
+    seen = {}
+
+    class R(object):
+        returncode, stdout, stderr = 0, "true", ""
+    import subprocess as _sp
+    keep = _sp.run
+
+    def fake_run(argv, **_k):
+        if argv[:2] == ["docker", "run"]:
+            seen["argv"] = argv
+        if argv[:2] == ["docker", "inspect"]:
+            r = R(); r.returncode = 1; return r
+        return R()
+    try:
+        _sp.run = fake_run
+        runmod.ensure_container("c", "img", FakeHost())
+    finally:
+        _sp.run = keep
+    argv = seen.get("argv") or []
+    check("hands: the container gets the user hands mounted, read-only",
+          any(a == "/x/cousin/bin:%s:ro" % bodymod.DockerBody.HANDS for a in argv),
+          argv)
+    b.destroy(); cb.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_container_runs_the_shell_the_contract_names():
+    """The prompt says ```bash, the parser requires the `bash` tag,
+    `LocalBody` ran `bash <script>` -- and `DockerBody` ran `sh -c`, which
+    on the image is dash. Item 7 changed the creature's interpreter without
+    anyone deciding to. Measured 2026-09-16 over 307 commands since the
+    container went live: zero dash-only failures and one bash-only
+    construct, so the cost was nil. Fixed anyway: a promise the body does
+    not keep is the relative-root scar's shape, and the next model may
+    write `[[`.
+    """
+    b = bodymod.DockerBody("c", mind="/host/mind")
+    argv = b.argv("echo hi")
+    check("shell: the container runs the shell the contract names",
+          argv[3:5] == ["bash", "-c"], argv[:5])
+    check("shell: and the composed command is what that shell gets",
+          argv[-1].rstrip().endswith("echo hi"), argv[-1][-40:])
+    dockerfile = io.open(os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "deploy", "Dockerfile"), encoding="utf-8").read()
+    check("shell: the image build proves bash is there, in daylight",
+          "RUN bash -c" in dockerfile, "")
+
+
+def test_the_pack_checks_the_real_keys_byte_for_byte():
+    """Shapes are a guess about what a key looks like. 2026-09-16, twice in
+    one day: a shape scan refused a live pack on 216 tool names, and a
+    hand-rolled one reported the creature's memory held a credential -- it
+    was `subtask-log-filter` again. Meanwhile the decisive check, *is any
+    real key in these bytes*, had never been run. The pack runs it now, and
+    the manifest says how many keys were checked so "0 key-shaped strings" is
+    never mistaken for "0 keys".
+    """
+    from monitor import pack
+    d = tmpdir()
+    keys = os.path.join(d, "keys")
+    os.makedirs(keys)
+    # Short and hyphenated, so no SHAPE fires and only the byte-for-byte
+    # check can see it -- otherwise this proves the old scan, not the new one.
+    with io.open(os.path.join(keys, "a.key"), "w", encoding="utf-8") as f:
+        f.write("real-key-Q7-1234-zz\n")
+    root = os.path.join(d, "root")
+    os.makedirs(root)
+    with io.open(os.path.join(root, "journal.jsonl"), "w", encoding="utf-8") as f:
+        f.write(json.dumps({"ts": 1.0, "kind": "think",
+                            "raw": "the creature printed real-key-Q7-1234-zz"}) + "\n")
+    check("real keys: no shape fires on a short hyphenated key -- so what "
+          "follows tests the decisive check and nothing else",
+          not pack.scan_secrets(pack.candidates(root)))
+    refused = None
+    try:
+        pack.build(root, os.path.join(d, "out"), "t", keys_dir=keys)
+    except pack.PackRefused as e:
+        refused = str(e)
+    check("real keys: a real credential in the root refuses the pack",
+          refused is not None and "REAL credential" in (refused or ""), refused)
+    check("real keys: and nothing was written",
+          not os.path.exists(os.path.join(d, "out")))
+
+    with io.open(os.path.join(root, "journal.jsonl"), "w", encoding="utf-8") as f:
+        f.write(json.dumps({"ts": 1.0, "kind": "think", "raw": "clean"}) + "\n")
+    _t, _m, man = pack.build(root, os.path.join(d, "out"), "t", keys_dir=keys)
+    check("real keys: a clean root packs, and the manifest says how many keys "
+          "it checked", "1 checked byte-for-byte" in man["secret_scan"]
+          and "0 real keys" in man["secret_scan"], man["secret_scan"])
+    _t2, _m2, man2 = pack.build(root, os.path.join(d, "out2"), "t",
+                                keys_dir=os.path.join(d, "no-such-dir"))
+    check("real keys: with no key files to check it SAYS so rather than "
+          "claiming a check it did not make",
+          "no key files were readable" in man2["secret_scan"], man2["secret_scan"])
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_cousin_runs_the_tool_with_its_own_hands():
     """PLAN item 9. §4 gives *running the test* to the cousin, and the harness
     invoked every tool BARE -- so it owned a job it structurally could not do.
@@ -5209,7 +5532,7 @@ def test_a_probe_the_ladder_never_answered_is_recorded_and_never_a_failure():
     rec = derivemod.probe_record(j.read())
     check("lost probe: the page counts it apart", rec.get("lost") == 1, rec)
     check("lost probe: and NOT as a failure -- a dry free tier is not a "
-          "broken tool", rec.get("failed") == 0 and rec.get("worked") == 0,
+          "broken tool", rec.get("nonzero") == 0 and rec.get("worked") == 0,
           rec)
     b.destroy(); cb.destroy(); shutil.rmtree(d, ignore_errors=True)
 
@@ -6550,6 +6873,12 @@ def main():
                test_the_cull_has_an_owner_and_a_trigger,
                test_the_human_can_speak_to_the_creature_once,
                test_a_respawn_may_recreate_a_container_and_never_a_mind,
+               test_a_cousin_command_is_recorded_bare_only_when_it_carried_no_arguments,
+               test_the_cousins_whole_block_runs_and_the_invocation_call_is_journalled,
+               test_the_library_reports_outcomes_as_facts_and_its_users_verdicts,
+               test_the_cousins_world_mirrors_the_creatures_and_carries_only_user_hands,
+               test_the_container_runs_the_shell_the_contract_names,
+               test_the_pack_checks_the_real_keys_byte_for_byte,
                test_the_cousin_runs_the_tool_with_its_own_hands,
                test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing,
                test_nothing_the_cousin_runs_can_change_the_creatures_tools,

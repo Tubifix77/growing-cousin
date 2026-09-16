@@ -32,4 +32,10 @@ RUN pip install --no-cache-dir "requests>=2.31,<3" \
 # No USER line: the container is run with --user matching the host uid that
 # owns the bind-mounted mind, so what the creature writes stays readable by
 # the engine and nothing in here runs as root.
+# The contract names bash and `DockerBody` runs it. Debian slim ships it,
+# but "ships it" is a belief about an image; this is the check. A build
+# without bash fails here, in daylight, rather than every command failing
+# at 03:00 with the body reporting healthy.
+RUN bash -c 'exit 0'
+
 WORKDIR /mind

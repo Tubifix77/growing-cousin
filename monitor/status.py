@@ -300,9 +300,9 @@ def build_data(ctx, findings, since, changes):
                        "worked": (rec or {}).get("ok", 0),
                        "asked": (rec or {}).get("asked", 0),
                        "unqualified": (rec or {}).get("unqualified", 0),
-                       "failed": ((rec or {}).get("runs", 0) - (rec or {}).get("ok", 0)
-                                  - (rec or {}).get("asked", 0)
-                                  - (rec or {}).get("unqualified", 0)),
+                       "nonzero": (rec or {}).get("nonzero", 0),
+                       "accepted": (rec or {}).get("accepted", 0),
+                       "returned": (rec or {}).get("returned", 0),
                        "last_code": (rec or {}).get("last_code")})
     fam = derive.stems(ctx.library)
     last = ctx.rows[-1] if ctx.rows else None
@@ -465,8 +465,9 @@ def render_md(d):
     row("wakes / thinks / commands", lambda w: "%d / %d / %d" % (w["wakes"], w["thinks"], w["commands"]))
     row("commands ok / failed", lambda w: "%d / %d" % (w["cmd_ok"], w["cmd_failed"]))
     row("commands LOST (skips)", lambda w: "%d  %s" % (w["commands_lost"], w["skips"] or ""))
-    row("probes worked / asked / failed / unqualified / lost",
-        lambda w: "%(worked)d / %(asked)d / %(failed)d / %(unqualified)d"
+    row("probes exited 0 / asked for args / exited non-zero (args its user "
+        "chose) / unqualified / lost",
+        lambda w: "%(worked)d / %(asked)d / %(nonzero)d / %(unqualified)d"
                   " / %(lost)d" % w["probes"])
     row("verdicts", lambda w: w["verdicts"])
     row("wants (distinct)", lambda w: "%d (%d)" % (w["wants"], w["wants_distinct"]))
@@ -533,12 +534,17 @@ def render_md(d):
         out.append("")
     ran = [r for r in lib["record"] if r["runs"]]
     if ran:
-        out.append("| tool | runs by its user | worked | asked for args | FAILED | unqualified | last exit |")
-        out.append("|---|---|---|---|---|---|---|")
-        for r in sorted(ran, key=lambda r: (-r["failed"], -r["runs"], r["tool"])):
-            out.append("| `%s` | %d | %d | %d | %s | %d | %s |" % (
+        # "non-zero", not "FAILED": with arguments the cousin chose, the exit
+        # code is a fact and the failure is a judgement -- the judgement is
+        # in the last two columns, as the cousin actually gave it.
+        out.append("| tool | runs by its user | exited 0 | asked for args | exited non-zero (args its user chose) | unqualified | accepted | returned | last exit |")
+        out.append("|---|---|---|---|---|---|---|---|---|")
+        for r in sorted(ran, key=lambda r: (-r["returned"], -r["nonzero"], -r["runs"], r["tool"])):
+            out.append("| `%s` | %d | %d | %d | %s | %d | %d | %s | %s |" % (
                 r["tool"], r["runs"], r["worked"], r["asked"],
-                ("**%d**" % r["failed"]) if r["failed"] else "0", r["unqualified"],
+                ("**%d**" % r["nonzero"]) if r["nonzero"] else "0", r["unqualified"],
+                r["accepted"],
+                ("**%d**" % r["returned"]) if r["returned"] else "0",
                 r["last_code"]))
         never = [r["tool"] for r in lib["record"] if not r["runs"]]
         if never:
