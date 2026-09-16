@@ -181,6 +181,55 @@ def failure_signature(stderr):
 
 # --------------------------------------------------------------- measures
 
+def provenance(root, library):
+    """Which of the library was INHERITED at t=0 and which the creature built.
+
+    §6.2 chose to copy the parent's library as a known-answer test set, and
+    made one requirement binding for the life of the project: every inherited
+    tool tagged at t=0, and **every metric split on that tag**. The tagging
+    was built (`seed_run.py`) and then nothing read it -- a verifier found
+    `split_on_tag` had exactly one consumer in the whole repo, its own test.
+    On the day run 3 starts, every count on this page would have described a
+    library that is mostly somebody else's work as though the creature had
+    made it, and no test would have noticed. That is §5's *a channel nothing
+    asserts is a channel that can be dead while everything is green*,
+    pre-installed for a run that has not happened yet.
+
+    Returns None when the root carries no tag -- which is TODAY, because run
+    2 began from nothing. That is a real answer and the page says it in
+    words. Returning zeros would be worse than saying nothing: a reader
+    cannot tell `0 inherited because none was` from `0 inherited because
+    nobody looked`.
+    """
+    if not root:
+        return None
+    try:
+        import seed_run
+    except Exception:
+        return None
+    doc = seed_run.load_tag(root)
+    if not doc:
+        return None
+    own = os.path.join(root, "body", "mind", "tools", "own")
+    by_name, deleted = seed_run.classify_on_tag(root, own)
+    if not by_name and not deleted:
+        return None
+    counts = seed_run.split_on_tag(root, own)
+    inherited_now = sorted(n for n, r in by_name.items() if r["origin"])
+    out = dict(counts)
+    out["seeded_from"] = doc.get("source")
+    out["tagged_at_seed"] = len(doc.get("tools") or {})
+    out["inherited_now"] = inherited_now
+    out["deleted_names"] = deleted
+    # Split the thing the project actually turns on: a family of three where
+    # two came from the parent is not the same finding as three built here.
+    fam = stems(set(library) if library else set(by_name))
+    out["families_inherited"] = {
+        s: len([n for n in v if (by_name.get(n) or {}).get("origin")])
+        for s, v in fam.items() if len(v) >= 3}
+    return out
+
+
 def probe_record(rows):
     """worked / asked-for-arguments / failed / unqualified over `cousin_probe`
     -- the same three the library shows, plus the honest fourth for probes

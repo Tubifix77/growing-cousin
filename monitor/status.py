@@ -277,6 +277,12 @@ def build_data(ctx, findings, since, changes):
         "quota": ctx.quota,
         "library": {"tools": len(ctx.library),
                     "families": {s: len(v) for s, v in fam.items() if len(v) >= 3},
+                    # §6.2's binding requirement: every metric split on the
+                    # inheritance tag. None when the run inherited nothing,
+                    # which is a fact rather than a gap -- see
+                    # derive.provenance.
+                    "provenance": derive.provenance(getattr(ctx, "root", None),
+                                                    ctx.library),
                     "record": record},
         "latest": {
             "wants": [{"ts": r["ts"], "text": (r.get("text") or "")[:160]}
@@ -448,9 +454,35 @@ def render_md(d):
     lib = d["library"]
     out.append("## Library (%d tools the journal knows of)" % lib["tools"])
     out.append("")
+    # EVERY METRIC SPLIT ON THE TAG (§6.2). Stated in words either way,
+    # because "nothing was inherited" and "nobody checked" must never render
+    # the same.
+    prov = lib.get("provenance")
+    if prov is None:
+        out.append("Provenance: **everything here was built in this run** --"
+                   " no inherited library was seeded, so no count below is a"
+                   " mixture.")
+    else:
+        out.append("Provenance: **%d of %d inherited** at t=0 from `%s`"
+                   " (%d tagged); built here %d; of the inherited, %d"
+                   " modified, %d repaired, %d broke, %d renamed, %d deleted."
+                   % (prov.get("inherited", 0), lib["tools"],
+                      prov.get("seeded_from") or "?",
+                      prov.get("tagged_at_seed", 0), prov.get("built", 0),
+                      prov.get("modified", 0), prov.get("repaired", 0),
+                      prov.get("broke", 0), prov.get("renamed", 0),
+                      prov.get("deleted", 0)))
+        out.append("")
+        out.append("**Split every rate below on that line before reading it**"
+                   " -- an aggregate over an inherited library and a built one"
+                   " measures neither.")
+    out.append("")
     if lib["families"]:
+        inh = (prov or {}).get("families_inherited") or {}
         out.append("Families of 3+: " + ", ".join(
-            "`%s-*` x%d" % (s, n) for s, n in sorted(lib["families"].items(), key=lambda x: -x[1])))
+            "`%s-*` x%d%s" % (s, n,
+                              (" (%d inherited)" % inh[s]) if inh.get(s) else "")
+            for s, n in sorted(lib["families"].items(), key=lambda x: -x[1])))
         out.append("")
     ran = [r for r in lib["record"] if r["runs"]]
     if ran:

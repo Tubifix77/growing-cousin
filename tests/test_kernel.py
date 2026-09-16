@@ -4418,6 +4418,131 @@ def test_a_run_can_be_seeded_with_a_tagged_inheritance():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_page_splits_the_library_on_the_inheritance_tag():
+    """PLAN item 11.2, the half that was missing: *every metric split on that
+    tag*, for the life of the project (§6.2).
+
+    The tagging was real and its own test was honest -- a verifier broke
+    `split_on_tag`'s rename branch and watched six assertions go red. What
+    nothing checked was whether anything READ the tag. `split_on_tag` had
+    exactly one consumer in the repo, its own test; no metric surface --
+    neither the page, nor `vitals.py`, nor `census.py`, nor the library the
+    inhabitants are shown -- opened `inherited.json` at all. On the day run 3
+    starts, `tools added`, the library table and `twin_pressure` would each
+    report one undifferentiated number for a library that is mostly the
+    parent's work, and the gate would stay green. **That is a channel dead on
+    arrival, installed in advance for a run that has not happened yet.**
+
+    The two states are asserted separately, because the dangerous one is not
+    the missing feature but the plausible zero: a page that prints
+    `0 inherited` when nothing was inherited reads identically to one that
+    prints it because nobody looked.
+    """
+    import seed_run
+    from monitor import derive as derivemod, status as monstatus
+    d = tmpdir()
+    root = os.path.join(d, "live")
+    own = os.path.join(root, "body", "mind", "tools", "own")
+    parent = os.path.join(d, "parent-mind", "tools", "own")
+    os.makedirs(own)
+    os.makedirs(parent)
+
+    def write(name, text, into=None):
+        p = os.path.join(into or own, name)
+        with io.open(p, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+        return p
+
+    GOOD = "#!/usr/bin/env python3\n# does: a thing\nprint('ok')\n"
+    BROKEN = "#!/usr/bin/env python3\n# does: a thing\ndef (\n"
+    # The parent's library at t=0: one sound, one that cannot start, one that
+    # will be renamed, one that will be thrown away. READ, never run (§2.6);
+    # here it is our own fixture rather than the real sibling project.
+    write("archive-keep", GOOD, parent)
+    write("archive-fixme", BROKEN, parent)
+    write("archive-rename", GOOD.replace("a thing", "another thing"), parent)
+    write("archive-gone", GOOD.replace("a thing", "a third thing"), parent)
+    tagged = seed_run.inherit_library(parent, own)
+    seed_run.write_tag(root, tagged, parent)
+
+    check("provenance: the run is tagged at t=0 at all, or nothing below "
+          "means anything",
+          (seed_run.load_tag(root) or {}).get("count") == 4,
+          seed_run.load_tag(root))
+
+    # ...and then the creature lives in it.
+    write("archive-fixme", GOOD)                       # repaired: now starts
+    os.rename(os.path.join(own, "archive-rename"),
+              os.path.join(own, "archive-renamed"))    # same bytes, new name
+    os.remove(os.path.join(own, "archive-gone"))       # thrown away
+    write("archive-mine", GOOD.replace("a thing", "my own thing"))
+
+    library = sorted(n for n in os.listdir(own))
+    prov = derivemod.provenance(root, library)
+    check("provenance: the page can see the tag at all", prov is not None,
+          prov)
+    prov = prov or {}
+    check("provenance: it counts what came from the parent apart from what "
+          "the creature built", (prov.get("inherited"), prov.get("built"))
+          == (3, 1), prov)
+    check("provenance: a REPAIR -- could not start, now starts -- is counted "
+          "as the thing §6.2 chose this library for",
+          prov.get("repaired") == 1 and prov.get("broke") == 0, prov)
+    check("provenance: a rename is followed rather than counted as new work",
+          prov.get("renamed") == 1, prov)
+    check("provenance: and a discarded inheritance does not simply vanish",
+          prov.get("deleted") == 1, prov)
+    check("provenance: the family line splits too -- three `archive-*` where "
+          "two came from the parent is not three built here",
+          (prov.get("families_inherited") or {}).get("archive") == 3, prov)
+
+    # AND THE READER SEES IT. A derivation nothing renders is the same dead
+    # channel one level further on.
+    page = monstatus.render_md(_prov_data(monstatus, derivemod, root, library))
+    check("provenance: the page says how much of the library is inherited",
+          "3 of 4 inherited" in page, [l for l in page.splitlines()
+                                       if "rovenance" in l])
+    check("provenance: and names where the inheritance came from, so a "
+          "figure can be traced to the library it describes",
+          "parent-mind" in page, [l for l in page.splitlines()
+                                  if "rovenance" in l])
+    check("provenance: and tells its reader to split every rate on it",
+          "Split every rate below on that line" in page, "")
+
+    # THE OTHER STATE, which is today: nothing inherited. It must be a
+    # sentence, never a zero.
+    bare_root = os.path.join(d, "live2")
+    os.makedirs(os.path.join(bare_root, "body", "mind", "tools", "own"))
+    check("provenance: a run that inherited nothing says so rather than "
+          "reporting zeros", derivemod.provenance(bare_root, []) is None,
+          derivemod.provenance(bare_root, []))
+    page2 = monstatus.render_md(_prov_data(monstatus, derivemod, bare_root, []))
+    check("provenance: and the page says it in words",
+          "everything here was built in this run" in page2,
+          [l for l in page2.splitlines() if "rovenance" in l])
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def _prov_data(monstatus, derivemod, root, library):
+    """The smallest real `build_data` shape the renderer needs, with a real
+    Context so this exercises the wiring rather than a hand-built dict."""
+    from monitor import detectors as det
+    ctx = det.Context([], now=1789516000.0)
+    ctx.root = root
+    ctx.library = set(library)
+    return monstatus.build_data(ctx, [], {}, [])
+
+
+def _prov_data(monstatus, derivemod, root, library):
+    """The smallest real `build_data` shape the renderer needs, with a real
+    Context so this exercises the wiring rather than a hand-built dict."""
+    from monitor import detectors as det
+    ctx = det.Context([], now=1789516000.0)
+    ctx.root = root
+    ctx.library = set(library)
+    return monstatus.build_data(ctx, [], {}, [])
+
+
 def test_the_cull_has_an_owner_and_a_trigger():
     """PLAN item 10. §4 draws the line between a hold with a named trigger
     and a date, and inaction in the costume of caution. The cull had neither
@@ -5993,6 +6118,7 @@ def main():
                test_monitor_writes_only_its_own_directory,
                test_monitor_alarms_are_edge_triggered,
                test_a_run_can_be_seeded_with_a_tagged_inheritance,
+               test_the_page_splits_the_library_on_the_inheritance_tag,
                test_the_cull_has_an_owner_and_a_trigger,
                test_the_human_can_speak_to_the_creature_once,
                test_a_respawn_may_recreate_a_container_and_never_a_mind,

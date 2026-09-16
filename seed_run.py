@@ -189,8 +189,80 @@ def load_tag(root):
         return None
 
 
+def classify_on_tag(root, own_dir):
+    """Per tool, what it IS relative to the inheritance: the one place that
+    decides, so a count and a listing can never disagree.
+
+    Returns `(by_name, deleted)`, where `by_name` maps each tool now in
+    `own_dir` to a dict -- `origin` (the inherited name it descends from, or
+    None if the creature built it here), `renamed`, `modified`, `repaired`,
+    `broke` -- and `deleted` lists inherited tools that are gone.
+
+    Split out 2026-09-16. `split_on_tag` returned counts and nothing else, so
+    a caller that wanted to say *which* tools were inherited had to
+    re-implement the hash matching -- two copies of a rule that drift while
+    no test notices, which is the fault this repo has already paid for in
+    `wants()`, in the caps and in the census. Counts are now derived FROM
+    this rather than computed beside it.
+    """
+    doc = load_tag(root) or {}
+    tags = doc.get("tools") or {}
+    # Tolerates the pre-2026-09-16 shape, where a tag was a bare hash string.
+    norm = {}
+    for name, t in tags.items():
+        norm[name] = t if isinstance(t, dict) else {"sha": t, "starts": None}
+    by_sha = {}
+    for name, t in norm.items():
+        by_sha.setdefault(t["sha"], name)
+
+    by_name, seen = {}, set()
+    try:
+        names = sorted(os.listdir(own_dir))
+    except OSError:
+        return {}, sorted(norm)
+    for n in names:
+        p = os.path.join(own_dir, n)
+        if not os.path.isfile(p) or n.startswith(".") or n.endswith(NOT_A_TOOL):
+            continue
+        try:
+            with open(p, "rb") as f:
+                sha = hashlib.sha256(f.read()).hexdigest()
+        except OSError:
+            continue
+        rec = {"origin": None, "renamed": False, "modified": False,
+               "repaired": False, "broke": False}
+        if n in norm:
+            rec["origin"] = n
+        elif sha in by_sha:
+            # THE HASH IS THE INDEX, so a rename is followed. Keying by name
+            # and consulting the hash only after a name match counted a
+            # renamed-but-identical tool as BUILT, while PLAN claimed in as
+            # many words that a hash-based tag made a rename harmless.
+            rec["origin"] = by_sha[sha]
+            rec["renamed"] = True
+        if rec["origin"] is None:
+            by_name[n] = rec
+            continue
+        seen.add(rec["origin"])
+        if sha != norm[rec["origin"]]["sha"]:
+            rec["modified"] = True
+            was = norm[rec["origin"]].get("starts")
+            now = why_it_cannot_start(p) is None
+            # `repaired` means what §6.2 chose this library FOR -- a tool that
+            # could not start and now starts -- never merely *modified*. Its
+            # opposite is counted too: a number that can only move in the
+            # flattering direction is not a measurement.
+            if was is False and now:
+                rec["repaired"] = True
+            elif was is True and not now:
+                rec["broke"] = True
+        by_name[n] = rec
+    return by_name, sorted(n for n in norm if n not in seen)
+
+
 def split_on_tag(root, own_dir):
-    """What became of an inherited library. Returns a dict, not a triple.
+    """What became of an inherited library, as counts. Derived from
+    `classify_on_tag`, which is the only thing that decides.
 
     **Rewritten 2026-09-16 after a verifier tested it on its own fixtures and
     found all three answers wrong.** The first version keyed the tag by NAME
@@ -203,58 +275,18 @@ def split_on_tag(root, own_dir):
       edit, or a tool the creature BROKE;
     - a DELETED inheritance vanished from every count, so a creature that
       threw one away looked like one that never had it.
-
-    Now the hash is a first-class index, so a rename is followed; and
-    `repaired` means what §6.2 chose this library for -- a tool that COULD
-    NOT START and now starts. Its opposite, `broke`, is counted too, because
-    a number that can only move in the flattering direction is not a
-    measurement.
     """
-    doc = load_tag(root) or {}
-    tags = doc.get("tools") or {}
-    # Tolerates the pre-2026-09-16 shape, where a tag was a bare hash string.
-    norm = {}
-    for name, t in tags.items():
-        norm[name] = t if isinstance(t, dict) else {"sha": t, "starts": None}
-    by_sha = {}
-    for name, t in norm.items():
-        by_sha.setdefault(t["sha"], name)
-
+    by_name, deleted = classify_on_tag(root, own_dir)
     out = {"inherited": 0, "renamed": 0, "built": 0, "modified": 0,
-           "deleted": 0, "repaired": 0, "broke": 0}
-    seen = set()
-    try:
-        names = sorted(os.listdir(own_dir))
-    except OSError:
-        return out
-    for n in names:
-        p = os.path.join(own_dir, n)
-        if not os.path.isfile(p) or n.startswith(".") or n.endswith(NOT_A_TOOL):
-            continue
-        try:
-            with open(p, "rb") as f:
-                sha = hashlib.sha256(f.read()).hexdigest()
-        except OSError:
-            continue
-        if n in norm:
-            origin = n
-        elif sha in by_sha:
-            origin = by_sha[sha]           # renamed, bytes untouched
-            out["renamed"] += 1
-        else:
+           "deleted": len(deleted), "repaired": 0, "broke": 0}
+    for _n, rec in by_name.items():
+        if rec["origin"] is None:
             out["built"] += 1
             continue
-        seen.add(origin)
         out["inherited"] += 1
-        if sha != norm[origin]["sha"]:
-            out["modified"] += 1
-            was = norm[origin].get("starts")
-            now = why_it_cannot_start(p) is None
-            if was is False and now:
-                out["repaired"] += 1
-            elif was is True and not now:
-                out["broke"] += 1
-    out["deleted"] = len([n for n in norm if n not in seen])
+        for k in ("renamed", "modified", "repaired", "broke"):
+            if rec[k]:
+                out[k] += 1
     return out
 
 
