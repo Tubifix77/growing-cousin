@@ -342,7 +342,43 @@ def ensure_container(container, image, host_body, timeout=120):
         return subprocess.run(["docker"] + list(a), capture_output=True,
                               text=True, timeout=timeout)
 
+    # WHAT THIS BODY MUST BE MOUNTED WITH -- and the check that it IS. The
+    # first version asked only `.State.Running`, so a container created under
+    # an earlier configuration was reused as it stood: on 2026-09-16 the
+    # cousin's container predated the user-hands mount and came back up
+    # without `recall`, exactly the fault the mount had been added to close,
+    # while the code said the mount was there. A directive present in the
+    # code and absent from the running thing -- §5's oldest systemd shape.
+    # Mounts are compared as (source, destination, writable); a mismatch
+    # recreates the container, which costs nothing a container holds.
+    want = {(os.path.realpath(host_body.mind), bodymod.DockerBody.MIND, True)}
+    if getattr(host_body, "bin", None):
+        want.add((os.path.realpath(host_body.bin), bodymod.DockerBody.HANDS, False))
+
+    def mounts_of(name):
+        r = d("inspect", "-f", "{{json .Mounts}}", name)
+        if r.returncode != 0:
+            return None
+        try:
+            import json
+            data = json.loads(r.stdout or "[]")
+        except ValueError:
+            return None
+        if not isinstance(data, list):
+            # Not a mount list is CANNOT TELL, never a reason to act: a
+            # daemon answering nonsense must not have containers recreated
+            # under it on the strength of that nonsense.
+            return None
+        return {(os.path.realpath(m.get("Source", "")), m.get("Destination"),
+                 bool(m.get("RW", True))) for m in data if isinstance(m, dict)}
+
     st = d("inspect", "-f", "{{.State.Running}}", container)
+    have = mounts_of(container) if st.returncode == 0 else None
+    if st.returncode == 0 and have is not None and have != want:
+        print("container %s: mounts changed since it was created -- recreating "
+              "(had %d mount(s), need %d)" % (container, len(have), len(want)))
+        d("rm", "-f", container)
+        st.returncode = 1
     if st.returncode != 0:
         d("rm", "-f", container)
         argv = ["run", "-d", "--init", "--name", container,

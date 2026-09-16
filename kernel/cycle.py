@@ -953,7 +953,35 @@ class Engine:
                     # the supervisor's decision, not this function's.
                     raise
                 if chosen:
-                    r = self.cousin_body.run(chosen)
+                    # THE COUSIN'S BODY IS PROVEN BEFORE IT IS USED, like the
+                    # creature's is before every block. It was not: a cousin
+                    # container that had died would have returned an OCI
+                    # error with `setup_failed=True`, and this code read
+                    # `.code`/`.stderr` off it as though a tool had run --
+                    # then asked the cousin to judge the creature on that
+                    # transcript. Infrastructure failure must never arrive
+                    # looking like a command's output (body.py's third
+                    # bound), and it must never become a verdict either: the
+                    # probe is recorded as LOST and the cycle fails, so the
+                    # supervisor's bound acts and a restart rebuilds the body.
+                    if not bodymod.ensure_body(self.cousin_body, self.j,
+                                               who="cousin"):
+                        r = bodymod.ExecResult("", "cousin body did not answer "
+                                               "and could not be respawned",
+                                               128, setup_failed=True)
+                    else:
+                        r = self.cousin_body.run(chosen)
+                    if r.setup_failed:
+                        self.j.append("cousin_probe", tool=target,
+                                      exit_code=None, bare=False,
+                                      picked_by=picked_by,
+                                      cmd=capped(chosen, EXEC_CMD_CHARS),
+                                      chosen_by="cousin_body_down",
+                                      library_copied=copied,
+                                      error=capped(r.stderr or "", EXEC_STDERR_CHARS),
+                                      stdout="", stderr="")
+                        raise RuntimeError("the cousin's body did not run its "
+                                           "command: %s" % (r.stderr or "")[:200])
                     ran, chosen_by = chosen, "cousin"
                 else:
                     # NOTHING IS SUBSTITUTED. A user who cannot think what to

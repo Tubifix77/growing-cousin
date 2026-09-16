@@ -5296,6 +5296,114 @@ def test_the_pack_checks_the_real_keys_byte_for_byte():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_container_whose_mounts_drifted_is_recreated_not_reused():
+    """`ensure_container` asked one question of an existing container -- is
+    it running -- and reused it whatever it was mounted with. On 2026-09-16
+    the cousin's container predated the user-hands mount and came back up
+    after the deploy without `recall` on its PATH, while the code that had
+    just shipped said the mount was there. A directive present in the code
+    and absent from the running thing is §5's oldest systemd shape, and this
+    is the container-flavoured instance.
+
+    A container holds nothing -- the world is a bind mount on the host -- so
+    recreating one when its mounts no longer match costs nothing and is the
+    only honest response.
+    """
+    import json
+    import subprocess as _sp
+    import run as runmod
+
+    class Host(object):
+        mind, bin = os.path.abspath("x-mind"), os.path.abspath("x-bin")
+
+    stale = json.dumps([{"Source": Host.mind, "Destination": bodymod.DockerBody.MIND,
+                         "RW": True}])           # created before the hands mount
+    current = json.dumps([{"Source": Host.mind, "Destination": bodymod.DockerBody.MIND,
+                           "RW": True},
+                          {"Source": Host.bin, "Destination": bodymod.DockerBody.HANDS,
+                           "RW": False}])
+
+    def drive(mounts_json):
+        calls = []
+
+        class R(object):
+            def __init__(self, rc=0, out=""):
+                self.returncode, self.stdout, self.stderr = rc, out, ""
+
+        def fake_run(argv, **_k):
+            calls.append(argv)
+            if argv[:2] == ["docker", "inspect"] and "{{.State.Running}}" in argv:
+                return R(0, "true\n")
+            if argv[:2] == ["docker", "inspect"] and "{{json .Mounts}}" in argv:
+                return R(0, mounts_json)
+            return R(0, "true")
+        keep = _sp.run
+        try:
+            _sp.run = fake_run
+            runmod.ensure_container("c", "img", Host())
+        finally:
+            _sp.run = keep
+        return calls
+
+    calls = drive(stale)
+    check("drift: a running container with the OLD mounts is removed",
+          any(a[:3] == ["docker", "rm", "-f"] for a in calls), calls)
+    runs = [a for a in calls if a[:2] == ["docker", "run"]]
+    check("drift: and recreated", bool(runs), calls)
+    check("drift: with the mount that was missing, read-only",
+          runs and any(x == "%s:%s:ro" % (Host.bin, bodymod.DockerBody.HANDS)
+                       for x in runs[0]), runs[0] if runs else calls)
+
+    calls2 = drive(current)
+    check("drift: a container whose mounts already match is left alone",
+          not any(a[:3] == ["docker", "rm", "-f"] for a in calls2)
+          and not any(a[:2] == ["docker", "run"] for a in calls2), calls2)
+
+
+def test_a_dead_cousin_body_is_a_lost_probe_never_a_transcript():
+    """The creature's body is proven before every block (`ensure_body`); the
+    cousin's never was. A cousin container that had died would return an OCI
+    error with `setup_failed=True`, `evidence()` would read `.code` and
+    `.stderr` off it as if a tool had run, and the cousin would then be asked
+    to judge the creature's work on a transcript of our infrastructure
+    failing. That is a fabricated complaint with the framework as its author
+    -- the one outcome this design exists to prevent.
+
+    So: the body is proven first, and if it cannot be brought back the probe
+    is recorded as LOST (`exit_code=None`, its own `chosen_by`), no verdict is
+    asked, and the cycle fails so the supervisor's bound acts.
+    """
+    import run as runmod
+    from kernel import backends
+    e, j, b, d = build_engine([_PLAN_TOOL], ["```bash\nplan list\n```", ACCEPT_REPLY])
+    cb = runmod.PathBody(os.path.join(d, "cousin-body"))
+    cb.can_respawn = False
+    cb.kill()
+    e.cousin_body = cb
+    raised = None
+    try:
+        e.run_cycle()
+    except backends.LadderExhausted as ex:
+        raised = ("wrong kind", ex)
+    except Exception as ex:                      # noqa: BLE001 -- the point
+        raised = ("failure", ex)
+    check("dead body: the cycle FAILS rather than walking on",
+          raised is not None and raised[0] == "failure", raised)
+    probes = j.read(kinds=["cousin_probe"])
+    p = probes[-1] if probes else {}
+    check("dead body: the probe is recorded as lost, not as an exit code",
+          p.get("exit_code") is None and p.get("chosen_by") == "cousin_body_down",
+          p)
+    check("dead body: and it still says what the cousin had wanted to run",
+          p.get("cmd") == "plan list", p.get("cmd"))
+    check("dead body: NO verdict was asked on an infrastructure failure",
+          not j.read(kinds=["cousin_verdict"]), j.read(kinds=["cousin_verdict"]))
+    rs = j.read(kinds=["body_respawn"])
+    check("dead body: the respawn record says WHOSE body it was",
+          rs and rs[-1].get("who") == "cousin" and rs[-1].get("ok") is False, rs)
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_cousin_runs_the_tool_with_its_own_hands():
     """PLAN item 9. §4 gives *running the test* to the cousin, and the harness
     invoked every tool BARE -- so it owned a job it structurally could not do.
@@ -6879,6 +6987,8 @@ def main():
                test_the_cousins_world_mirrors_the_creatures_and_carries_only_user_hands,
                test_the_container_runs_the_shell_the_contract_names,
                test_the_pack_checks_the_real_keys_byte_for_byte,
+               test_a_container_whose_mounts_drifted_is_recreated_not_reused,
+               test_a_dead_cousin_body_is_a_lost_probe_never_a_transcript,
                test_the_cousin_runs_the_tool_with_its_own_hands,
                test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing,
                test_nothing_the_cousin_runs_can_change_the_creatures_tools,

@@ -350,13 +350,20 @@ class DockerBody:
         return ExecResult(out, err, code)
 
 
-def ensure_body(body, journal=None):
-    """Prove it responds; respawn once if not. Never reads a status field."""
+def ensure_body(body, journal=None, who="creature"):
+    """Prove it responds; respawn once if not. Never reads a status field.
+
+    `who` names the inhabitant whose body this is. The cousin got a body of
+    its own on 2026-09-16 and nothing ever proved it before use: a dead
+    cousin container would have handed the cousin an OCI error as the tool's
+    own transcript, and the cousin would have judged the creature's work on
+    it. Both bodies now go through here, and the record says which."""
     if body.responds():
         return True
     if journal:
-        journal.append("body_unresponsive", detail="exec probe did not answer")
+        journal.append("body_unresponsive", who=who,
+                       detail="exec probe did not answer")
     ok = bool(getattr(body, "respawn", lambda: False)())
     if journal:
-        journal.append("body_respawn", ok=ok)
+        journal.append("body_respawn", who=who, ok=ok)
     return ok
