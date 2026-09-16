@@ -476,10 +476,24 @@ unprompted.
 > the fix; the sentence was not.** No test guarded this item and no detector
 > mentioned the spine, which is the channel that let 27 hours pass.
 >
-> **What has NOT been done, deliberately: the spine has not been stopped.**
-> It was Tue's pause and it is his to restore or re-take. Reversing it
-> unilaterally is the same act the paragraph below refuses in the other
-> direction.
+> **DECIDED 2026-09-16: STOP IT while item 9's window is open.** This entry
+> previously called it Tue's; he corrected that the same day — he is the
+> customer, not the architect, and an operational question filed as his is a
+> question nobody answers. That filing is a large part of why it ran unpaused
+> for 27 hours.
+>
+> The reasoning: the tier is shared, the cousin costs two calls per visit and
+> starves first, and it is the agent under measurement; the comparison the
+> spine exists for is already suspended and void on throughput; and stopping
+> it restores Tue's own stated intent of 2026-09-13, which was undone by an
+> accident rather than a decision.
+>
+> **Trigger to restart: item 9's after-window closed (48 h from 18:36) and
+> item 8's baseline across several reps.**
+>
+> Blocked on EXECUTION only — the session sandbox refuses to stop another
+> project's service, which is the right default. One command:
+> `systemctl --user stop growing-spine`.
 >
 > **Tue's call, and the two options are one command each:**
 >

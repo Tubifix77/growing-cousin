@@ -54,6 +54,20 @@ reason, not for want of work:
 - **14** -- 14.1-14.4 met; 14.5 (telling the creature `say` exists) rides
   with the brief's unfreeze and is now WATCHED rather than merely recorded.
 
+**TUE IS THE CUSTOMER, NOT THE ARCHITECT — he said so on 2026-09-16 and it
+changes how this file should be used.** *"i have no idea about what you ask
+me you are the software architect im more like the idea guy or the
+customer."* Decide the technical and operational questions yourself, act, and
+report what you decided and why in plain words. Do not hand him a choice
+between two engineering options; that is not deference, it is handing back
+the work he asked for, and it is measurably expensive here — the spine ran
+unpaused for 27 hours largely because its state was filed as "Tue's standing
+decision" and left sitting there.
+
+What IS his: what the project is for, what he finds interesting, priorities,
+money, and anything irreversible or outward-facing. Ask about those. Nothing
+else.
+
 **Four independent verifiers have now read this work and every round found
 something real.** The last two returned eleven findings between them, of
 which four were defects rather than prose: an assertion that was green over a
@@ -473,8 +487,29 @@ guess with authority it has not earned.
   repeating it, so the machine and the document cannot disagree again
   without somebody being told. That is the fix; the sentence was not.
 
-  **Whether it should be running is Tue's** (PLAN item 12). It was his pause
-  and it is his to restore or re-take; nothing here stopped it, deliberately.
+  **DECIDED 2026-09-16, and this one is MINE, not Tue's.** He said it
+  plainly the same day: *"i have no idea about what you ask me you are the
+  software architect im more like the idea guy or the customer."* Filing an
+  operational question as "his call" is not deference — it is how this ran
+  unpaused for 27 hours, because a decision with nobody holding it is a
+  decision nobody takes.
+
+  **The spine should be STOPPED while item 9's window is open.** Three
+  reasons, none of them close: the tier is shared and the cousin now costs
+  TWO calls per visit, so it is the agent that starves first and it is the
+  agent under measurement; the comparison the spine exists for is already
+  suspended (§4 above) and void on throughput, so nothing is lost by pausing
+  it; and Tue's own stated intent on 2026-09-13 was exactly this, undone by
+  an accident rather than by a decision. Restoring it is the least surprising
+  act available.
+
+  **Trigger to restart it: when item 9's after-window closes** (48 h from
+  2026-09-16 18:36) **and item 8 has a baseline across several reps.** Then
+  it is one command and the era note takes the date.
+
+  > Blocked on execution, not on the decision: this session's sandbox refuses
+  > to stop another project's service. Tue runs
+  > `systemctl --user stop growing-spine`, or grants the permission once.
 
   > Stop it with `systemctl --user stop growing-spine`; make the pause
   > survive a boot with `systemctl --user disable growing-spine` (it is
