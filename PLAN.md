@@ -321,7 +321,15 @@ unprompted.
 > touches anything — the rehearsal harness taught that lesson on 2026-09-16
 > by clearing a target and printing REFUSED afterwards.
 >
-> **11.3:** `evidence/run-2-final-20260916-0131.manifest.json`, 94 files.
+> **11.3:** `evidence/run-2-20260916-0244.manifest.json`, 98 files,
+> `monitor verify` passing, 0 key-shaped strings. The earlier pack of
+> the same run was labelled `run-2-final` and **run 2 is not final** --
+> it was cut at 01:31 and the journal kept growing, so a §7 figure
+> quoted "from the final pack" would silently exclude everything after
+> that. The manifest was honest about what it hashed; the filename was
+> not, and a filename is what gets quoted. Both packs are kept: the
+> mislabelled one is still true evidence of 01:31, and deleting
+> evidence to tidy a name is worse than the name.
 >
 > **Why 11.1 is not met today:** the framework changed about a dozen times in
 > the three hours before this was written. Resetting now would confound a

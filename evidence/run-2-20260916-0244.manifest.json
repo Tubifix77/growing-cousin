@@ -1,0 +1,550 @@
+{
+ "created": 1789519493.5972853,
+ "created_str": "2026-09-16 02:44:53",
+ "files": [
+  {
+   "bytes": 8124,
+   "path": "body/mind/data/archive.json",
+   "sha256": "35180f1ed592342aca27becae17af3ee952f9a25f2a54850fee537e210057cb1"
+  },
+  {
+   "bytes": 999,
+   "path": "body/mind/data/plan.json",
+   "sha256": "be524d43cff6a74140536a6c9ccb4ec587ad96507ceaf7fba9654e444509e650"
+  },
+  {
+   "bytes": 36,
+   "path": "body/mind/data/progress_status.log",
+   "sha256": "393f0afb68acb1e59e47664f51c68183623cd9bb0e458d59f82e9f61ee07e5cd"
+  },
+  {
+   "bytes": 340,
+   "path": "body/mind/data/subagent-orchestrator-logs.json",
+   "sha256": "46172e42613c2f35a9ee2d8534caa4a6384395b7fb7370b87f8f911204e99086"
+  },
+  {
+   "bytes": 149,
+   "path": "body/mind/data/subagent-orchestrator-state.json",
+   "sha256": "a23028420b4d8b5481585ce8f66afe93f1c02ca8959456fab264f1d089ff9110"
+  },
+  {
+   "bytes": 2607,
+   "path": "body/mind/data/subagent_orchestrator_spec.md",
+   "sha256": "0df9feea7ec81bb3c6778a136b3eca92494af4c27df1037f11b47ca76a6f83d9"
+  },
+  {
+   "bytes": 506,
+   "path": "body/mind/data/subtask_logs.json",
+   "sha256": "5f923ff85d0108d8a25e8d88d706d7f62007190c5c7a3219cfde5cc5e7fdf9ee"
+  },
+  {
+   "bytes": 4,
+   "path": "body/mind/data/subtask_logs_test.json",
+   "sha256": "a00c3b59d5e9e2d8ad78e29258e13b5cf4807919ebb5a523c199e8da1cda91b9"
+  },
+  {
+   "bytes": 22,
+   "path": "body/mind/data/task-progress.json",
+   "sha256": "175b75a329a57c7a6f73174ade3237294f1e309575c969f706abf7a8c7f8005a"
+  },
+  {
+   "bytes": 1447,
+   "path": "body/mind/state/memory.json",
+   "sha256": "6a292bbde33197283e1f09e3e0b7b81c0aa59693a47d260459ad98718cfbafc1"
+  },
+  {
+   "bytes": 10880,
+   "path": "body/mind/tools/own/__pycache__/subagent-orchestratorcpython-311.pyc",
+   "sha256": "1f8014fcb73c564d03142ee6e31408f2707785368aed7c5b7d93e097648cae06"
+  },
+  {
+   "bytes": 3843,
+   "path": "body/mind/tools/own/archive",
+   "sha256": "0ecd818c47e1c92ce41d192d0c2a06f2df3c4bf1a4390ea2644543c79a567623"
+  },
+  {
+   "bytes": 3030,
+   "path": "body/mind/tools/own/archive-context",
+   "sha256": "784be7e1c341e594e9ea61d3a8661659a61da3be3504dad649a04a01e658c37e"
+  },
+  {
+   "bytes": 2687,
+   "path": "body/mind/tools/own/archive-date-search",
+   "sha256": "8e28ae89a50d0f6abb48248d5ebaa4aa67557c8c6a95f3dff5db3900cb47b3e4"
+  },
+  {
+   "bytes": 139,
+   "path": "body/mind/tools/own/archive-date-search.bak",
+   "sha256": "9bba5892ea9cf50c3739067c03482a2862d3fa41de8b3544091c9c3a0047b6d3"
+  },
+  {
+   "bytes": 1288,
+   "path": "body/mind/tools/own/archive-get",
+   "sha256": "a933becbcfc76ce085797b66769e6cbc3c8b56a047d4351038eac887dd9754c3"
+  },
+  {
+   "bytes": 115,
+   "path": "body/mind/tools/own/archive-get.bak",
+   "sha256": "82d028beff57bd380ce67d111f5e68b9c95f977bd1d2a20ea8c399c89560f4fb"
+  },
+  {
+   "bytes": 901,
+   "path": "body/mind/tools/own/archive-list",
+   "sha256": "7148516feb843e58e97e32a23e1c313912d7ec15bd3bda36a756cba7f39a8555"
+  },
+  {
+   "bytes": 118,
+   "path": "body/mind/tools/own/archive-list.bak",
+   "sha256": "5e782dd62687704fa2fed0083bb7823070b109547f496383970ca9e44121885e"
+  },
+  {
+   "bytes": 2978,
+   "path": "body/mind/tools/own/archive-query",
+   "sha256": "b959ce5f3ec251b5e13abb286e4801856035d2aa72fe999fbcd9f2e7c26925e2"
+  },
+  {
+   "bytes": 121,
+   "path": "body/mind/tools/own/archive-query.bak",
+   "sha256": "ade6bdf9aecf111d167eeeb48933df6a45d6364e89c494829bb3e097565f0e66"
+  },
+  {
+   "bytes": 1441,
+   "path": "body/mind/tools/own/archive-save",
+   "sha256": "83546502ef3009ad589c864d89fb94e0ea80b3f4c7b9c14ae2c46b88d1b6d2a0"
+  },
+  {
+   "bytes": 118,
+   "path": "body/mind/tools/own/archive-save.bak",
+   "sha256": "d27c184fc7ee36abcb3110ec9b9d216fa094764752cefc6542d61d67c3f6a579"
+  },
+  {
+   "bytes": 1594,
+   "path": "body/mind/tools/own/archive-search",
+   "sha256": "3a8d56aa68042219752c33ae028a64a328507b7465caf077925a6d0b7543f7e4"
+  },
+  {
+   "bytes": 124,
+   "path": "body/mind/tools/own/archive-search.bak",
+   "sha256": "4e2bf41e46f06cab42d97b2b96d40380ca15ed13c262e2c687efd530589b77c9"
+  },
+  {
+   "bytes": 453,
+   "path": "body/mind/tools/own/archive-subtask-logs",
+   "sha256": "fd096846f8baf9c96ce4701c4ee4658cb4f8d19a06cbb378ecfe26f3e3b846db"
+  },
+  {
+   "bytes": 4750,
+   "path": "body/mind/tools/own/archive-synthesize",
+   "sha256": "4a0bb6643eb81e75d7f19d13fa5d7dbe3ab3848617180b53683c5b0812da3695"
+  },
+  {
+   "bytes": 3758,
+   "path": "body/mind/tools/own/compare-subtask-logs",
+   "sha256": "202b741eaf70f165b3e954ef758ba491265c475d9c6fb03c6cad0056deb0898b"
+  },
+  {
+   "bytes": 542,
+   "path": "body/mind/tools/own/compare-subtask-logs-baseline",
+   "sha256": "9b6a626447f104bc2cc876c1da38163f4691d748e90b71ac7f87d6604efd70fc"
+  },
+  {
+   "bytes": 542,
+   "path": "body/mind/tools/own/compare-subtask-logs-baseline.bak",
+   "sha256": "9b6a626447f104bc2cc876c1da38163f4691d748e90b71ac7f87d6604efd70fc"
+  },
+  {
+   "bytes": 3191,
+   "path": "body/mind/tools/own/compare-subtask-logs.bak",
+   "sha256": "39b9afac26a3d12da87c1b61109870476b4a8ae46232f22144f6fe3e41c907a1"
+  },
+  {
+   "bytes": 4,
+   "path": "body/mind/tools/own/compare-with-baseline",
+   "sha256": "a00c3b59d5e9e2d8ad78e29258e13b5cf4807919ebb5a523c199e8da1cda91b9"
+  },
+  {
+   "bytes": 145,
+   "path": "body/mind/tools/own/compare-with-baseline.bak",
+   "sha256": "503639f4f255577f9bb2562775ed6791baffbcd8c6e360784b47b721d9cdbd36"
+  },
+  {
+   "bytes": 1789,
+   "path": "body/mind/tools/own/fetch",
+   "sha256": "38813ae8749099892d169cae04db74426d042f8763c44afab46ce89ce7c75882"
+  },
+  {
+   "bytes": 425,
+   "path": "body/mind/tools/own/filter-multi-parent-by-code",
+   "sha256": "c097705b850854e0c3210cf2e08ee51effec270d425ed49cc3a38fd4307f1dad"
+  },
+  {
+   "bytes": 163,
+   "path": "body/mind/tools/own/filter-multi-parent-by-code.bak",
+   "sha256": "9af25bdb09fb826b5859dda925d378e2c16d4e560b663b8d5408bb632e4938f0"
+  },
+  {
+   "bytes": 2905,
+   "path": "body/mind/tools/own/filter-recursive-subtask-logs",
+   "sha256": "622d86a3537b74a0c95fea2b302cf30b15888c345a3317a445d4506658e8e10f"
+  },
+  {
+   "bytes": 2273,
+   "path": "body/mind/tools/own/filter-recursive-subtask-logs.bak",
+   "sha256": "4dda70c93b1bff83ee7068718f3bd9e6c4530ccb20c8c8873ca542aa57ff873d"
+  },
+  {
+   "bytes": 2666,
+   "path": "body/mind/tools/own/integrate-subagent-orchestrator",
+   "sha256": "c558608fd63545237a9d511a60854bca697dbcfb68816bafef892891eea3d9c7"
+  },
+  {
+   "bytes": 1924,
+   "path": "body/mind/tools/own/integrate-subagent-orchestrator-with-plan",
+   "sha256": "d3f00a09b7e337cf32156a460a190e2500bf7c8b417d46fcd06e200c180264fd"
+  },
+  {
+   "bytes": 1787,
+   "path": "body/mind/tools/own/integrate-subagent-orchestrator-with-plan.bak",
+   "sha256": "f7b952ec4dce52fe3e1be1999486e709d20e658e75caf04001d1701f875b8e31"
+  },
+  {
+   "bytes": 2436,
+   "path": "body/mind/tools/own/integrate-subagent-orchestrator.bak",
+   "sha256": "050c5ca3c2601e86508746260e8919ce000c5165854217874b5963450efd93e0"
+  },
+  {
+   "bytes": 1092,
+   "path": "body/mind/tools/own/json-pretty",
+   "sha256": "7e58b9a73eafd391bb77ec15c8c8da1f44b06ab6e2c4ba403488a2b695b70605"
+  },
+  {
+   "bytes": 1428,
+   "path": "body/mind/tools/own/list-parent-tasks",
+   "sha256": "05c9f840adf49affc57891b14333cbe099537e34e81a6ff7ccfb0274cc5526e7"
+  },
+  {
+   "bytes": 2063,
+   "path": "body/mind/tools/own/list-subtasks",
+   "sha256": "8f4066ed728a6d636e4bb34236ccbb8cb44f2b8a382a598e6d03259c4f2a64ee"
+  },
+  {
+   "bytes": 2111,
+   "path": "body/mind/tools/own/list-subtasks-detailed",
+   "sha256": "937b21cbe3c5d0f6cafadcfa35924369aeb4b69cc141456d6ac8c784d4ee6c69"
+  },
+  {
+   "bytes": 148,
+   "path": "body/mind/tools/own/list-subtasks-detailed.bak",
+   "sha256": "889aae9aa105e3c5267073f734b7290158367fed09f45aa059cb34e023a3dc92"
+  },
+  {
+   "bytes": 1361,
+   "path": "body/mind/tools/own/list-subtasks.bak",
+   "sha256": "7a9feabb4b5e7f38b33aaa34c10900b7788118b7539edc7841f81cd44c65eeb9"
+  },
+  {
+   "bytes": 1150,
+   "path": "body/mind/tools/own/obtain-parent-task-id",
+   "sha256": "6b92f3d2bd7b50bbefc278f556bf2c2de092874220f482486bc26f3a6cc91a46"
+  },
+  {
+   "bytes": 145,
+   "path": "body/mind/tools/own/obtain-parent-task-id.bak",
+   "sha256": "03f5e8546468510308311d196d5ef86bd2dbb17ee09117d8f6e7af530089213d"
+  },
+  {
+   "bytes": 1343,
+   "path": "body/mind/tools/own/path",
+   "sha256": "cdd510115f3ea3913e23cdd8d677fab2f7c68a32821fe34d30e1da8360000bd6"
+  },
+  {
+   "bytes": 5365,
+   "path": "body/mind/tools/own/plan",
+   "sha256": "fb8ece1a1669121547e85460942245737892f37d0ec6dbfeabb2ae26c323c1b0"
+  },
+  {
+   "bytes": 885,
+   "path": "body/mind/tools/own/plan-clear-goal",
+   "sha256": "adbeed4393e256fdceae56aab2e8dbde09c56ca30938821af3641111b4d07262"
+  },
+  {
+   "bytes": 1765,
+   "path": "body/mind/tools/own/plan-export-subtasks",
+   "sha256": "5eaf3c6906660ea2b0a34eb70490a064143907a762146b96b7d28e74985a017c"
+  },
+  {
+   "bytes": 2286,
+   "path": "body/mind/tools/own/plan-export-subtasks-filter",
+   "sha256": "1e26a39b6d538d12944d65515294946a4dc765d3cd01e40851077fa087e48a26"
+  },
+  {
+   "bytes": 2644,
+   "path": "body/mind/tools/own/plan-import-from-archive",
+   "sha256": "d7ffdee7c101b9b2a37b3dc532fcc4b7c42118997f2d2fec2ccfdd27dc78db30"
+  },
+  {
+   "bytes": 1536,
+   "path": "body/mind/tools/own/plan-import-subtasks",
+   "sha256": "de889fb8c580e800f236ea3bedc08ab734dec7e14361e82339f2dce9843a6c81"
+  },
+  {
+   "bytes": 1477,
+   "path": "body/mind/tools/own/plan-link-archive",
+   "sha256": "4607ba724b1b5bcaec63dee91f3b7bd3406da9762979ba40e8a719fe8f5e0cda"
+  },
+  {
+   "bytes": 744,
+   "path": "body/mind/tools/own/plan-list-goals",
+   "sha256": "66555e1d29e689d6cbe61e7e933ca2f8de6f64bba78288400be7217c723383ee"
+  },
+  {
+   "bytes": 1083,
+   "path": "body/mind/tools/own/plan-set-goal",
+   "sha256": "31552eb6775c3fc6aae19e0742c9c49970468b42dd0256578e7ea5c131f4b598"
+  },
+  {
+   "bytes": 4716,
+   "path": "body/mind/tools/own/plan.bak",
+   "sha256": "7ff0325e135ca93fddbbeab445b512760683cb594209e4945e0298830f6c9989"
+  },
+  {
+   "bytes": 5867,
+   "path": "body/mind/tools/own/preview-subtasks",
+   "sha256": "c87fa5cf6664c58f9137a092afdc5ddeebedb38bd4a42e05b910ca9d40b857f3"
+  },
+  {
+   "bytes": 4224,
+   "path": "body/mind/tools/own/preview-subtasks.bak",
+   "sha256": "d3d5807981420a56120afff8f643e050ffbbcaa07e17574529385b74a64b609d"
+  },
+  {
+   "bytes": 922,
+   "path": "body/mind/tools/own/process-all-tasks",
+   "sha256": "08a540ce2c3f8f1ea728de61fdc43f1e8c20374c6c0bc9576304a6a5f41067e5"
+  },
+  {
+   "bytes": 133,
+   "path": "body/mind/tools/own/process-all-tasks.bak",
+   "sha256": "652d03c22f02297dc796ff180084396d22daa5f7e4ae030aa2abfbbd1d92bd44"
+  },
+  {
+   "bytes": 790,
+   "path": "body/mind/tools/own/progress-reporter",
+   "sha256": "18fd85a2365c2dba6b6057ec0f6bb8f8138f7079c0e06dda49b87d308f50c665"
+  },
+  {
+   "bytes": 485,
+   "path": "body/mind/tools/own/progress-reporter.bak",
+   "sha256": "4cde7af7d5fa0523b8b939de596c36d237f0c3460f2b55c2171f62bd8a37c39f"
+  },
+  {
+   "bytes": 1846,
+   "path": "body/mind/tools/own/progress-summary",
+   "sha256": "9df1b29d19852e475f0f0432262c4196aede18e5d8c814b23fef40078c3a06d9"
+  },
+  {
+   "bytes": 2424,
+   "path": "body/mind/tools/own/progress-summary.bak",
+   "sha256": "c558a1c1fbd52950f4fb4eba87f23ef696de188ae76580c290a01d7efd45c16c"
+  },
+  {
+   "bytes": 418,
+   "path": "body/mind/tools/own/set-baseline",
+   "sha256": "f3850eb3c11ab1cfcae496be8cde3d783253dc000627b72ff6374fd466cd9028"
+  },
+  {
+   "bytes": 118,
+   "path": "body/mind/tools/own/set-baseline.bak",
+   "sha256": "5ee70e93cb59847e22b394bee0f6f624f1f05ab8c3bbaf5e067340a600d0ecc2"
+  },
+  {
+   "bytes": 7223,
+   "path": "body/mind/tools/own/subagent-orchestrator",
+   "sha256": "439d5cedd8acb5b8281480906767ce673c3a51a4c3dd15119468b77fb33d1175"
+  },
+  {
+   "bytes": 4523,
+   "path": "body/mind/tools/own/subagent-orchestrator.bak",
+   "sha256": "5a8c6470d7f4e460b2627737dc7685c0cde2466d478343780695240efd4d5881"
+  },
+  {
+   "bytes": 3101,
+   "path": "body/mind/tools/own/subtask-log-filter",
+   "sha256": "967fc77fc39290faa82a41eba0dfef009abdfd8fd77fc9d556fce3f5ee120f09"
+  },
+  {
+   "bytes": 3095,
+   "path": "body/mind/tools/own/subtask-log-filter-by-parent",
+   "sha256": "15089b7672778fbf4690588557bc81fb2d9ef2e5d0dba928a0f7f5eb80d76515"
+  },
+  {
+   "bytes": 2957,
+   "path": "body/mind/tools/own/subtask-log-filter-by-parent.bak",
+   "sha256": "d89058416961af9f29f1bab7938cab5b380a903753135288f5dffe5598e1329c"
+  },
+  {
+   "bytes": 2699,
+   "path": "body/mind/tools/own/subtask-log-filter-by-statuscode",
+   "sha256": "46ccb4b99a1c46b4550429cca54ff30e74ad2d56cbf73e67ee03e148ac456ba6"
+  },
+  {
+   "bytes": 2525,
+   "path": "body/mind/tools/own/subtask-log-filter.bak",
+   "sha256": "26a81f3f9ed8faaf1e9e119adf2e130f39955da233eda80c71210cfc9e1a18a9"
+  },
+  {
+   "bytes": 2306,
+   "path": "body/mind/tools/own/subtask-log-table",
+   "sha256": "ab8a0fe3413a246b57ac58e61d97879186d0e3e78898e9088f648f018ed3755e"
+  },
+  {
+   "bytes": 1439,
+   "path": "body/mind/tools/own/subtask-log-viewer",
+   "sha256": "4844e9d2981129d2347dac149018afa7252b104af503846bd844cd798b1b57e9"
+  },
+  {
+   "bytes": 2561,
+   "path": "body/mind/tools/own/subtask-logs-multi",
+   "sha256": "72be3845c589b6f5f4035c6478571e837e637799da36fe1a15e1783ec96df573"
+  },
+  {
+   "bytes": 1971,
+   "path": "body/mind/tools/own/subtask-logs-multi.bak",
+   "sha256": "9a6877864b0273aa0c8f3319de023d91a9b5f298447a91b01432edeac1547ac2"
+  },
+  {
+   "bytes": 3552,
+   "path": "body/mind/tools/own/summarize-subtask-logs",
+   "sha256": "e5baec41eb53e2467758fea485cefdfe30fa53ff085ca7b4fd151c4e7915957d"
+  },
+  {
+   "bytes": 2685,
+   "path": "body/mind/tools/own/synthesize-multi-parent-logs",
+   "sha256": "be993a8e74f7f2dcf5cdcc9ad8d0b07325dfcaeb87e18e03a04f049e45814f71"
+  },
+  {
+   "bytes": 166,
+   "path": "body/mind/tools/own/synthesize-multi-parent-logs.bak",
+   "sha256": "179e6f1b871af445ddfffa0572b2054759762e4bdae6124d5a783111e18e5ab9"
+  },
+  {
+   "bytes": 2756,
+   "path": "body/mind/tools/own/view-recursive-subtask-logs",
+   "sha256": "dc07b28034b29263e6b3647987e9f1778d0fe4b178f27b7460ad7c8d93bd3fb7"
+  },
+  {
+   "bytes": 2230,
+   "path": "body/mind/tools/own/view-subtask-logs",
+   "sha256": "fffcbc879238f29b57b4dece7f60c20405f79b691cbe2af18392f7c0f90bd7f4"
+  },
+  {
+   "bytes": 231,
+   "path": "context.md",
+   "sha256": "3c3fb4212cfaadf7e9fd6b0d2ad118e36f855ba8733a7027cf73aeaa75079d82"
+  },
+  {
+   "bytes": 112497,
+   "path": "engine.log",
+   "sha256": "322e47614fb6dd48a353e193826516e04d3811a957deb836a4d44959c150cfb1"
+  },
+  {
+   "bytes": 5546942,
+   "path": "journal.jsonl",
+   "sha256": "3fead99a4dfd437472cbd2071055c529f62194a62ba0a46421d9555ca7a89441"
+  },
+  {
+   "bytes": 4410,
+   "path": "monitor/alarms.jsonl",
+   "sha256": "697609e5d92f210d404284cd2babb65ad874f5e5cd163f5e69a6ad3325f29212"
+  },
+  {
+   "bytes": 1125,
+   "path": "monitor/regression/00d77d1-20260915-0056.md",
+   "sha256": "453c0386c2f4554ab83be493daa7b21bd335259050b4a0ff4fcfdb43b6efe252"
+  },
+  {
+   "bytes": 1123,
+   "path": "monitor/regression/28c4eda-20260916-0142.md",
+   "sha256": "2cd0591d007b294312564709b8e8ff9cee7f76bddeb449677a8ebf128bf3e294"
+  },
+  {
+   "bytes": 1127,
+   "path": "monitor/regression/e8d94f2-20260915-1910.md",
+   "sha256": "32653af40b45295dec94d1e2d6f44a65a153c70b511cb5d12b837a65a256b9f9"
+  },
+  {
+   "bytes": 23680,
+   "path": "monitor/status.json",
+   "sha256": "d65c7b775b79c7f1437513b97c974afc8cf0bfda743b3010a8082f9432840802"
+  },
+  {
+   "bytes": 10399,
+   "path": "monitor/status.md",
+   "sha256": "27aeebfbb3dc7175ba4296b7a42994e0806a1c2e82c807e50e670e2159727758"
+  },
+  {
+   "bytes": 624,
+   "path": "quota.json",
+   "sha256": "0a2b1d9b9828cd8be404d471abf7c32bf0c4aadf92ab2ebf41d992f358fec647"
+  },
+  {
+   "bytes": 132769,
+   "path": "vitals.jsonl",
+   "sha256": "81b3eb6e7bc00f1126feb577c17e06894360e25790e3c01d78108feb96ee9d28"
+  }
+ ],
+ "journal": {
+  "bad_lines": 0,
+  "engines": [
+   "43eb8afa62c845db82e4c3e7b690d7462b082179",
+   "00d77d115a2bc1ff1c239b73c8f146ee2af9bc5c",
+   "e8d94f2bfacd814ab2b37dd49fa9d92647597da6",
+   "e7d4ea4511cd5147914f398095dcccad4ad99c20",
+   "c7923d639723a59344e1ba8e3c8445c3cffe58c4",
+   "a8c4e43377587f8168f645a5feeb267c7fdd5b58",
+   "28c4eda349d5645010fd6a51533acd22c4ff38de"
+  ],
+  "events": 12143,
+  "first_ts": 1789296513.822504,
+  "kinds": {
+   "context_written": 85,
+   "cousin_noticed": 17,
+   "cousin_probe": 250,
+   "cousin_unusable": 19,
+   "cousin_verdict": 160,
+   "cousin_want": 85,
+   "engine_start": 7,
+   "error": 6,
+   "exec_end": 1373,
+   "exec_skip": 61,
+   "exec_start": 1373,
+   "loop_end": 7,
+   "loop_start": 30,
+   "loop_waiting": 608,
+   "preflight_failed": 19,
+   "rung_declined": 3785,
+   "rung_error": 67,
+   "rung_fell_through": 282,
+   "rung_recovered": 234,
+   "selfcheck": 7,
+   "think": 1041,
+   "think_deferred": 505,
+   "tools_changed": 58,
+   "trigger_fired": 315,
+   "visit_deferred": 90,
+   "visit_unanswered": 19,
+   "wake": 1567,
+   "want_retired": 73
+  },
+  "last_ts": 1789519467.522837,
+  "loop_starts": 30
+ },
+ "repo_head": "c4b3e279d1e80184f9414135c2d8ab90063a3cb3",
+ "root": "/home/boas/growing-cousin/live",
+ "run": "run-2",
+ "secret_scan": "0 key-shaped strings in 98 files",
+ "skipped": [],
+ "tarball": "run-2-20260916-0244.tar.gz",
+ "tarball_sha256": "64903aee5da7dcb7839883e4cbae8bf8bfb2031e216dd878269bc06e83d30dba",
+ "total_bytes": 6004649
+}
