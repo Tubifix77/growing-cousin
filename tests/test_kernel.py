@@ -3522,6 +3522,64 @@ def _paragraphs(text):
             for p in re.split(r"\n\s*\n", text) if p.strip()]
 
 
+def test_every_hand_the_creature_has_is_one_it_has_been_told_about():
+    """PLAN item 14.5, which is the one criterion of item 14 that is NOT met.
+
+    `hands/say` exists, is on the creature's PATH, and is in its container --
+    and `CREATURE-PROMPT.md` does not mention it. The prompt names `remember`,
+    `recall`, `tool-new` and `tool-edit`, and tells the creature to list
+    `tools/own/`, which is its OWN work and not where its hands live. So the
+    channel is one-way in practice: a human can speak to it, and the reply
+    path is a hand nobody introduced.
+
+    **That is deliberate and it is recorded**: `CREATURE-PROMPT.md` is frozen,
+    a prompt change is a behaviour change needing a before/after, and item 14
+    exists last precisely because a new surface arriving mid-measurement makes
+    every number on either side incomparable. The trigger is to add it in the
+    same change that unfreezes the brief.
+
+    **What was missing is an instrument.** Item 13 earned its detector on the
+    argument that *a decision recorded and then unwatched is indistinguishable
+    from one forgotten*; 14.5 is the same shape and was prose only, which a
+    verifier pointed out. So the gap is now an exception with a name: the
+    lists must agree EXCEPT for what `TOLD_LATER` holds, so adding a hand
+    silently goes red, and the day `say` is introduced the entry must be
+    deleted or this goes red then instead. The gap cannot be forgotten in
+    either direction, which is all a deferral has to promise.
+    """
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    hands_dir = os.path.join(repo, "hands")
+    prompt = io.open(os.path.join(repo, "CREATURE-PROMPT.md"),
+                     encoding="utf-8").read()
+    hands = sorted(n for n in os.listdir(hands_dir)
+                   if os.path.isfile(os.path.join(hands_dir, n))
+                   and not n.startswith(".") and not n.endswith((".bak", ".md")))
+    check("hands: the creature has hands at all, or this proves nothing",
+          len(hands) >= 4, hands)
+
+    # The single recorded exception, with the reason it is one.
+    TOLD_LATER = {"say": "PLAN 14.5 -- lands with the brief's unfreeze, "
+                         "because a new surface mid-measurement makes the "
+                         "numbers on either side incomparable"}
+    # A hand is "named" if it appears in backticks, WITH OR WITHOUT its
+    # arguments: the prompt writes `tool-edit <name>`, and the first draft of
+    # this check hunted the exact literal `tool-edit` and reported it
+    # unmentioned -- a guard keyed on one literal string, in the test written
+    # to stop a hand going unmentioned. Third time that shape has appeared in
+    # this file.
+    unmentioned = [h for h in hands
+                   if not re.search(r"`%s(?=[ `])" % re.escape(h), prompt)]
+    check("hands: every hand is either named in the creature's prompt or "
+          "recorded as deliberately withheld -- never merely absent",
+          set(unmentioned) <= set(TOLD_LATER), sorted(unmentioned))
+    check("hands: and every withheld hand still EXISTS, so the exception "
+          "cannot outlive the thing it excuses",
+          set(TOLD_LATER) <= set(hands), sorted(set(TOLD_LATER) - set(hands)))
+    for h in sorted(set(TOLD_LATER) & set(unmentioned)):
+        check("hands: `%s` is withheld on purpose: %s" % (h, TOLD_LATER[h]),
+              True)
+
+
 def test_the_chat_channel_is_a_scheduled_intention():
     """PLAN item 2. It has sat in every "not built" list since 2026-09-11
     without ever being decided either way, which is the difference §4 draws
@@ -5953,6 +6011,7 @@ def main():
                test_the_drills_give_the_unproven_detectors_their_red,
                test_the_giveup_drill_proves_the_chain_systemd_owns,
                test_the_census_runs_by_itself,
+               test_every_hand_the_creature_has_is_one_it_has_been_told_about,
                test_the_chat_channel_is_a_scheduled_intention,
                test_the_inherited_library_is_recorded_as_not_executed,
                test_the_cousins_audit_has_a_named_trigger,
