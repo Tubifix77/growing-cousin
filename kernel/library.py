@@ -110,6 +110,26 @@ def use_history(journal):
     return out
 
 
+def qualified_runs(rec):
+    """How many probes actually TOLD US SOMETHING about this tool.
+
+    A bare call that came back with a usage line says the tool works and
+    nothing about whether it does its job; a probe recorded before the `bare`
+    flag existed cannot be classified at all; a probe the ladder never
+    answered never reached the tool (those are not in `runs`). None of the
+    three is knowledge. What counts is a real invocation with a real exit
+    code: `ok` plus genuine failures.
+
+    ONE definition, here, because two copies of a rule drift and no test
+    notices -- already paid for in this repo by `wants()`, by the caps and by
+    the census. `choose_target` ranks on it and `status` renders from it.
+    """
+    if not rec:
+        return 0
+    return max(0, rec.get("runs", 0) - rec.get("asked", 0)
+               - rec.get("unqualified", 0))
+
+
 def status(rec):
     """One line of fact. No adjectives -- counts and an exit code.
 

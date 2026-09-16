@@ -764,8 +764,28 @@ class Engine:
         if not tools_after:
             return "", "none"
         hist = librarymod.use_history(self.j)
+        # WHAT WE KNOW, NOT HOW OFTEN WE CALLED. `least_probed` ranked on
+        # `runs`, and `runs` counts bare calls -- so a tool whose user had
+        # reached for it 54 times without ever being able to pass an argument
+        # looked thoroughly explored while its outcome was entirely unknown,
+        # and the chooser walked away from it towards tools already proven to
+        # work. Measured 2026-09-16: 19 of 50 tools had never once returned a
+        # clean run for the cousin, and almost every one of those was a bare
+        # call, not a failure.
+        #
+        # Same shape as the alphabetical fallback this replaced: a number that
+        # is not a reason, used as one. The reason is recorded either way, and
+        # they are DIFFERENT reasons -- `unknown_outcome` means nobody has
+        # learned anything about this tool yet, `least_probed` means everything
+        # is known and the visit is spreading the load.
+        unknown = [n for n in tools_after
+                   if not librarymod.qualified_runs(hist.get(n))]
+        if unknown:
+            return (min(unknown,
+                        key=lambda n: (hist.get(n, {}).get("runs", 0), n)),
+                    "unknown_outcome")
         return (min(tools_after,
-                    key=lambda n: (hist.get(n, {}).get("runs", 0), n)),
+                    key=lambda n: (librarymod.qualified_runs(hist.get(n)), n)),
                 "least_probed")
 
     def sync_cousin_world(self):

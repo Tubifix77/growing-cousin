@@ -518,7 +518,7 @@ def probe_stuck(ctx):
                    "NOT a framework fault. Read it before changing anything "
                    "in the chooser" % top_n)
             scar = "a checker that cannot distinguish the thing it measures"
-        elif top == "least_probed":
+        elif top in ("least_probed", "unknown_outcome"):
             why = ("the framework walked the library to it %d times, which "
                    "`least_probed` should not do -- a chooser fault, not a "
                    "fact about the tool" % top_n)

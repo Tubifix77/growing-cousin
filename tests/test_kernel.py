@@ -6290,6 +6290,81 @@ def test_the_evidence_pack_is_hashed_and_refuses_secrets():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_probe_goes_to_what_nobody_knows_not_to_what_was_called_least():
+    """19 of 50 tools had never returned a clean run, and the chooser was
+    walking AWAY from them.
+
+    2026-09-16, from reading the whole library: nearly every one of those 19
+    was a bare call -- the tool correctly refusing incomplete input -- not a
+    failure. So their outcome was UNKNOWN, which is the one thing a second
+    user is for. Meanwhile `least_probed` ranked on `runs`, and `runs` counts
+    bare calls: `view-subtask-logs` had been reached for **54 times** without
+    its user ever being able to pass an argument, so it read as the
+    best-explored tool in the library while nothing at all was known about
+    it. The chooser then preferred tools already proven to work.
+
+    Same shape as the alphabetical fallback it replaced (§5, 2026-09-15): **a
+    number that is not a reason, used as one.** There the number was a
+    position in a sorted list; here it is a count that measures our effort
+    instead of our knowledge.
+
+    **This is the non-interventionist repair, and that matters.** Nothing is
+    told to the creature and no tool of its is touched — §2.1 and §2.4. The
+    fault was never in the creature's tools; it was in which tool the
+    framework sent its user to, and the fix is in the framework. The response
+    to a gap in what we know is to go and look, not to tell the creature to
+    explain itself.
+    """
+    import kernel.library as librarymod
+    e, j, b, d = build_engine([""], [""])
+    # A tool reached for constantly and never once with arguments: 54 bare
+    # probes, nothing learned. The real `view-subtask-logs`.
+    for _ in range(54):
+        j.append("cousin_probe", tool="view-subtask-logs", exit_code=2,
+                 bare=True)
+    # A tool already proven to work.
+    j.append("cousin_probe", tool="plan", exit_code=0, bare=False)
+    # A tool barely touched, and also unknown.
+    for _ in range(2):
+        j.append("cousin_probe", tool="archive-get", exit_code=2, bare=True)
+    tools = ["archive-get", "plan", "view-subtask-logs"]
+
+    name, how = e.choose_target([], tools, tools)
+    check("chooser: it goes to a tool whose outcome nobody knows",
+          how == "unknown_outcome", (name, how))
+    check("chooser: and not to the one already proven to work",
+          name != "plan", (name, how))
+    check("chooser: among the unknown it takes the least-reached, so visits "
+          "WALK rather than sitting on one entry",
+          name == "archive-get", (name, how))
+
+    # Once something is known, it stops being the target.
+    j.append("cousin_probe", tool="archive-get", exit_code=0, bare=False)
+    name2, how2 = e.choose_target([], tools, tools)
+    check("chooser: a tool that has answered once is no longer unknown",
+          name2 == "view-subtask-logs" and how2 == "unknown_outcome",
+          (name2, how2))
+
+    # And when everything is known it spreads on knowledge, not on calls --
+    # the 54 bare calls must not make a tool look well understood.
+    j.append("cousin_probe", tool="view-subtask-logs", exit_code=0, bare=False)
+    name3, how3 = e.choose_target([], tools, tools)
+    check("chooser: with nothing unknown left it spreads, and says so",
+          how3 == "least_probed", (name3, how3))
+
+    # THE DEFINITION ITSELF, in one place so a count and a display cannot
+    # disagree about what "known" means.
+    check("chooser: 54 bare calls are not knowledge",
+          librarymod.qualified_runs({"runs": 54, "asked": 54}) == 0)
+    check("chooser: a probe from before the flag existed is not knowledge "
+          "either -- it cannot be classified at all",
+          librarymod.qualified_runs({"runs": 3, "unqualified": 3}) == 0)
+    check("chooser: a real failure IS knowledge -- it tells its user more "
+          "than a usage line does",
+          librarymod.qualified_runs({"runs": 2, "asked": 1}) == 1)
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_probe_never_defaults_to_the_last_name():
     """`tools_after[-1]` sent the cousin to the alphabetically LAST tool on
     every visit that was not about a fresh write. Measured over run 2
@@ -6319,8 +6394,13 @@ def test_the_probe_never_defaults_to_the_last_name():
         name, how = e.choose_target([("echo nothing", 0)], lib, lib)
         seen.append((name, how))
         j.append("cousin_probe", tool=name, exit_code=2, bare=True, picked_by=how)
-    check("target: with nothing to go on the reason is least_probed",
-          all(h == "least_probed" for _n, h in seen), seen)
+    # `unknown_outcome`, not `least_probed`, and the difference is the point:
+    # every probe here came back BARE, so after three visits nothing has been
+    # learned about any of these tools. A reason that said "least probed"
+    # would be describing our effort; this one describes our knowledge.
+    check("target: while every probe comes back bare, nothing is known and "
+          "the recorded reason says exactly that",
+          all(h == "unknown_outcome" for _n, h in seen), seen)
     check("target: three such visits reach three different tools -- it walks, "
           "it does not sit", len({n for n, _h in seen}) == 3, seen)
     check("target: the alphabetically last tool is reached by rotation, never "
@@ -6445,6 +6525,7 @@ def main():
                test_a_broken_monitor_does_not_report_as_a_finding,
                test_monitor_page_names_its_engine_and_windows,
                test_the_monitor_unit_is_read_only_over_the_evidence,
+               test_the_probe_goes_to_what_nobody_knows_not_to_what_was_called_least,
                test_the_probe_never_defaults_to_the_last_name,
                test_no_tool_is_ever_hidden_from_the_listing,
                test_deploy_regression_compares_the_hour_after_a_start,
