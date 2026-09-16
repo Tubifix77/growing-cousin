@@ -81,6 +81,13 @@ def use_history(journal):
         name = (r.get("tool") or "").strip()
         if not name:
             continue
+        if r.get("exit_code") is None:
+            # NOTHING RAN -- the ladder never answered when the cousin was
+            # asked what to type. Counting it as a run would tell both
+            # inhabitants their user had tried something it never tried, and
+            # `choose_target`'s `least_probed` would walk away from a tool
+            # that has still never been probed.
+            continue
         rec = out.setdefault(name, {"runs": 0, "ok": 0, "asked": 0,
                                     "unqualified": 0, "last_code": None})
         rec["runs"] += 1

@@ -412,8 +412,9 @@ def render_md(d):
     row("wakes / thinks / commands", lambda w: "%d / %d / %d" % (w["wakes"], w["thinks"], w["commands"]))
     row("commands ok / failed", lambda w: "%d / %d" % (w["cmd_ok"], w["cmd_failed"]))
     row("commands LOST (skips)", lambda w: "%d  %s" % (w["commands_lost"], w["skips"] or ""))
-    row("probes worked / asked / failed / unqualified",
-        lambda w: "%(worked)d / %(asked)d / %(failed)d / %(unqualified)d" % w["probes"])
+    row("probes worked / asked / failed / unqualified / lost",
+        lambda w: "%(worked)d / %(asked)d / %(failed)d / %(unqualified)d"
+                  " / %(lost)d" % w["probes"])
     row("verdicts", lambda w: w["verdicts"])
     row("wants (distinct)", lambda w: "%d (%d)" % (w["wants"], w["wants_distinct"]))
     row("tool writes new / edit", lambda w: "%d / %d" % (w["tool_writes_new"], w["tool_writes_edit"]))

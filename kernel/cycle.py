@@ -879,8 +879,42 @@ class Engine:
                 # copy, and `cousin.choose_invocation` for why the framework
                 # does not compose the command out of the `# call:` line.
                 copied = self.sync_cousin_world()
-                chosen, cmeta = cousinmod.choose_invocation(
-                    self.ask_cousin, header, library)
+                try:
+                    chosen, cmeta = cousinmod.choose_invocation(
+                        self.ask_cousin, header, library)
+                except Exception as e:
+                    # THE PROBE THAT VANISHED, 2026-09-16, found by a verifier
+                    # reading the live journal rather than by any test.
+                    # Choosing the command is a MODEL call, so on a dry free
+                    # tier it raises -- and the exception left `evidence()`
+                    # before anything was appended, so the whole probe
+                    # disappeared without trace. Observed live: the cousin's
+                    # world was copied at 02:02:08, 49 tools, and the journal
+                    # for that second holds the trigger, five `rung_declined`
+                    # and no `cousin_probe` at all.
+                    #
+                    # The old bare path journalled the probe BEFORE asking
+                    # anyone, so it could not lose one this way. That makes
+                    # probe counts before and after item 9 incomparable in the
+                    # worst direction: the after-window under-counts by
+                    # however often the tier is dry, which is most of the
+                    # time, and the shortfall would have read as the cousin
+                    # probing less.
+                    #
+                    # Recorded as an ATTEMPT, never as a run. `exit_code` is
+                    # None because nothing executed; every consumer treats
+                    # that as CANNOT TELL rather than as a failure, or a dry
+                    # free tier reads as a broken tool.
+                    self.j.append("cousin_probe", tool=target,
+                                  exit_code=None, bare=False,
+                                  picked_by=picked_by, cmd=None,
+                                  chosen_by="ladder_dry",
+                                  library_copied=copied,
+                                  error="%s: %s" % (type(e).__name__, e),
+                                  stdout="", stderr="")
+                    # RE-RAISED unchanged: what an unreachable ladder MEANS is
+                    # the supervisor's decision, not this function's.
+                    raise
                 if chosen:
                     r = self.cousin_body.run(chosen)
                     needs_args = False

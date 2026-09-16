@@ -4705,6 +4705,75 @@ def test_nothing_the_cousin_runs_can_change_the_creatures_tools():
     b.destroy(); cb.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_probe_the_ladder_never_answered_is_recorded_and_never_a_failure():
+    """PLAN item 9, and the measurement it is supposed to produce.
+
+    Item 9 made the cousin choose its own invocation, which turned the probe
+    into a MODEL call. On a dry free tier that call raises -- and until
+    2026-09-16 the exception left `evidence()` before anything was journalled,
+    so the entire probe vanished. Found by a verifier reading the live journal,
+    not by this suite: the cousin's world was copied at 02:02:08 with 49 tools
+    in it, and the journal for that second holds the trigger, five
+    `rung_declined`, and no `cousin_probe` at all.
+
+    **Two faults, and the second is the expensive one.** The probe is lost, and
+    the loss is INVISIBLE -- so the after-window of item 9.5 would under-count
+    by however often the tier was dry (most of the time, on free rungs) and the
+    shortfall would read as *the cousin probes less now*. The old bare path
+    journalled the probe before asking anyone and could not lose one this way,
+    so the before and after were not comparable in the worst direction.
+
+    What must hold: the attempt is recorded, and NOTHING counts it as a run or
+    a failure. `exit_code=None` is *cannot tell* -- the three-state rule, whose
+    absence is the top scar in this file's doctrine. A dry ladder counted as a
+    failure is the page telling its reader the creature's floor is broken.
+    """
+    import kernel.library as librarymod
+    import monitor.derive as derivemod
+    from kernel import backends
+
+    def dry(_prompt):
+        raise backends.LadderExhausted("no rung answered; tried gemini",
+                                       all_walled=False)
+
+    e, j, b, d = build_engine(
+        ["```bash\nmkdir -p tools/own && printf '#!/bin/sh\\n# does: keeps the "
+         "plan\\n# call: plan list\\necho REAL\\n' > tools/own/plan && chmod "
+         "+x tools/own/plan\n```"],
+        [])
+    import run as runmod
+    cb = runmod.PathBody(os.path.join(d, "cousin-body"))
+    e.cousin_body = cb
+    e.ask_cousin = dry
+    try:
+        e.run_cycle()
+    except backends.LadderExhausted:
+        pass          # the supervisor's business; the cycle defers as before
+
+    probes = j.read(kinds=["cousin_probe"])
+    check("lost probe: the attempt is in the journal at all", len(probes) == 1,
+          len(probes))
+    p = probes[-1] if probes else {}
+    check("lost probe: recorded as reaching nobody",
+          p.get("exit_code") is None and p.get("cmd") is None, p)
+    check("lost probe: and says WHY, so it is not mistaken for a refusal",
+          p.get("chosen_by") == "ladder_dry", p.get("chosen_by"))
+
+    hist = librarymod.use_history(j)
+    check("lost probe: the library does not tell either inhabitant their user "
+          "ran this", not hist.get("plan", {}).get("runs"), hist)
+    line = librarymod.status(hist.get("plan"))
+    check("lost probe: so the line still reads NEVER RUN, not failed",
+          "NEVER run" in line, line)
+
+    rec = derivemod.probe_record(j.read())
+    check("lost probe: the page counts it apart", rec.get("lost") == 1, rec)
+    check("lost probe: and NOT as a failure -- a dry free tier is not a "
+          "broken tool", rec.get("failed") == 0 and rec.get("worked") == 0,
+          rec)
+    b.destroy(); cb.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_framework_never_invents_the_cousins_command():
     """PLAN item 9.2. When the cousin cannot think what to type, that is a
     fact about the tool and belongs in the transcript. A framework that
@@ -5780,6 +5849,7 @@ def main():
                test_the_cousin_runs_the_tool_with_its_own_hands,
                test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing,
                test_nothing_the_cousin_runs_can_change_the_creatures_tools,
+               test_a_probe_the_ladder_never_answered_is_recorded_and_never_a_failure,
                test_the_framework_never_invents_the_cousins_command,
                test_the_trial_waits_out_a_rate_limit_instead_of_recording_a_failure,
                test_the_window_decision_is_watched_rather_than_just_recorded,

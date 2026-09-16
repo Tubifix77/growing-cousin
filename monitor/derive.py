@@ -186,11 +186,18 @@ def probe_record(rows):
     -- the same three the library shows, plus the honest fourth for probes
     written before `bare` was recorded, which CANNOT be classified and must
     not be counted as failures (that misreading is CLAUDE.md §5's top scar)."""
-    rec = {"worked": 0, "asked": 0, "failed": 0, "unqualified": 0}
+    rec = {"worked": 0, "asked": 0, "failed": 0, "unqualified": 0,
+           "lost": 0}
     for r in rows:
         if r.get("kind") != "cousin_probe":
             continue
-        if r.get("exit_code") == 0:
+        if r.get("exit_code") is None:
+            # The ladder never answered when the cousin was asked what to
+            # type, so the tool was never reached. Its own bucket: a dry free
+            # tier counted as `failed` is this page telling its reader the
+            # creature's floor is broken.
+            rec["lost"] += 1
+        elif r.get("exit_code") == 0:
             rec["worked"] += 1
         elif "bare" not in r:
             rec["unqualified"] += 1
