@@ -3764,6 +3764,53 @@ def test_the_journal_names_the_engine_that_wrote_it():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_journal_says_which_body_the_creature_ran_in():
+    """A journal that cannot say whether the creature was CONTAINED.
+
+    2026-09-16. `live/monitor/alarms.jsonl` recorded `DISPROVEN at start:
+    keys_unreadable` and cleared it four minutes later at the next start. The
+    question that matters -- was the creature running uncontained in those
+    four minutes, and did it execute anything -- could not be answered from
+    the journal at all. A verifier answered it with `git show` against the
+    commit SHA in `engine_start`, reading the unit file out of that commit to
+    see whether `--body docker` was present yet. (It was not; the engine was
+    on `LocalBody`, and nothing happened to run in the window.)
+
+    That is §5's newest systemd scar in the journal's own voice: *there is no
+    directive to read back -- only an absence.* `engine_start` carried the
+    commit, the caps and the rungs, and said nothing about the single fact the
+    whole of PLAN item 7 turns on.
+
+    Asked of the BODY OBJECT, never of the `--body` flag, because the flag is
+    what was believed and the object is what runs -- the same distinction that
+    let a stale unit ship `--body docker` while `LocalBody` was live.
+    """
+    import run as runmod
+    d = tmpdir()
+    root = os.path.join(d, "live")
+    # `--forever` so an unreachable model is a warning rather than a refusal
+    # (the run must get PAST preflight to record anything), `--cycles 1` so it
+    # is still bounded, `--pause 0` so it does not sleep on the way out.
+    runmod.main(["--forever", "--cycles", "1", "--pause", "0",
+                 "--root", root, "--body", "local",
+                 "--rungs", os.path.join(d, "no-such-rungs.json")])
+    j = Journal(os.path.join(root, "journal.jsonl"))
+    starts = j.read(kinds=["engine_start"])
+    check("body: the run recorded a start at all", len(starts) == 1,
+          len(starts))
+    s = starts[-1] if starts else {}
+    check("body: and it names the body the creature actually got",
+          s.get("body") in ("PathBody", "LocalBody"), s.get("body"))
+    check("body: and says whether that body CONFINES anything",
+          s.get("contained") is False, s.get("contained"))
+    # The field is the class's own answer, so a container records the
+    # opposite without anything here being told about docker.
+    check("body: taken from the body's own contract, not from the flag",
+          bodymod.DockerBody.CONTAINED is True
+          and bodymod.LocalBody.CONTAINED is False)
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_a_wake_records_what_was_served():
     """A promise the context does not keep is invisible unless the journal
     says what the context HELD.
@@ -5873,6 +5920,7 @@ def main():
                test_deploy_regression_compares_the_hour_after_a_start,
                test_the_evidence_pack_is_hashed_and_refuses_secrets,
                test_the_journal_names_the_engine_that_wrote_it,
+               test_the_journal_says_which_body_the_creature_ran_in,
                test_a_wake_records_what_was_served,
                test_the_selfcheck_proves_effects_and_never_vetoes,
                test_loop_end_says_whether_it_gave_up,

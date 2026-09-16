@@ -473,8 +473,18 @@ def main(argv=None):
     # this deployment relies on are tested by their effect and recorded --
     # never enforced here; see `selfcheck`.
     ident = engine_identity(HERE, spec, cousin_spec if spec else None)
+    # WHICH BODY, asked of the object rather than of the flag. 2026-09-16:
+    # `selfcheck` recorded `keys_unreadable` DISPROVEN at one start and true
+    # again at the next, and the journal could not say whether the creature
+    # had been contained in between -- that took `git show` against this
+    # record's own commit SHA to read the unit file out of it. The newest
+    # systemd scar is *there is no directive to read back, only an absence*,
+    # and this record reproduced the absence. Asked of the body because the
+    # flag is what was believed and the body is what runs.
     record_engine_start(j, ident, root=os.path.abspath(args.root),
-                        pause=args.pause, forever=bool(args.forever))
+                        pause=args.pause, forever=bool(args.forever),
+                        body=type(body).__name__,
+                        contained=bool(getattr(body, "CONTAINED", False)))
     print("engine %s%s  python %s"
           % (ident["engine"][:12],
              " (UNCOMMITTED CHANGES)" if ident["dirty"] else "",
