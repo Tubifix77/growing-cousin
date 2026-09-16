@@ -703,3 +703,81 @@ it would be scored against.
 nobody knows rather than to ones already proven, so the cousin gets the
 evidence it needs to form this judgement at all. Visibility first, always;
 the brief comes after.
+
+---
+
+### 17. `[ ]` What of MY job belongs to the cousin — and what does not
+
+**Tue, 2026-09-16:** *"a lot of what we two do here in this line should be
+taken over by the cousin — either as an extension of its prompts or
+skill-like workflows — or a separate subagent instance if all else fails and
+it's too much for the cousin in one run."*
+
+**The architecture said this on day one and I have been drifting from it:**
+*"A scan gathers a fact and decides what to say about it; only the second
+half is framework. Scans become scripts the cousin runs. The deleted 99% is
+the apparatus around them — scheduling, caches, edge-trigger state files,
+warning composition, surfacing rules — all of which exists because nobody was
+there to decide."*
+
+Read that against `monitor/`. I built a **timer** (scheduling), an
+**alarms.jsonl** that only records state changes (edge-trigger state files),
+findings that compose their own sentences (warning composition), and a page
+ordered alarms-first (surfacing rules). Four for four. **I rebuilt the
+deleted 99% on the outside of the system that deleted it.**
+
+**But it is not all a mistake, and the line was already drawn here** (§8,
+2026-09-10, Tue's instruction): the guard list had merged **two populations —
+creature-facing guards, which the cousin replaces, and health tripwires,
+which report outward and must not be.** That is the whole answer, and it
+sorts my job cleanly:
+
+| what I do | population | whose |
+|---|---|---|
+| is the engine alive, did it give up, is the journal torn, is a rung walled | health tripwire | **stays outward** — monitor + human |
+| does the doctrine still match the machine (`shared_tier_contested`) | health tripwire | **stays outward** |
+| is this tool a twin, does it serve anything, is the library a bureaucracy | creature-facing judgement | **the cousin's** (item 16) |
+| reading the run record and saying what it means | scan + decision | **split**: the scan is a script the cousin runs; the deciding is its verdict |
+| framework debugging, tests, commits, doctrine | neither | **not the cousin's at all** — see below |
+
+**Three hard constraints, none of them opinions:**
+
+- **Economics.** Every workflow step is a model call. `ARCHITECTURE.md` puts
+  the manager at ~13% of calls and says that budget *is* the economic
+  argument for this design. Item 9 already took the cousin from one call per
+  visit to two. Measured 2026-09-16 on the real ladder: **1.1 verdicts an
+  hour.** A five-step workflow is not a design change, it is a five-fold
+  cost increase on the binding constraint, and it must be measured before it
+  is committed to.
+- **Containment.** §2.4: *never tell the creature about its own bugs.* The
+  cousin speaks to the creature. A cousin that reads our diagnostics has a
+  path from our fault-finding into the creature's world that touches no file
+  — the same shape as §2.3's write path, one level up. Anything handed to
+  the cousin must be evidence it could have gathered ITSELF by using the
+  tools, never our analysis of it.
+- **Capability floor.** The rungs that serve the cousin produced 0 usable
+  verdicts in 14 calls on 2026-09-13, needed four brief rules to judge twelve
+  cases, and on 2026-09-16 the brief's own baseline was **7 of 8 broken
+  caught, 5 of 8 good falsely returned**. That is the instrument available.
+  It can judge a tool it ran. It cannot read a 767-assertion suite or a diff.
+
+**So the sequencing, and it is the same shape as every other item here:**
+
+- **17.1** The mechanical scans I run by hand become scripts — the library
+  audit of 2026-09-16 first, since it is the one that produced a real finding.
+  A script is not a model call and costs nothing.
+- **17.2** Those scripts go where the COUSIN can run them, not where only I
+  can, and the cousin's own shell (item 9) is what makes that possible at
+  all. Subject to the containment rule above.
+- **17.3** The DECIDING half moves with item 16, and only after it is scored.
+- **17.4** The framework half — code, tests, doctrine — stays with an agent
+  that has the repo, the gate and a verifier that did not write the change.
+  Today that is Claude. **Evidence it is not yet automatable: five
+  independent verification rounds on 2026-09-16 found real defects in my own
+  work every single time**, including two tests that could not go red and a
+  feature that was inert in production for fifteen hours. An autonomous
+  engine-debugger needs that verification loop, not just the ability to write
+  a patch.
+
+> **Trigger: after item 16 is scored.** Moving the judgement before the judge
+> has a job to measure against is item 16's mistake with more machinery.
