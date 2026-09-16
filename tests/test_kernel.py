@@ -4332,16 +4332,30 @@ def test_the_cull_has_an_owner_and_a_trigger():
     check("cull: and the doctrine file says so where decisions live",
           "who may propose a cull" in doc.lower(), "")
     # THE PART THAT MUST NOT DRIFT: the cousin never gains a write path. That
-    # is asserted BEHAVIOURALLY by `test_nothing_the_cousin_runs_can_change_
-    # the_creatures_tools` and by the refusal in
-    # `test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing`. What
-    # was here before was `"def sync_cousin_world" in src` -- a grep for a
-    # function name the author had just written, which passes for an empty
-    # body. A verifier named it as a tautology and was right.
-    check("cull: and the boundary it depends on is asserted by behaviour "
-          "elsewhere, not by a grep here",
-          callable(getattr(Engine, "sync_cousin_world", None))
-          and not getattr(Engine, "cousin_may_write", False))
+    # is asserted BEHAVIOURALLY elsewhere, and the only honest thing THIS test
+    # can add is whether those assertions still exist to be run -- a deferral
+    # to a test somebody later deletes is a boundary nobody checks.
+    #
+    # TWO tautologies have now stood in this spot, and the shape is worth more
+    # than the fix. The first was `"def sync_cousin_world" in src`: a grep for
+    # a name the author had just written, green for an empty body. Its
+    # replacement -- written in the commit whose message announced that three
+    # tautologies had been removed -- was `not getattr(Engine,
+    # "cousin_may_write", False)` against an attribute that has never existed
+    # anywhere in this repo, so it read False and passed under every possible
+    # implementation, including a `sync_cousin_world` that shares the
+    # creature's directory outright. A verifier found each of them.
+    # **A check that cannot go red is worse than no check**, because it
+    # occupies the place where a real one would be looked for.
+    relied_on = ("test_nothing_the_cousin_runs_can_change_the_creatures_tools",
+                 "test_a_cousin_shell_is_refused_in_a_body_that_confines_"
+                 "nothing")
+    own_src = io.open(os.path.abspath(__file__), encoding="utf-8").read()
+    for name in relied_on:
+        check("cull: the boundary's real assertion `%s` is still here to run"
+              % name,
+              re.search(r"^def %s[(]" % re.escape(name), own_src, re.M)
+              is not None, name)
 
 
 def test_the_human_can_speak_to_the_creature_once():
@@ -4637,22 +4651,39 @@ def test_nothing_the_cousin_runs_can_change_the_creatures_tools():
     unchanged: `rm` removed the link instead of following it, so the test
     asserted a boundary whose loss it could not detect. A redirect straight
     through is what a shared or linked world would actually allow.
+
+    **The digest is taken BEFORE the attack, and that cost a second cycle.**
+    A verifier found the third version taking `before` and `after` on the
+    same side of the visit -- both after `run_cycle()` -- so `before ==
+    after` was true by construction and stayed green while the cousin's
+    world was a SYMLINK to the creature's. It was proven dead by making
+    exactly that breach and watching the assertion pass. The visit cannot
+    simply be moved, because the write that summons it is the creature's
+    own; so cycle one builds the tool and cycle two summons the cousin with
+    a DONE_CLAIM, which touches no file. Now the only thing that can change
+    `tools/own` between the two digests is the cousin.
     """
     hostile = "```bash\necho pwned > tools/own/plan && echo done\n```"
+    benign = "```bash\nplan list\n```"
+    done_claim = "```bash\nremember current-phase done\n```"
     e, j, b, d = build_engine(
         ["```bash\nmkdir -p tools/own && printf '#!/bin/sh\\n# does: keeps the "
          "plan\\n# call: plan list\\necho REAL\\n' > tools/own/plan && chmod "
-         "+x tools/own/plan\n```"],
-        [hostile, ACCEPT_REPLY])
+         "+x tools/own/plan\n```",
+         done_claim],
+        [benign, ACCEPT_REPLY, hostile, ACCEPT_REPLY])
     import run as runmod
     cb = runmod.PathBody(os.path.join(d, "cousin-body"))
     e.cousin_body = cb
     own = os.path.join(b.mind, "tools", "own")
+    # Cycle 1: the creature builds `plan`; its visit runs something harmless.
     e.run_cycle()
     before = _digest_dir(own)
-    # The creature wrote `plan` in that cycle; the visit happened inside it.
     check("boundary: the creature's tool exists to be attacked",
           "plan" in before, sorted(before))
+    # Cycle 2: a DONE_CLAIM summons the cousin without the creature writing
+    # anything, so every byte that differs below is the cousin's doing.
+    e.run_cycle()
     probe = (j.read(kinds=["cousin_probe"]) or [{}])[-1]
     check("boundary: the cousin's chosen command really ran",
           "done" in (probe.get("stdout") or ""), probe)
