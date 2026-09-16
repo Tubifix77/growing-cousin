@@ -440,6 +440,15 @@ def main(argv=None):
         ask_cousin = backends.from_spec(cousin_spec, journal=j,
                                         quota_state=qstate, quota_path=qpath,
                                         reject=cousinmod.unusable_reply)
+        # THE SAME RUNGS, A DIFFERENT TEST OF USABILITY. Choosing what to run
+        # returns a bash block, not a verdict, so it cannot be asked through
+        # the ladder above -- that one walls a rung for every correct answer.
+        # `quota_state` is SHARED: what we know about a rung's quota is a fact
+        # about the rung, while what counts as a usable reply is a fact about
+        # the question.
+        ask_cousin_invoke = backends.from_spec(
+            cousin_spec, journal=j, quota_state=qstate, quota_path=qpath,
+            reject=cousinmod.unusable_invocation)
         spent = backends.quotamod.spent_rungs(qstate)
         if spent:
             print("resumed with rungs still spent: %s" % ", ".join(spent))
@@ -450,6 +459,7 @@ def main(argv=None):
         # later as if they came from the real rung.
         ask_creature = backends.ollama(args.model, num_predict=3072)
         ask_cousin = backends.ollama(args.model, num_predict=700)
+        ask_cousin_invoke = ask_cousin
         served = "%s (local standin -- no ladder configured)" % args.model
 
     # Prove both backends answer before a single record is written. A run that
@@ -556,7 +566,8 @@ def main(argv=None):
     # overwriting who the creature is.
     e = Engine(j, body, cousin_brief, ask_creature, ask_cousin,
                os.path.join(args.root, "context.md"),
-               creature_brief=creature_brief, cousin_body=cousin_body)
+               creature_brief=creature_brief, cousin_body=cousin_body,
+               ask_cousin_invoke=ask_cousin_invoke)
 
     # Pick up where a killed run left off. Derived from the journal, so there
     # is no savegame to go stale -- a crash costs the cycle in flight and

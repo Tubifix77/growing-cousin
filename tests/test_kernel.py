@@ -5066,7 +5066,10 @@ def test_a_probe_the_ladder_never_answered_is_recorded_and_never_a_failure():
     import run as runmod
     cb = runmod.PathBody(os.path.join(d, "cousin-body"))
     e.cousin_body = cb
+    # BOTH, and the invocation one is the one that matters: since
+    # 2026-09-16 the command-choosing call goes through its own ladder.
     e.ask_cousin = dry
+    e.ask_cousin_invoke = dry
     try:
         e.run_cycle()
     except backends.LadderExhausted:
@@ -5094,6 +5097,110 @@ def test_a_probe_the_ladder_never_answered_is_recorded_and_never_a_failure():
           "broken tool", rec.get("failed") == 0 and rec.get("worked") == 0,
           rec)
     b.destroy(); cb.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_choosing_what_to_run_is_not_judged_by_the_verdict_contract():
+    """The cousin's shell never once worked in production, and the gate was
+    green for every hour of it.
+
+    Item 9 gave the cousin its own shell by adding a SECOND call -- *what
+    would you like to run?* -- whose answer is a bash block. It was asked
+    through `ask_cousin`, and that ladder is built with
+    `cousin.unusable_reply`, which rejects any reply without a VERDICT block.
+    So every model that answered the question correctly was judged unusable,
+    each rung was walled in turn, the ladder exhausted, and the probe was
+    lost.
+
+    Measured on the live journal 2026-09-16, the fifteen hours after the
+    shell went live: **112 probes, 112 of them lost, 0 verdicts, 0 wants** --
+    while the creature thought 112 times against the same rungs, and
+    `answered but unusable: no-block` appeared 98 times. The loop had been
+    open the whole time.
+
+    Two things made it findable at all, and both were built the night before:
+    `chosen_by="ladder_dry"` (before that the probes vanished entirely and
+    the page showed nothing), and `lost` as its own column beside
+    worked/asked/failed. The instrument found the fault in the feature it was
+    built to measure.
+
+    **What must hold**: the two questions are judged by their own contracts.
+    For a VERDICT, no block is a failure -- the contract requires one. For an
+    INVOCATION, no block is an ANSWER, and `choose_invocation` says so: *a
+    user who cannot think what to type has told you something about the
+    tool.* Only a reply we never heard -- truncated, or all reasoning --
+    rejects a rung.
+    """
+    from kernel import backends, cousin as cousinmod
+    PROPOSAL = "I would run it like this:\n```bash\nplan list\n```"
+
+    def rung(_prompt):
+        return PROPOSAL, {"model": "m", "done_reason": "stop",
+                          "completion_tokens": 20}
+
+    # THE BUG, reproduced: the same reply, through the verdict ladder.
+    verdict_ladder = backends.ladder([("a", rung), ("b", rung)],
+                                     reject=cousinmod.unusable_reply)
+    exhausted = None
+    try:
+        verdict_ladder("anything")
+    except backends.LadderExhausted as e:
+        exhausted = e
+    check("invoke: a correct invocation reply exhausts the VERDICT ladder -- "
+          "this is the fault, reproduced",
+          exhausted is not None, "the verdict ladder accepted it")
+    check("invoke: and it walls the rungs for answering correctly",
+          "unusable" in str(exhausted or ""), str(exhausted)[:120])
+
+    # THE FIX: the invocation's own contract.
+    invoke_ladder = backends.ladder([("a", rung), ("b", rung)],
+                                    reject=cousinmod.unusable_invocation)
+    cmd, _meta = cousinmod.choose_invocation(invoke_ladder, "# call: plan list")
+    check("invoke: through its own ladder the cousin's command arrives",
+          cmd == "plan list", cmd)
+
+    # NO BLOCK IS AN ANSWER HERE, and must not wall a rung: the design says a
+    # user who cannot think what to type has told you something.
+    def mute(_prompt):
+        return ("I have read the header and I still do not know what this "
+                "tool wants."), {"model": "m", "done_reason": "stop"}
+    quiet = backends.ladder([("a", mute)], reject=cousinmod.unusable_invocation)
+    # CAUGHT, so this reports rather than crashing the suite: with the
+    # verdict's predicate here the ladder exhausts instead of returning, and
+    # a red assertion says which of the two it was.
+    try:
+        cmd2, _m2 = cousinmod.choose_invocation(quiet, "# call: plan list")
+        walled = None
+    except backends.LadderExhausted as e:
+        cmd2, walled = "(rung walled)", e
+    check("invoke: proposing nothing is an ANSWER, not a dead rung",
+          walled is None and cmd2 is None,
+          "the rung was walled for saying it did not know: %s" % walled)
+    check("invoke: and the framework substitutes nothing for it",
+          cmd2 is None or walled is not None)
+
+    # A REPLY WE NEVER HEARD still rejects, or a truncated rung looks healthy.
+    def cut(_prompt):
+        return "", {"model": "m", "done_reason": "length",
+                    "chars_before_strip": 8000, "chars_stripped": 7900}
+    cut_ladder = backends.ladder([("a", cut)], reject=cousinmod.unusable_invocation)
+    died = None
+    try:
+        cut_ladder("anything")
+    except backends.LadderExhausted as e:
+        died = e
+    check("invoke: but a reply that spent its budget and said nothing is "
+          "still unusable -- silence we never heard is not an answer",
+          died is not None, "a truncated rung was accepted")
+
+    # AND THE DEPLOYMENT WIRES A REAL ONE. Engine falls back to `ask_cousin`
+    # so any caller works; production must not rely on that fallback, which
+    # is the whole bug in one line.
+    src = io.open(os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "run.py"), encoding="utf-8").read()
+    check("invoke: run.py builds a separate invocation ladder and hands it "
+          "to the Engine",
+          "unusable_invocation" in src and "ask_cousin_invoke=ask_cousin_invoke" in src,
+          "run.py does not wire one")
 
 
 def test_the_framework_never_invents_the_cousins_command():
@@ -6252,6 +6359,7 @@ def main():
                test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing,
                test_nothing_the_cousin_runs_can_change_the_creatures_tools,
                test_a_probe_the_ladder_never_answered_is_recorded_and_never_a_failure,
+               test_choosing_what_to_run_is_not_judged_by_the_verdict_contract,
                test_the_framework_never_invents_the_cousins_command,
                test_the_trial_waits_out_a_rate_limit_instead_of_recording_a_failure,
                test_the_window_decision_is_watched_rather_than_just_recorded,

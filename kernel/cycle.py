@@ -38,13 +38,22 @@ FENCE_RUN = re.compile(r"`{3,}")
 
 class Engine:
     def __init__(self, journal, body, brief, ask_creature, ask_cousin,
-                 context_path, creature_brief="", cousin_body=None):
+                 context_path, creature_brief="", cousin_body=None,
+                 ask_cousin_invoke=None):
         self.j = journal
         self.body = body
         self.brief = brief                  # the cousin's brief
         self.creature_brief = creature_brief  # identity: served, never written
         self.ask_creature = ask_creature
         self.ask_cousin = ask_cousin
+        # A SEPARATE LADDER FOR A SEPARATE QUESTION. The verdict ladder
+        # rejects any reply without a verdict block; an invocation's reply is
+        # a bash block, so asking it through that ladder walls every rung and
+        # loses the probe. It did, 112 times in fifteen hours (§5,
+        # `cousin.unusable_invocation`). Falls back to `ask_cousin` so a test
+        # or a caller that does not care still works -- and the gate asserts
+        # the deployment passes a real one.
+        self.ask_cousin_invoke = ask_cousin_invoke or ask_cousin
         self.context_path = context_path    # the part the COUSIN owns
         self.cycles_since_visit = 0
         self.cycles_since_change = 0
@@ -881,7 +890,7 @@ class Engine:
                 copied = self.sync_cousin_world()
                 try:
                     chosen, cmeta = cousinmod.choose_invocation(
-                        self.ask_cousin, header, library)
+                        self.ask_cousin_invoke, header, library)
                 except Exception as e:
                     # THE PROBE THAT VANISHED, 2026-09-16, found by a verifier
                     # reading the live journal rather than by any test.

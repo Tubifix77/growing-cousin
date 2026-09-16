@@ -177,6 +177,46 @@ def why_unreadable(finish, before_strip, stripped):
     return "truncated-before-block"
 
 
+def unusable_invocation(text, meta):
+    """Reason to reject an INVOCATION-choosing reply, or None to accept.
+
+    **A different question needs a different predicate, and reusing the
+    verdict's cost fifteen hours of production.** Item 9 gave the cousin its
+    own shell by adding a second call -- *what would you like to run?* --
+    whose answer is a bash block. It was made through the same `ask_cousin`
+    the verdict uses, and that ladder carries `unusable_reply`, which rejects
+    any reply without a VERDICT block. So every model that answered correctly
+    was judged unusable, every rung was walled, the ladder exhausted, and the
+    probe was lost.
+
+    Measured 2026-09-16, the fifteen hours after the shell went live:
+    **112 probes, 112 lost, 0 verdicts, 0 wants** -- while the creature
+    thought 112 times on the same ladder. `answered but unusable: no-block`
+    98 times. The cousin's shell had never once worked in production.
+
+    The distinction that matters: for a verdict, no block is a FAILURE -- the
+    contract requires one. For an invocation, no block is an ANSWER, and
+    `choose_invocation` says so in as many words: *a user who cannot think
+    what to type has told you something about the tool.* So "no-block" is
+    accepted here and only a reply we never actually heard -- truncated, or
+    all reasoning and no answer -- rejects the rung.
+
+    This is `backends.ladder`'s own comment collecting its debt: *the
+    predicate is the CALLER's, because only the caller knows what a usable
+    reply looks like.* A second caller arrived and inherited the first one's.
+    """
+    from . import think as thinkmod
+    if thinkmod.parse_blocks(text or ""):
+        return None
+    raw = (meta or {}).get("raw_text") or ""
+    if raw and thinkmod.parse_blocks(raw):
+        return None                # stripping hid it; the caller recovers it
+    why = why_unreadable((meta or {}).get("done_reason"),
+                         (meta or {}).get("chars_before_strip"),
+                         (meta or {}).get("chars_stripped"))
+    return None if why == "no-block" else why
+
+
 def unusable_reply(text, meta):
     """Reason to reject this reply and try the next rung, or None to accept.
 
