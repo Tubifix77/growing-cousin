@@ -312,6 +312,32 @@ shell"* since 2026-09-10.
 > was not, and nothing happened in either — 0 probes — so nothing is lost by
 > restarting the clock at the moment the spine returns.
 >
+> **CONFIRMED IN PRODUCTION 2026-09-16 18:5x — the cousin's shell works.**
+> Seven probes in the first twenty minutes, six of them commands the cousin
+> composed itself:
+>
+>     compare-against-baseline parent123 parent124     exit 0
+>     list-parent-tasks                                exit 0
+>     view-subtask-logs task-123                       exit 1
+>     compare-subtask-logs-baseline parent123 base     exit 1
+>
+> `view-subtask-logs` had been called **54 times bare** and had never once
+> returned anything but its usage line. It has now been run WITH an argument
+> and exited 1. That single row is the first real knowledge this project has
+> ever had about that tool, and it is what item 9 was for.
+>
+> **THE CHOOSER CHANGE OF THE SAME EVENING IS HELD, NOT SHIPPED.** `777c975`
+> makes the probe go to tools whose outcome nobody knows. It is committed,
+> gated and red-proven — and it is NOT deployed, because it changes WHICH
+> tool gets probed, which is the very thing this window measures. The
+> before-window was taken with the old chooser; shipping a new one inside the
+> after-window would mix two changes and leave neither attributable. §5's top
+> scar, exactly.
+>
+> **Trigger to deploy it: when this window closes (2026-09-18).** Until then
+> `restart_owed` will correctly say a restart is owed, and it is owed
+> deliberately.
+>
 > **THAT WINDOW IS VOID, AND WHY IS THE WHOLE FINDING. Reopened
 > 2026-09-16 18:36:16, engine `3f20c3f`.** Fifteen hours produced **112
 > probes, 112 of them lost, 0 verdicts, 0 wants** while the creature thought
