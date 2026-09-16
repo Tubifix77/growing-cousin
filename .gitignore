@@ -20,3 +20,13 @@ live/vitals.jsonl
 
 # Evidence packs: the manifest is committed, the tarball never is (raw model output).
 evidence/*.tar.gz
+
+# ANY live root or archive of one, WHATEVER IT IS CALLED. 2026-09-16: run 1's
+# archived root sat at the repo root as archive-contaminated-20260913-1244/
+# and an unscoped `git add -A` shipped 80 files of it -- journal, engine log,
+# the creature's tools -- to the public repo. `live/` above guarded a path,
+# not the thing. These guard the names a root can have; the gate guards the
+# CONTENT (test_no_live_root_is_tracked_by_git_whatever_it_is_called).
+archive-*/
+*-archive-*/
+live-*/

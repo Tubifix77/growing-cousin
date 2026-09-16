@@ -3863,6 +3863,57 @@ def test_the_evidence_tarballs_home_is_recorded():
               "point of committing one", man is False, man)
 
 
+def test_no_live_root_is_tracked_by_git_whatever_it_is_called():
+    """80 files of run 1's archived live root went to the PUBLIC repo in
+    `221b978`, 2026-09-16 -- journal, engine log, context, the creature's
+    tools -- through an unscoped `git add -A`. Zero key-shaped strings, so no
+    credential left; but raw model output on a public repo is the exact thing
+    the evidence-pack rule was written to prevent (*"a pack holds raw model
+    output and this repo is public"*).
+
+    `.gitignore` guarded the PATH `live/`. The archive sat at the repo root
+    under a different name, so the guard saw nothing -- a checker keyed on
+    one literal, in the file that decides what leaves the machine. Found by
+    a Windows checkout refusing a filename that ended in a dot.
+
+    So the invariant is stated about CONTENT, not about a directory name: no
+    tracked path may look like a live root. A journal is the one file every
+    live root has and nothing else in the repo does; the creature's world
+    (`body/mind`) is the one tree the creature writes and we never do.
+    Fixture journals live under `tests/fixtures/journal/` and are scrubbed
+    before commit, which is why that prefix -- and only that one -- is
+    allowed through.
+    """
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    r = subprocess.run(["git", "-C", repo, "ls-files", "-z"],
+                       capture_output=True, text=True, timeout=30)
+    if r.returncode != 0:
+        check("tracked: this is a git checkout, or the assertion means nothing",
+              False, r.stderr[:120])
+        return
+    tracked = [p for p in r.stdout.split("\0") if p]
+    check("tracked: the listing is non-empty, or this proves nothing",
+          len(tracked) > 100, len(tracked))
+
+    def is_fixture(p):
+        return p.startswith("tests/fixtures/")
+
+    journals = [p for p in tracked
+                if p.endswith("journal.jsonl") and not is_fixture(p)]
+    check("tracked: no production journal is committed, under any name",
+          not journals, journals[:5])
+    worlds = [p for p in tracked if "/body/mind/" in p or p.startswith("body/mind/")]
+    check("tracked: no creature's world is committed -- it is its, and it is "
+          "raw model output", not worlds, worlds[:5])
+    archives = [p for p in tracked if p.split("/")[0].startswith(("archive-", "live"))]
+    check("tracked: nothing at the root named like a live root or its archive",
+          not archives, sorted({p.split("/")[0] for p in archives}))
+    logs = [p for p in tracked if p.endswith(("engine.log", "vitals.jsonl", "/STOP"))
+            and not is_fixture(p)]
+    check("tracked: no engine log, vitals stream or STOP file from a run",
+          not logs, logs[:5])
+
+
 def test_no_document_hard_codes_the_gate_count():
     """Four documents once carried four different gate counts, all wrong.
 
@@ -6541,6 +6592,7 @@ def main():
                test_a_tool_that_never_worked_says_so_to_both_inhabitants,
                test_the_brief_tests_whether_the_handover_could_be_completed,
                test_a_want_survives_until_the_creature_has_had_a_turn,
+               test_no_live_root_is_tracked_by_git_whatever_it_is_called,
                test_no_document_hard_codes_the_gate_count,
                test_the_module_list_matches_the_kernel,
                test_the_creatures_shell_does_not_inherit_the_engines_secrets,
