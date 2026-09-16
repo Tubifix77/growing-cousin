@@ -416,6 +416,46 @@ shell"* since 2026-09-10.
 > `lost`, because a collapse in bare probes means nothing if the probes
 > stopped happening instead.
 
+> **INTERIM READ AT 3.6 HOURS (2026-09-16 23:52), from a 10-minute watch Tue
+> asked for and then stopped for the night.** Engine `85349ac` since 20:14,
+> 0 restarts, spine OFF throughout. 65 wakes / 44 thinks / 54 commands; 204
+> rung declines -- the tier was the limiting factor all evening.
+>
+> | | |
+> |---|---|
+> | probes | **17** -- 13 composed by the cousin, 4 lost to a dry ladder (recorded, not vanished); 12 exited 0, 1 exited non-zero, **2 bare** |
+> | invocation rungs | groq 8, gemini 5 |
+> | chosen because | unknown outcome 7, the creature ran it 5, written 3, new 2 |
+> | tools reached | `clear-baseline` x7, `plan-import-subtasks` x3, `get-baseline` x2, and one each of `search-parent-tasks`, `set-baseline`, `fetch`, `plan-export-subtasks-filter`, `plan-link-archive` -- five of them never learned about before |
+> | verdicts | **3**, all gemini: `set-baseline` ACCEPTED, `clear-baseline` ACCEPTED, `plan-link-archive` RETURNED |
+> | wants | 2, distinct, both born of real use: clear the baseline; show the baseline |
+> | tools built | 2, both answering a want: `clear-baseline`, `get-baseline` |
+> | visits deferred | **10** -- the invocation call was served and the verdict call then found no rung |
+>
+> **What the shell changed, read against the spine-on bare before-window (69
+> probes, 64 bare, 27 verdicts, 25.5 h):** bare probes went from 93% to 12%.
+> Every cousin-composed block carried real arguments, and eight of them did a
+> lookup or a setup first (list the tasks, take a keyword; export a list, then
+> import it; set a baseline, clear it, read it back). The loop closed twice
+> end to end -- want -> tool -> tested -> accepted -> next want -- and the one
+> RETURNED was the brief's fifth test found by use: `list-parent-tasks` hands
+> out `parent-A`, `plan-link-archive` wants an integer.
+>
+> **Two cautions, both binding.** (1) **These two windows are on opposite
+> sides of the spine line** -- the before-window spine-on, this one spine-off
+> since Tue stopped it at 18:50 -- so per-hour rates (probes 2.7 -> 4.7/h,
+> verdicts 1.06 -> 0.83/h) are NOT comparable by §4's own rule and are not to
+> be quoted as a before/after. The bare-probe share is the one figure the
+> spine cannot move. (2) **Two calls per visit starves the judgement on a dry
+> tier**: 17 probes, 3 verdicts, 10 deferred. The invocation call takes the
+> answer the verdict needed. That is item 18's economics row, not a tick fix.
+>
+> **Still pending when the watch stopped:** the verdict on `get-baseline`,
+> whose first version printed `not written yet` with exit 0 -- the stub the
+> brief opens with. Whether the cousin catches it is the brief's own test.
+> And `window_reread` re-entered ALARM at 23:50 (`compare-subtask-logs` read 4
+> times in an hour, unchanged) -- item 13's symptom, for the morning.
+
 ### 10. `[x]` Who may propose a cull
 
 Deliberately deferred until item 9 produces data: a library that is finally
