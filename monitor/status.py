@@ -14,6 +14,7 @@ and `git`; it writes nothing else, and the unit that runs it makes anything
 else impossible (`deploy/cousin-monitor.service`). Nothing here reaches
 either inhabitant.
 """
+import io
 import json
 import os
 import subprocess
@@ -48,7 +49,12 @@ EXIT_BROKEN = 2
 
 ENGINE_UNIT = "cousin-engine.service"
 UNITS = ("cousin-engine.service", "cousin-observer.service",
-         "cousin-vitals.timer", "cousin-monitor.timer")
+         "cousin-vitals.timer", "cousin-monitor.timer",
+         # NOT ours, and read for exactly that reason: the free tier is
+         # shared with it (CLAUDE.md §4), so its state is a condition of
+         # every measurement taken here. Read-only, always -- §2.6 makes
+         # writing to the sibling a hard boundary.
+         detectors.SPINE_UNIT)
 
 # The settled answers from CLAUDE.md §0, keyed by detector, so an alarm
 # arrives with its runbook line and nobody re-derives the trap at 03:00.
@@ -98,10 +104,21 @@ RUNBOOK = {
                           "before, and `census.py --root live` prints both. Never "
                           "edit a verdict (§2.2): it is testimony, and rewriting it "
                           "makes this census meaningless.",
-    "probe_stuck": "Engine.choose_target has no default since 2026-09-15 -- read "
-                   "cousin_probe.picked_by on the stuck probes. `least_probed` "
-                   "should walk the library; anything else sitting on one tool is "
-                   "a chooser fault.",
+    "probe_stuck": "READ `picked_by` FIRST, and the alarm line now quotes it: "
+                   "`least_probed` sitting on one tool is a chooser fault "
+                   "(Engine.choose_target has had no default since "
+                   "2026-09-15); `ran` means the CREATURE invoked it that "
+                   "cycle and the chooser followed, which is not a fault at "
+                   "all. This runbook used to say the opposite -- anything "
+                   "but least_probed is a chooser fault -- and sent readers "
+                   "hunting one that was not there.",
+    "shared_tier_contested": "The sibling project shares this free tier "
+                             "(CLAUDE.md §4), so its state is a condition of "
+                             "every figure taken here. If this is ALARM, the "
+                             "document and the machine disagree: either "
+                             "correct §4 or stop the spine. Whether it RUNS "
+                             "is Tue's standing decision and PLAN item 12 is "
+                             "his call -- this reports, and never acts.",
     "tool_vanished": "A body/PATH fault, not the creature: the relative-root scar. "
                      "Check PathBody.run's PATH export and that the root is absolute.",
     "selfcheck": "A bound this deployment relies on does NOT hold. Read the "
@@ -174,8 +191,31 @@ def collect(root, repo=None, now=None):
         complete=complete, bad=bad)
     ctx.root, ctx.repo = root, repo
     ctx.units = {u: systemd_show(u, ["ActiveState", "SubState", "LastTriggerUSec",
-                                     "NextElapseUSecRealtime"]) for u in UNITS}
+                                     "NextElapseUSecRealtime",
+                                     "ExecMainStartTimestamp"]) for u in UNITS}
+    # DERIVED FROM THE DOCTRINE FILE, never typed here. The whole point of
+    # `shared_tier_contested` is that the document and the machine can
+    # disagree; a constant in this file saying what the document says would
+    # be a third thing to drift.
+    ctx.doctrine_says_paused = doctrine_says_spine_paused(repo)
     return ctx
+
+
+def doctrine_says_spine_paused(repo):
+    """Does CLAUDE.md §4 currently claim the spine is paused?
+
+    Deliberately a plain search for the sentence the file actually uses, and
+    deliberately returning False when the file cannot be read: an unreadable
+    document is not a claim, and inventing one would make the detector fire
+    on a checkout that has no doctrine in it.
+    """
+    if not repo:
+        return False
+    try:
+        with io.open(os.path.join(repo, "CLAUDE.md"), encoding="utf-8") as f:
+            return "SPINE IS PAUSED" in f.read()
+    except OSError:
+        return False
 
 
 # ----------------------------------------------------------------- edges

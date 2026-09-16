@@ -3666,6 +3666,86 @@ def test_the_inherited_library_is_recorded_as_not_executed():
           "ARCHITECTURE §11 does not record that it was never done")
 
 
+def test_the_shared_tier_is_watched_and_the_doctrine_cannot_drift_from_it():
+    """PLAN item 12, and the reason it needed an instrument rather than a line.
+
+    CLAUDE.md §4 has said **SPINE IS PAUSED as of 2026-09-13 13:50** since the
+    day Tue stopped it. The spine was started again on 2026-09-15 00:12:11 --
+    four minutes after its own flatline tripwire reported `THINK:!!NONE in
+    6h` -- and ran from then on. Through the whole first day of this monitor.
+    Through the evening read of 2026-09-15 18:52 whose figures went into §7.
+    Through the opening of item 9.5's measurement window. **Twenty-seven
+    hours, and the document said the opposite the entire time.**
+
+    Nothing here mentioned the spine and no test guarded item 12. It was
+    found by a verifier who ran `systemctl` instead of reading the file --
+    the same way the last four findings were found, and the reason §5 says a
+    document asserting the state of a running system is the scar about
+    settings that are present, parsed and doing nothing.
+
+    The free tier is SHARED (§4), so the spine's state is not background: it
+    is a condition of every figure this project produces, and *numbers taken
+    while spine is paused are NOT comparable to numbers taken before it, in
+    either direction.* A standing decision that nobody watches is
+    indistinguishable from one forgotten -- the argument item 13 earned its
+    detector on, applied to a decision rather than to a constant.
+
+    It REPORTS and never acts: whether the spine runs is Tue's (§4, PLAN 12).
+    """
+    from monitor import detectors as det, status as monstatus
+
+    def finding(active, says_paused, unit_present=True):
+        ctx = det.Context([{"ts": time.time(), "kind": "wake"}])
+        ctx.units = ({det.SPINE_UNIT: {"ActiveState": active,
+                                       "ExecMainStartTimestamp": "Tue 00:12"}}
+                     if unit_present else {})
+        ctx.doctrine_says_paused = says_paused
+        return det.shared_tier_contested(ctx)
+
+    f = finding("active", True)
+    check("spine: running while the doctrine says paused is an ALARM",
+          f.state == det.ALARM, (f.state, f.msg[:80]))
+    check("spine: and the alarm says which way to resolve it",
+          "Fix the document or stop the spine" in f.msg, f.msg[:160])
+    check("spine: a human is told -- this is not a quiet INFO line",
+          f.human is True, f.human)
+
+    f2 = finding("active", False)
+    check("spine: running WITH the doctrine agreeing is not an alarm",
+          f2.state == det.INFO, (f2.state, f2.msg[:80]))
+    check("spine: but it still says the tier is shared, because a rate from "
+          "this window is not comparable to one taken alone",
+          "SHARED" in f2.msg, f2.msg[:120])
+
+    f3 = finding("inactive", True)
+    check("spine: stopped is OK, whatever the document says",
+          f3.state == det.OK, (f3.state, f3.msg[:80]))
+
+    f4 = finding("", True, unit_present=False)
+    check("spine: and a box where the sibling is not installed says CANNOT "
+          "TELL -- never 'paused', which is a different fact",
+          f4.state == det.CANNOT_TELL, (f4.state, f4.msg[:80]))
+
+    # THE CLAIM IS READ FROM THE DOCUMENT, not typed into the monitor. A
+    # constant here repeating what §4 says would be a third thing to drift,
+    # which is the fault this whole detector exists for.
+    d = tmpdir()
+    a, b, c = (os.path.join(d, x) for x in ("says", "silent", "empty"))
+    os.makedirs(a), os.makedirs(b), os.makedirs(c)
+    with io.open(os.path.join(a, "CLAUDE.md"), "w", encoding="utf-8") as f:
+        f.write("- **SPINE IS PAUSED as of 2026-09-13 13:50 CEST** (Tue)\n")
+    with io.open(os.path.join(b, "CLAUDE.md"), "w", encoding="utf-8") as f:
+        f.write("- the spine runs beside this engine and always has\n")
+    check("spine: the doctrine's claim is READ from CLAUDE.md",
+          monstatus.doctrine_says_spine_paused(a) is True, a)
+    check("spine: a file that does not claim it does not produce the claim",
+          monstatus.doctrine_says_spine_paused(b) is False, b)
+    check("spine: and a checkout with no doctrine makes no claim at all, "
+          "rather than defaulting to one",
+          monstatus.doctrine_says_spine_paused(c) is False, c)
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_cousins_audit_has_a_named_trigger():
     """PLAN item 4. §6.4 ended "No named trigger yet -- this needs one", and
     §4 is explicit that a hold without a named trigger is inaction wearing
@@ -6166,6 +6246,7 @@ def main():
                test_every_hand_the_creature_has_is_one_it_has_been_told_about,
                test_the_chat_channel_is_a_scheduled_intention,
                test_the_inherited_library_is_recorded_as_not_executed,
+               test_the_shared_tier_is_watched_and_the_doctrine_cannot_drift_from_it,
                test_the_cousins_audit_has_a_named_trigger,
                test_the_evidence_tarballs_home_is_recorded,
                test_a_broken_monitor_does_not_report_as_a_finding,

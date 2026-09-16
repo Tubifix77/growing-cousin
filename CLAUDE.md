@@ -443,10 +443,42 @@ guess with authority it has not earned.
   run against a local model on a development box first (Tue's point, and it is
   why the 60-cycle local run was done before the move rather than after).
 
-- **SPINE IS PAUSED as of 2026-09-13 13:50 CEST** (Tue), to raise this engine's
-  cadence. It was `enabled` and had been up continuously since 2026-09-10
-  00:41; in its last hour it made 18 served calls, **every one to
-  `google_gemma / gemma-4-31b-it`** — exactly this engine's primary rung.
+- **THE SPINE IS RUNNING AGAIN, and this section said PAUSED for 27 hours
+  while it was.** Corrected 2026-09-16 03:10, found by an independent
+  verifier running `systemctl` instead of reading this file.
+
+  Tue stopped it 2026-09-13 13:47 to raise this engine's cadence. **It was
+  started again 2026-09-15 00:12:11** — four minutes after its own flatline
+  tripwire logged `THINK:!!NONE in 6h  SERIOUS:...`, with a desktop session
+  active; no timer did it, and nothing here recorded a decision. It has run
+  since, and it is calling `google_gemma`, `groq_oss120` and
+  `openrouter_super` — this engine's own rungs.
+
+  > `systemctl --user` reports `ActiveState=active`, `UnitFileState=disabled`,
+  > started `Tue 2026-09-15 23:58:32` (that timestamp is a later restart of an
+  > already-running service; the start that ended the pause is 09-15 00:12:11
+  > in the journal).
+
+  **WHAT THIS COSTS, and it is not small.** The free tier is shared, so every
+  figure taken from 2026-09-15 00:12 onward was measured against a tier this
+  engine does NOT have to itself — including the monitor's entire first day,
+  the evening read of 2026-09-15 18:52 quoted in §7, and the opening of item
+  9.5's measurement window. This file's own rule is *say which era a figure
+  comes from or do not quote it*, and for a day it made that impossible.
+  Measured either side of the restart, 3 hours each: wakes **83 → 55**,
+  thinks **53 → 34**.
+
+  **It is now WATCHED rather than written down.** `shared_tier_contested`
+  reads the unit every five minutes and reads this file's claim rather than
+  repeating it, so the machine and the document cannot disagree again
+  without somebody being told. That is the fix; the sentence was not.
+
+  **Whether it should be running is Tue's** (PLAN item 12). It was his pause
+  and it is his to restore or re-take; nothing here stopped it, deliberately.
+
+  > Stop it with `systemctl --user stop growing-spine`; make the pause
+  > survive a boot with `systemctl --user disable growing-spine` (it is
+  > already `disabled`, which is why nothing restored it automatically).
 
   > Restore with `systemctl --user enable --now growing-spine`.
 

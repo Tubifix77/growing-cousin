@@ -467,9 +467,29 @@ def want_repeated(ctx):
 
 def probe_stuck(ctx):
     """The cousin sent to the same tool again and again on visits that were
-    not about a tool just written: a chooser fault, never the creature's.
-    Uses `picked_by` where the probe recorded it, the trigger before it
-    otherwise."""
+    not about a tool just written.
+
+    **WHOSE fault that is depends on `picked_by`, and this detector used to
+    answer before it looked.** Its message hard-coded *"a chooser fault in
+    the framework, not a fact about the tool"* onto every alarm, and its
+    runbook sent the reader hunting one. Found live on 2026-09-16 by a
+    verifier reading the page: the standing alarm said exactly that while
+    carrying `picked_by: {'ran': 5, 'least_probed': 1}` -- `ran` means the
+    CREATURE invoked that tool itself that cycle and the chooser followed it.
+    The framework chose nothing. The detector's own recorded evidence refuted
+    its own conclusion, on the page, for hours.
+
+    That is the retired `pick_target` scar inverted: there a position in a
+    sorted list was an unstated reason; here the reason IS recorded and the
+    message ignored it. **A constant nobody chose, obeyed forever** -- the
+    first fault this project's doctrine names, committed inside the
+    instrument built to catch it.
+
+    So the message is now derived from the `hows` it already computes:
+    `least_probed` sitting on one tool is a framework fault, `ran` is the
+    creature working on one tool and not a fault at all, and an unrecorded
+    mixture says so rather than guessing.
+    """
     recent = ctx.recent(24)
     trig, probes = None, []
     for r in recent:
@@ -491,14 +511,30 @@ def probe_stuck(ctx):
     if n >= PROBE_STUCK_MIN:
         hows = collections.Counter(r.get("picked_by") or "(unrecorded)" for r in last
                                    if r.get("tool") == tool)
+        top, top_n = hows.most_common(1)[0]
+        if top == "ran":
+            why = ("the CREATURE ran it in %d of those cycles and the chooser "
+                   "followed -- so this is the creature working on one tool, "
+                   "NOT a framework fault. Read it before changing anything "
+                   "in the chooser" % top_n)
+            scar = "a checker that cannot distinguish the thing it measures"
+        elif top == "least_probed":
+            why = ("the framework walked the library to it %d times, which "
+                   "`least_probed` should not do -- a chooser fault, not a "
+                   "fact about the tool" % top_n)
+            scar = "the framework manufactures work and the creature is billed"
+        else:
+            why = ("picked by %s -- who chose cannot be read off this, so "
+                   "read `cousin_probe.picked_by` on these probes before "
+                   "concluding whose fault it is" % top)
+            scar = "a checker that cannot distinguish the thing it measures"
         return Finding("probe_stuck", ALARM,
                        "its user was sent to `%s` on %d of the last %d visits not "
-                       "about a fresh write (picked by: %s) -- a chooser fault in "
-                       "the framework, not a fact about the tool"
-                       % (tool, n, len(last), dict(hows)),
-                       {"tool": tool, "n": n, "of": len(last),
-                        "last_ts": _ts(last[-1])},
-                       scar="the framework manufactures work and the creature is billed")
+                       "about a fresh write (picked by: %s) -- %s"
+                       % (tool, n, len(last), dict(hows), why),
+                       {"tool": tool, "n": n, "of": len(last), "hows": dict(hows),
+                        "picked_mostly_by": top, "last_ts": _ts(last[-1])},
+                       scar=scar)
     return Finding("probe_stuck", OK, "%d tools across the last %d such probes"
                    % (len(counts), len(last)))
 
@@ -630,6 +666,74 @@ def journal_integrity(ctx):
     if bits:
         return Finding("journal_integrity", INFO, "; ".join(bits), human=False)
     return Finding("journal_integrity", OK, "%d rows parse, in order" % len(ctx.rows))
+
+
+# The sibling project's unit. Named here rather than in the caller so the
+# detector and the unit list cannot drift apart.
+SPINE_UNIT = "growing-spine.service"
+
+
+def shared_tier_contested(ctx):
+    """Is the sibling project running, and does the doctrine still say what is
+    true? CLAUDE.md §4: the two projects share one free tier, so the spine's
+    state is a CONDITION OF MEASUREMENT here -- *numbers taken while spine is
+    paused are NOT comparable to numbers taken before it, in either direction.*
+
+    **This exists because the pause silently ended and nothing noticed for 27
+    hours.** Tue stopped the spine 2026-09-13 13:47. It was started again
+    2026-09-15 00:12:11, four minutes after its own flatline tripwire
+    reported `THINK:!!NONE in 6h`, and ran from then on -- through the whole
+    first day of this monitor, through the evening read of 2026-09-15 18:52
+    whose figures went into §7, and through the opening of item 9.5's
+    measurement window. `CLAUDE.md` §4 said PAUSED the entire time. Found
+    2026-09-16 by an independent verifier who ran `systemctl` instead of
+    reading the file.
+
+    Nothing in this monitor mentioned the spine and no test guarded item 12,
+    which is exactly §5's *a channel nothing asserts is a channel that can be
+    dead while everything is green* -- here applied not to a feature but to a
+    standing decision. **A decision recorded and then unwatched is
+    indistinguishable from one forgotten.**
+
+    It REPORTS and never acts. Whether the spine runs is Tue's standing
+    decision (§4) and PLAN item 12 is explicit that restarting it is his
+    call; by symmetry so is stopping it. What this owes him is that the state
+    and the document cannot disagree without someone being told.
+    """
+    unit = (getattr(ctx, "units", {}) or {}).get(SPINE_UNIT)
+    if not unit:
+        return Finding("shared_tier_contested", CANNOT_TELL,
+                       "the spine's unit was not read on this pass", human=False)
+    active = (unit.get("ActiveState") or "").strip()
+    if not active:
+        return Finding("shared_tier_contested", CANNOT_TELL,
+                       "`systemctl show %s` answered nothing -- on a box "
+                       "without the sibling installed this is the right "
+                       "answer, and it is not 'paused'" % SPINE_UNIT,
+                       human=False)
+    running = active == "active"
+    says_paused = bool(getattr(ctx, "doctrine_says_paused", False))
+    since = (unit.get("ExecMainStartTimestamp") or "").strip() or "?"
+    if running and says_paused:
+        return Finding(
+            "shared_tier_contested", ALARM,
+            "THE SPINE IS RUNNING and CLAUDE.md §4 still says it is PAUSED "
+            "(started %s). The free tier is shared, so every figure taken "
+            "since then was measured against a tier this engine does NOT "
+            "have to itself -- including any open measurement window. Fix "
+            "the document or stop the spine; the two must not disagree" % since,
+            {"unit": unit, "doctrine_says_paused": True, "since": since},
+            scar="a channel nothing asserts can be dead while everything is green")
+    if running:
+        return Finding(
+            "shared_tier_contested", INFO,
+            "the spine is running (since %s) and the doctrine says so -- "
+            "every rate from this window is measured against a SHARED tier "
+            "and is not comparable to one taken while it was paused" % since,
+            {"unit": unit, "since": since}, human=False)
+    return Finding("shared_tier_contested", OK,
+                   "the spine is %s; this engine has the free tier to itself"
+                   % active, {"unit": unit}, human=False)
 
 
 def twin_pressure(ctx):
@@ -1068,7 +1172,8 @@ ALL = (engine_silent, gave_up, unusable_verdicts, commands_lost,
        served_context_contract, tool_vanished, selfcheck_disproven,
        restart_owed, ladder_dry, journal_integrity, twin_pressure,
        deploy_regression, want_repeated, probe_stuck, complaint_fidelity,
-       body_unrecoverable, window_reread, creature_said)
+       body_unrecoverable, window_reread, creature_said,
+       shared_tier_contested)
 
 
 def run_all(ctx, detectors=ALL):

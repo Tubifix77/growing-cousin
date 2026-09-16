@@ -290,6 +290,40 @@ shell"* since 2026-09-10.
 > largest number there, and a collapse in *asked-for-arguments* means nothing
 > if the probes simply never happened.
 
+> **AND BOTH WINDOWS ARE SPINE-ON — found 2026-09-16 03:05, see item 12.**
+> The sibling project has been running since 2026-09-15 00:12, sharing this
+> free tier, while §4 said it was paused. The after-window is entirely
+> spine-on; the twelve-hour before-window above **straddles** the restart, so
+> it mixes two tiers. §4 is explicit that numbers either side of that line
+> are not comparable in either direction.
+>
+> **So the before-window is re-cut a second time, spine-on only** (2026-09-15
+> 00:12 → 2026-09-16 01:42), and the twelve-hour figures above are kept for
+> what they are: a mixture, labelled. If the spine-on slice is too thin to
+> say anything, the honest answer is CANNOT TELL and a longer after-window —
+> not a comparison across the line.
+>
+> **One correction to the table above**, from the same verifier: the four
+> non-bare probes are described as *unflagged old-path*. They are flagged —
+> `bare=False` on the old path meant the bare call was a COMPLETE call —
+> so they belong on the worked side of the before-window rather than among
+> the unclassifiable.
+
+> **THE BEFORE-WINDOW THAT 9.5 IS ACTUALLY MEASURED AGAINST** — spine-on,
+> so it matches the after-window's conditions. 2026-09-15 00:12 to
+> 2026-09-16 01:42, **25.5 hours**, which is not thin:
+>
+> | | |
+> |---|---|
+> | probes | **69** — 64 bare, 8 exited 0 |
+> | verdicts by rung | `gemini/gemma-4-31b-it` ACCEPTED 21, RETURNED 3 · `cloudflare/llama-3.3-70b` RETURNED 2 · `groq/gpt-oss-120b` ACCEPTED 1 |
+> | wants | 22, **15 distinct** |
+>
+> **93% of those probes were bare.** That single number is what item 9 set
+> out to change, and it is the one to read again after 48 hours — beside
+> `lost`, because a collapse in bare probes means nothing if the probes
+> stopped happening instead.
+
 ### 10. `[x]` Who may propose a cull
 
 Deliberately deferred until item 9 produces data: a library that is finally
@@ -372,15 +406,50 @@ unprompted.
 >     python3 seed_run.py --root ~/growing-cousin/live \
 >         --inherit ~/growing-spine-mind --label run2 --yes
 
-### 12. `[~]` Spine restarts
+### 12. `[!]` Spine restarts — OVERTAKEN BY EVENTS
 
 - **12.1** `systemctl --user enable --now growing-spine`.
 - **12.2** §4's era note records the date, so no figure crosses it silently.
 
-> **NOT TAKEN, and this one is not mine to take.** §4 records that **Tue**
-> paused the spine on 2026-09-13 13:50 CEST, deliberately, *to raise this
-> engine's cadence*. Restarting it reverses a standing decision of his and
-> halves the tier this engine has.
+> **THE SPINE IS ALREADY RUNNING, and 12.2 — the criterion that exists so no
+> figure crosses that line silently — FAILED.** Found 2026-09-16 03:05 by an
+> independent verifier running `systemctl` rather than reading the board.
+>
+> It came back up **2026-09-15 00:12:11**, four minutes after its own
+> flatline tripwire logged `THINK:!!NONE in 6h`, with a desktop session
+> active. No timer did it and nothing here recorded a decision. It has been
+> calling this engine's own rungs for 27 hours, and §4 said PAUSED
+> throughout — so every figure from the monitor's first day, the §7 evening
+> read of 2026-09-15 18:52, and the opening of item 9.5's window were all
+> taken against a shared tier while the documents said otherwise.
+>
+> **12.1 was never run** — the unit is still `disabled`, so nobody enabled
+> it. The board was therefore literally true and materially false, which is
+> worse than being wrong, and is exactly what 12.2 was written to prevent.
+>
+> **What has been done:** §4 is corrected with the date and what it costs,
+> and `shared_tier_contested` now reads the unit every five minutes and
+> compares it against the claim in CLAUDE.md — the machine and the document
+> can no longer disagree without somebody being told. **The instrument is
+> the fix; the sentence was not.** No test guarded this item and no detector
+> mentioned the spine, which is the channel that let 27 hours pass.
+>
+> **What has NOT been done, deliberately: the spine has not been stopped.**
+> It was Tue's pause and it is his to restore or re-take. Reversing it
+> unilaterally is the same act the paragraph below refuses in the other
+> direction.
+>
+> **Tue's call, and the two options are one command each:**
+>
+>     systemctl --user stop growing-spine       # re-take the pause
+>     systemctl --user enable --now growing-spine   # keep it, and mean it
+>
+> The rest of this entry is the reasoning as it stood before the discovery,
+> kept because the argument is still the argument:
+>
+> §4 records that **Tue** paused the spine on 2026-09-13 13:50 CEST,
+> deliberately, *to raise this engine's cadence*. Restarting it reverses a
+> standing decision of his and halves the tier this engine has.
 >
 > It is also the wrong week. Item 8's sixteen-case baseline took over twenty
 > minutes **with the engine paused** — the tier is that thin already — and
