@@ -202,6 +202,7 @@ not a midnight patch.**
 | "`plan` has 30 real failures" | 36 of `subagent-orchestrator`'s 43 probes and 30 of `plan`'s 31 predate the `bare` flag and are **unqualified**, not failures — and `plan` was probed 30 times because it was the **alphabetically last tool** and the chooser defaulted to it (§5, 2026-09-15). The library now says so to both inhabitants; it used to say FAILED. |
 | "the cousin keeps asking for the same thing" / "the creature keeps building twins" | check `probe_stuck` and `want_repeated` on the page FIRST. On 2026-09-15 six identical wants and five twins were the chooser sending the cousin to `view-subtask-logs` bare, 28 of 30 visits. |
 | "the cousin ran it with arguments and it exited non-zero, so the tool failed" | **Not knowable by the framework.** Since the cousin chooses the arguments (item 9) it may have invented an ID and the tool may have correctly said so. The library reports exit codes AND the cousin's own verdicts per tool; the word FAILED was retired 2026-09-16 after `view-subtask-logs task-123` rendered as *NEVER WORKED (1 real failures)*. Read the verdict, not the exit. |
+| "the cousin keeps asking for X and the creature keeps not building it" | Since the shell (item 9), check BOTH sides before blaming either: `grep` the probes' `cmd` for X. On 2026-09-17 `plan set-deadline` existed and the cousin asking for deadlines had never run it — it ran `plan` bare, accepted the menu with the same sentence four times, and asked again. `testimony_repeated` says so; the rule behind it is item 16.5. |
 | "the cousin's container is running, so the deploy took" | A running container may predate the configuration: on 2026-09-16 the cousin's came back after a deploy with no `/hands` mount and no `recall`, reused as it stood. `ensure_container` now compares MOUNTS and recreates on drift. Check `docker inspect -f '{{json .Mounts}}' growing-cousin-body-user`, not `is-active`. |
 
 **Habits this session had to learn the hard way**, all cheap and all mine:
@@ -629,7 +630,15 @@ guess with authority it has not earned.
   **Rejected by measurement:** *the creature cannot read what it must extend*
   (window 2400 < several tools). It edits 7 KB files freely —
   `subagent-orchestrator` eleven times, `plan` four — so the window is friction,
-  not a wall. **Acted on:** the direction channel was discarding 29 of 50 wants
+  not a wall.
+
+  > **REVERSED 2026-09-17 by a better measurement.** Editing a file blind is
+  > not the same as reading it. Between 08:00 and 10:00 the creature ran `cat
+  > tools/own/plan` twenty times — 6,119 bytes against a 2,400 cap, 2,970–
+  > 3,743 withheld each time — and 12 of its 24 thinks in that window talk
+  > about the cut, while it tried to add the feature its cousin had asked for
+  > four times. The window was a wall for READING, whatever it was for
+  > editing. Caps raised to fit the library (PLAN item 13, engine `add6782`). **Acted on:** the direction channel was discarding 29 of 50 wants
   before the creature had a turn, so it was chasing a target that moved every
   visit. Fixed in `17d8951`.
 

@@ -416,6 +416,53 @@ shell"* since 2026-09-10.
 > `lost`, because a collapse in bare probes means nothing if the probes
 > stopped happening instead.
 
+> **THE WINDOW CLOSED AT 23.3 HOURS (2026-09-17 19:31), when item 13's fix
+> was deployed.** Engine `85349ac`, 0 restarts; spine OFF 20:14→23:56 then ON
+> (Tue restarted it after the retraction) — so the first 3.7 h are on the
+> other side of the spine line and the read below is taken over the whole
+> window with that stated. 505 wakes / 257 thinks / 308 commands; 1,656 rung
+> declines; 52 visits deferred.
+>
+> | | |
+> |---|---|
+> | probes | **88** — 66 composed by the cousin, 22 lost to a dry ladder and recorded; 33 exited 0, 33 non-zero, **18 bare (20%)** |
+> | chosen because | the creature ran it **54**, unknown outcome 13, written 12, new 9 |
+> | verdicts | **14** — 8 ACCEPTED, 6 RETURNED; gemini 13, cloudflare 1 |
+> | wants | 8, **5 distinct — one of them four times** ("assign deadlines to tasks and list them by urgency") |
+> | tools built | 9: `clear-baseline`, `get-baseline`, `plan-synthesize-completed`, `archive-link`, `archive-links`, `archive-graph-export`, `archive-graph-path`, `archive-graph-analyze`, `archive-graph-clusters` → library 60 |
+>
+> **9.5 is answered on the one figure the spine cannot move: bare probes went
+> from 93% (64 of 69, the spine-on bare before-window) to 20% (18 of 88).**
+> The cousin composes real invocations — lookups, setups, before/after checks
+> — and the loop closed end to end at least twice. Rates are NOT compared:
+> the before-window is spine-on and this one is mixed.
+>
+> **What the window found that the design did not expect, both on the board
+> now:**
+>
+> 1. **The repeated want was two faults, one on each side.** The creature
+>    could not read the 6 KB tool it was extending (item 13, above — fixed).
+>    And the cousin ran `plan` BARE, accepted the usage menu with the identical
+>    sentence four times running, and asked for deadlines again — while
+>    `plan set-deadline` existed and it never once ran it. The brief's *"when
+>    you called it wrong"* rule was written for the harness's empty hands;
+>    with item 9 the hands are the cousin's, and accepting a menu it chose to
+>    summon is accepting nothing. That is item 16's first concrete rule to
+>    score. `testimony_repeated` now makes the form-not-report pattern
+>    visible; the judgement stays the brief's.
+> 2. **The `ran` reason is a hub magnet.** 54 of 88 probes were chosen
+>    because the creature had just run the tool, and the creature runs `plan`
+>    every cycle — `probe_stuck` fired once (5 of 8 visits to `plan`) and
+>    cleared. Correct by design, costly in practice; item 18.
+> 3. **Two calls per visit on a dry tier: 88 probes, 14 verdicts, 52
+>    deferred.** The invocation call took the answer the verdict needed.
+>    Item 18.
+>
+> **A new window opens at 2026-09-17 19:33:33 (engine `add6782`) on the new caps.** Item 9.5's question is
+> answered; what this window measures is item 13's fix (does `window_reread`
+> stay quiet on `plan`) and whether the deadline want gets discharged now that
+> its author can read its own tool.
+>
 > **INTERIM READ AT 3.6 HOURS (2026-09-16 23:52), from a 10-minute watch Tue
 > asked for and then stopped for the night.** Engine `85349ac` since 20:14,
 > 0 restarts, spine OFF throughout. 65 wakes / 44 thinks / 54 commands; 204
@@ -618,7 +665,36 @@ unprompted.
 >
 >     systemctl --user enable --now growing-spine
 
-### 13. `[x]` The 2400-character window — explicitly NOT doing
+### 13. `[x]` The output window — was "explicitly NOT doing"; REOPENED BY ITS OWN TRIGGER AND DONE 2026-09-17
+
+> **The symptom this item named fired, and reading the raw thinks answered
+> its own question.** `window_reread` went to ALARM four times in twenty
+> hours (23:50, 01:02, 09:09, ~18:00). Between 08:00 and 10:00 on 2026-09-17
+> the creature ran `cat tools/own/plan` **twenty times** — `plan` at 6,119
+> bytes against caps of 2,400, so ~2,400 shown and 2,970–3,743 withheld each
+> time — while trying to add the deadline feature its cousin had asked for
+> four times. **Twelve of its twenty-four thinks in that window talk about the
+> cut.** Not for its own reasons: it could not see the file.
+>
+> The 2026-09-14 reading ("it edits 7 KB files freely, so the window is
+> friction, not a wall") is corrected by this measurement. A cap that hides
+> 60% of the tool its author is editing is a correctness fault.
+>
+> **Done, sized to the library rather than guessed:** 29 of 60 tools exceeded
+> 2,400; the largest is 7,223 (`subagent-orchestrator`), then `plan`. Journal
+> 8,000, context 8,000, block total 12,000 — all three together, or the
+> caps-in-series scar swallows the raise; the gate asserts every built tool
+> fits through all three and derives its fixtures from the constants. Engine
+> `add6782`. Context cost: the history block may grow from ≤6,000 to ≤12,000
+> chars per wake in the worst case; measured against a 6 KB tool read blind
+> twenty times, that is cheap.
+>
+> **What to read next:** `window_reread` should stay OK on `plan`; if it
+> fires again on a tool UNDER 8,000 bytes, the cause is not the window.
+
+Original entry follows, kept because the reasoning was right until the
+measurement said otherwise:
+
 
 *Don't fix what has no symptom.* It stays on the board as a decision, not as
 something forgotten.
@@ -771,6 +847,16 @@ underneath it:
   verdict it produces (§5, 2026-09-11).
 - **16.4** A control: the change must not turn the cousin into a refuser.
   Held-out ACCEPTED cases stay accepted.
+- **16.5 (added 2026-09-17, from the first shell window): the "when you
+  called it wrong" rule is inverted by item 9.** It says a tool that refuses
+  incomplete input has done its job — written for a harness that called
+  everything bare. The cousin now chooses its arguments, and on 2026-09-17
+  it ran `plan` bare four times, accepted the usage menu four times with the
+  identical sentence, and asked for deadlines four times while
+  `plan set-deadline` sat built and untried. The rule's condition should be
+  *the harness gave you nothing*, never *you chose to type nothing* — a user
+  with hands who summons a menu has not tested anything. First concrete rule
+  to draft and score; `testimony_repeated` is its instrument on the page.
 
 **SEQUENCING, and it is not optional.** This is a brief change, and item 9's
 measurement window is open. Shipping it now confounds the one measurement two
@@ -900,3 +986,17 @@ remembers:
 - **18.5 `deploy_regression` did not see the shell's fifteen silent hours.**
   Its floors are for the creature's indicators; `cousin_starved` now covers
   the cousin. Left as is, noted so the next reader does not expect it to.
+- **18.6 The `ran` reason is a hub magnet (2026-09-17).** 54 of 88 probes in
+  the first shell window were chosen because the creature had just run the
+  tool — and the creature runs `plan` on most cycles, so `probe_stuck` fired
+  (5 of 8 visits to `plan`). The reason is correct by design: a done-claim is
+  about what it just ran. *Trigger: if `probe_stuck` fires on `ran` twice in
+  a window, prefer among the tools the creature ran the one its user has
+  probed least, before falling to `unknown_outcome`.* A chooser rule, so it
+  ships with a red-proof against the journal slice where it fired.
+- **18.7 Two calls per visit starves the judgement on a dry tier — measured
+  now: 88 probes, 14 verdicts, 52 visits deferred in 23 hours.** The
+  invocation call is served and the verdict call then finds no rung. Not a
+  tick fix and not a brief fix; a ladder economics question. *Trigger: item
+  8's baseline across several reps, so a change to the verdict call's budget
+  or the ladder's order can be read against something.*
