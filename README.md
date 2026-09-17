@@ -175,6 +175,32 @@ The manager's output is testimony, not instruction.
             Gates nothing. Without it the judge blames the messenger.
 ```
 
+### What the second inhabitant has, and what it took to give it
+
+Making the cousin real turned out to mean more than running it. Three things
+were missing for most of the project's life, and each was found by reading the
+design rather than the logs:
+
+- **Its own memory.** The creature's prompt describes a user that *wakes with
+  no idea what changed while it slept* and *cannot plan across cycles* — and
+  four of the five tool kinds it is told to build follow from that. The cousin
+  had no continuity at all until 2026-09-18: its world was remade every visit
+  and discarded. A judge with no yesterday cannot test a memory tool's only
+  real claim, which is cross-session.
+- **Not the builder's notes.** Its copy of the world included the creature's
+  `state/memory.json` — the author's own record of what it had decided and
+  verified — and one command prints all of it. **The judge was holding the
+  answer key**, in the mechanism built to stop exactly that class of fault.
+  Fixed 2026-09-18: the cousin receives the creature's *work* and never its
+  *notes*. Every verdict taken before that date is caveated in `CLAUDE.md` §7.
+- **Instruments of its own.** `ARCHITECTURE.md` §5 specified a handful of
+  small scripts the cousin runs when it wants to know something —
+  startability, hollow stubs, duplicate stems, dependency edges, store parse
+  rates. They were specified on 2026-09-10 and written on 2026-09-18. Nothing
+  schedules them. On their first run they found a shared store no reader can
+  parse, and a hub tool named by 37 of 60 that no previous reading of that
+  library had noticed.
+
 The cousin is shown **the library the tool is joining**, not just the tool. Its
 third test asks whether this is genuinely new or the fifth variant of something
 already there — and for a while it was being asked that while shown one side of
@@ -416,9 +442,15 @@ Full method, fixtures and per-case results: [`trial/`](trial/).
 
 Design settled 2026-09-10; the brief was scored against real fixtures
 2026-09-11 -- in-sample, on a local stand-in, which is a floor and not a
-validation of the live ladder. It starts
-with a copy of the parent's library — a known-answer test set, so the design can
-be refuted in a week rather than a season (`ARCHITECTURE.md` §11).
+validation of the live ladder.
+
+~~It starts with a copy of the parent's library — a known-answer test set, so
+the design can be refuted in a week rather than a season.~~ **Decided
+2026-09-10 and never executed; corrected here 2026-09-18.** Both runs began
+from nothing: no journal, no context, no memory, no tools. So the
+known-answer refutation path has never been taken, and every reading of the
+cousin's judgement so far rests on a library with no known answers in it. It
+is bound to run 3 (`PLAN.md` item 11) with the tagging requirement intact.
 
 **Still unproven:** none of this is the live ladder. `gemma-4-31b-it` answers
 when probed directly, but the full run against it is not finished — it is slow,
@@ -428,8 +460,8 @@ standin is a standin.
 **It is deployed and the loop closes in production.** `kernel/` is the 1% that
 stays code, `tests/test_kernel.py` is the gate — **run it for the count; no
 document here quotes one**, because four documents once quoted four different
-numbers and a count in prose is a constant nobody chose. A creature and a
-creature and its cousin run unattended under systemd on the same laptop as the
+numbers and a count in prose is a constant nobody chose. A creature and its
+cousin run unattended under systemd on the same laptop as the
 spine — same hardware, same network, same free-tier accounts, which is the only
 configuration in which comparing the two projects means anything.
 

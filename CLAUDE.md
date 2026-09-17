@@ -1709,7 +1709,98 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    on a rung like that produces confident garbage instead of an obvious failure.
    Record the model per verdict from day one.
 
-## 7. State — 2026-09-14, run 2 at 35 hours (the loop works; the judgement is the question)
+## 7. State — 2026-09-18, run 2 at 108 hours (the loop works; what it was measuring was contaminated)
+
+> **Generated, not remembered.** Every figure below was produced 2026-09-18
+> 01:10 by reading `live/journal.jsonl` and `live/monitor/status.md` on the
+> laptop, which is what the 2026-09-15 addendum told the next writer to do.
+> **The engine changed 16 times inside this window** (17 `engine_start`
+> records, 16 distinct commits), so these are TOTALS and never rates of
+> anything.
+
+**Run 2 entire, 2026-09-13 12:48 to 2026-09-18 01:08 — 108.3 hours, unattended.**
+
+| | |
+|---|---|
+| wakes / thinks / commands | 2,472 / 1,455 / 1,987 |
+| cousin probes | 476 |
+| verdicts | 177 |
+| wants raised / retired | 94 / 80 |
+| tools added / removed | 65 / 5 |
+| library now | **60** |
+| rung declines (expected) | 7,257 |
+| `rung_broken` — needed a human | **0** |
+
+**Verdicts split by rung, because the ladder is not one instrument:**
+
+| rung | accepted | returned | unknown |
+|---|---|---|---|
+| `gemini/gemma-4-31b-it` | 86 | 42 | 19 |
+| `cloudflare/llama-3.3-70b` | 3 | 20 | 0 |
+| `groq/gpt-oss-120b` | 5 | 2 | 0 |
+
+Gemini accepts 86 of 147; cloudflare accepts 3 of 23. **An aggregate over that
+ladder measures neither**, and the difference is still unexplained.
+
+**Probes, with the qualifier that makes the exit codes readable at all:**
+
+| | |
+|---|---|
+| exited 0 | 90 |
+| exited non-zero | 239 |
+| **lost — nobody answered, nothing ran** | **147 (31%)** |
+| called bare / with arguments the cousin chose | 112 / 210 |
+| predate the `bare` flag, so unqualified | 154 |
+
+**READ THE LOST COLUMN BEFORE ANY OTHER.** Thirty-one percent of probes
+reached no rung at all. That is the free tier, not the library, and a reader
+who counts `239 non-zero` as failure is repeating the 2026-09-14 scar at a new
+size.
+
+**THE FINDING OF THIS WINDOW IS THAT THE WINDOW WAS CONTAMINATED.** Until
+2026-09-18 the cousin's world held a byte-identical copy of the creature's
+`state/memory.json` — the author's own notes, including
+`compare-subtask-logs-baseline-verified true`, `list-subtasks-verified = true`
+and `current-phase done` — and `recall` with no argument prints all of them.
+**So every one of the 177 verdicts above was taken with the builder's answer
+key on the table**, and they are not comparable to any verdict taken after it.
+§5 carries the scar. This is the honest headline of run 2 and it costs the run
+its verdict figures; the probe, want and tool counts are unaffected.
+
+**What the library actually is, measured 2026-09-18 by the instruments built
+that night (`instruments/`, PLAN 20.3) rather than by reading:**
+
+- **60 of 60 tools parse.** The "broken floor" reading is retired for good.
+- **124 dependency edges**, and the hub is a tool called `path`, **named by 37
+  of 60** — it had never appeared in any reading of this library. `archive` is
+  named by 29, `plan` by 14.
+- **One shared store cannot be read at all**: `subtask_logs_test.json` does not
+  parse. That is the fifth single-occupancy fault the README lists, live, and
+  nothing in this project could see it before the instruments existed.
+- Two orphans (`clear-baseline`, `get-baseline`) and two hollow candidates.
+
+**What works.** The loop closes repeatedly and unattended over four and a half
+days: the creature builds, the cousin runs what was built with arguments it
+chose itself, the want reaches the creature, it builds that. `rung_broken` is
+0 across the whole run — no human was ever needed to keep it alive.
+
+**What does not, and it is the same thing twice.** The second inhabitant was
+not the inhabitant the creature is told about. It had no memory of its own
+until 2026-09-18, no instruments until the same night, and it held the
+builder's notes throughout. `ARCHITECTURE.md` §12 names this project's
+headline metric — *tools that start, are invoked by something else, and are
+still invoked a week later* — and it has **never once been computable here**,
+because the cousin got a wiped world and one nominated tool per visit. That is
+PLAN item 20.2 and it is the open question this project now turns on.
+
+**Open:** item 20.2 (the headline metric) and item 11 (run 3 from the
+parent's library, decided 2026-09-10 and still not executed).
+
+**The chat channel is item 14**, wanted rather than abandoned. It lands last on
+purpose: it adds a surface to the creature's context, and a new surface
+arriving mid-measurement makes every number either side of it incomparable.
+
+### Previous state — 2026-09-14, run 2 at 35 hours (the loop works; the judgement is the question)
 
 > **2026-09-15 addendum.** The figures below are now *derivable* rather than
 > typed: `python3 -m monitor status --root live` prints them per window with
