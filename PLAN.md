@@ -1156,17 +1156,43 @@ with the only test available to something that has no work to do: did it run.
   assertions where it was one, because weakening a boundary test to let a
   change pass is a scar in §5. Gate 841 green. **What this does not do:** give
   the cousin anything to remember ABOUT. That is 20.2.
-- **20.2 `[ ]` The cousin has work that spans visits.** Something it is trying
-  to accomplish which the library is supposed to accelerate, whose outcome can
-  be checked without either agent's opinion. **Acceptance:** a verdict names
-  what it was trying to do and whether it got closer; *serves nothing* becomes
-  decidable, which is the evidence item 16 needs and does not have.
-- **20.3 `[ ]` TUE'S, and only his: what the work should be.** §0 reserves
-  *what the project is for* to him and this is that question wearing a
-  technical hat. I will not pick a job in his name. Two things are mine to
-  say: any job with a checkable outcome beats no job, and a job that reaches
-  outside the box is the only way to find out whether the library's inward
-  shape is the prompt's doing or the design's.
+> **20.2 AND 20.3 WERE REWRITTEN 2026-09-18, because the founding documents
+> had already answered them and I had asked Tue the wrong question.** He sent
+> me back to `README.md` and `ARCHITECTURE.md`. Both are explicit: the cousin
+> is not to have work of its own. *"Success is framed as a handover -- but the
+> tool STAYS HOME. The cousin does not take it away. The creature bears the
+> cost of handover quality and keeps the benefit"* (§4). A cousin with its own
+> mission is a second creature, and the asymmetry the design rests on is gone.
+> The discarded version of 20.2 asked for *"work that spans visits, whose
+> outcome can be checked"*, and 20.3 asked Tue to choose that work. Neither
+> was the design's question. Kept here because the wrong version is the
+> instructive part: I was reasoning from CLAUDE.md, which is the maintenance
+> log, instead of from the two documents that say what this is.
+
+- **20.2 `[ ]` A visit is a WAKE, not an inspection -- so that §12's headline
+  metric can exist at all.** `ARCHITECTURE.md` §12 names what this project
+  measures first: **"tools that start, are invoked by something else, and are
+  still invoked a week later"**, glossed as *surviving useful capability -- the
+  thing the goal actually names*. That needs no external purpose. It needs the
+  same user reaching for the same tool across days. Our cousin gets a wiped
+  world and one nominated tool per visit, so **the number this project says is
+  its headline has never once been computable.** With 20.1 shipped the cousin
+  can carry what it learned; what remains is that a visit lets it reach for
+  whatever it needs, not only the tool under test. **Acceptance:** for a tool
+  the cousin chose itself, the journal shows first use, re-use on a later day,
+  and the metric computed from probes rather than asserted.
+- **20.3 `[ ]` Build the cousin's instruments, which `ARCHITECTURE.md` §5
+  specifies and nobody built.** *"A handful of small deterministic scripts --
+  startability, hollow-stub detection, duplicate-stem listing, dependency
+  edges, store parse rates... They are tools, they live where tools live, and
+  the cousin runs one when it wants to know something."* **This is the answer
+  to item 16**, and it is a script rather than a brief rule: Tue asked that
+  noticing a tool which serves nothing should rest with the cousin, and the
+  architecture had already said how -- give it the instrument and let it look,
+  rather than adding a rule telling it to have an opinion. **Acceptance:** the
+  scripts exist where the cousin can run them, the cousin is told they are
+  there (the invocation template, which is kernel text, not the frozen brief),
+  and the journal records a visit where it ran one unprompted.
 
 **Do not start 16, 17, 18.6 or 18.7 before this** -- each tunes a loop that is
 not carrying anything. Recorded as a dependency and not a deletion, because

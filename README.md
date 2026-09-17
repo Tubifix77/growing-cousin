@@ -9,10 +9,11 @@ person the work is *for*.**
 > the creature builds, the cousin runs what was built and judges it, and what
 > the cousin asks for next reaches the creature and gets built.
 >
-> **The spine is PAUSED** as of 2026-09-13 13:50 CEST, to give this engine
-> the free tier to itself. The parallel comparison is therefore suspended,
-> not running: any rate measured now is measured under conditions the
-> project is not designed around.
+> **The spine RUNS** (corrected 2026-09-18; this paragraph claimed it was
+> paused for five days after it came back up on 2026-09-15). The free tier is
+> shared, which is the condition this comparison is designed for rather than
+> an obstacle to it, and a detector now reads the unit every five minutes
+> instead of this sentence being trusted.
 >
 > Numbers about the *parent* are quoted from Growing Spine. Numbers about the
 > *cousin* were produced here. They are never mixed, and every rate is split by
@@ -468,6 +469,13 @@ Every one of those looked, from outside, like a creature going in circles.
 **Still missing, and both are now scheduled rather than merely absent
 (`PLAN.md`, 2026-09-16):** the chat channel is **wanted** and is item 14 — it
 lands last on purpose, because it adds a surface to the creature's context and
-must not arrive while anything is being measured. `DockerBody` is written but
-never exercised — the deployed body is local, which is also why the creature's
-shell still shares a uid with the engine's key files (item 7).
+must not arrive while anything is being measured. ~~`DockerBody` is written
+but never exercised — the deployed body is local, which is also why the
+creature's shell still shares a uid with the engine's key files (item 7).~~
+**Both were fixed on 2026-09-16 and this paragraph was stale for two days**
+(corrected 2026-09-18): the creature runs in a container, its cousin runs in a
+second one, and `selfcheck` re-proves at every start that the engine's keys
+are unreadable from inside. What is still missing is in `PLAN.md`: the chat
+channel (item 14), run 3 starting from the parent's library (item 11), and
+item 20 -- the cousin is the second inhabitant this project exists to make
+real, and until 2026-09-18 it had no memory of its own visits.

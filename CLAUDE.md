@@ -64,8 +64,13 @@ stated reason, not for want of work:
 - **20 is the root the rest were symptoms of**, found 2026-09-17 by reading
   the prompts instead of the journal. **20.1 is `[x]` and deployed**: the
   cousin no longer receives the creature's private notes, and keeps its own
-  across visits. **20.2 and 20.3 are open, and 20.3 is TUE'S** -- what work
-  the cousin should be trying to do is *what the project is for*.
+  across visits. **20.2 and 20.3 were rewritten 2026-09-18 after Tue sent me
+  back to `README.md` and `ARCHITECTURE.md`** -- I had asked him to choose
+  work for the cousin, and both documents say plainly that it must have none
+  of its own: the tool STAYS HOME and the creature keeps the benefit. What is
+  missing is not a purpose but §12's headline metric, *still invoked a week
+  later*, which has never been computable here; and §5's cousin instruments,
+  specified and never built, which are item 16's real answer.
 
 **TUE IS THE CUSTOMER, NOT THE ARCHITECT — he said so on 2026-09-16 and it
 changes how this file should be used.** *"i have no idea about what you ask
