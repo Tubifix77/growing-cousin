@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+# tool: lib-startable
+# call: lib-startable
+# does: Static check of every tool in the library -- shebang present, and does it parse.
+"""ARCHITECTURE.md 5, "the cousin's instruments": a handful of small
+deterministic scripts the cousin runs when it wants to know something.
+Specified 2026-09-10, built 2026-09-18.
+
+STATIC ONLY, and it says so in its own output. Running sixty tools to see
+which start would spend the visit and would run the creature's code for a
+reason that is not the cousin's own errand; the 2026-09-16 library read was
+static for the same reason. A parse check answers "can this file ever run",
+which is the question behind the parent's `cannot_start` count, and leaves
+"does it do what it claims" where it belongs -- with the cousin, which has a
+shell.
+"""
+import os
+import subprocess
+import sys
+
+MIND = os.environ.get("MIND", ".")
+OWN = os.path.join(MIND, "tools", "own")
+
+
+def kind(src, name):
+    first = src.split("\n", 1)[0] if src else ""
+    if not first.startswith("#!"):
+        return "no-shebang"
+    low = first.lower()
+    if "python" in low:
+        return "python"
+    if "bash" in low or "/sh" in low or " sh" in low:
+        return "shell"
+    return "other"
+
+
+def main():
+    if not os.path.isdir(OWN):
+        print("no library at %s" % OWN)
+        return 0
+    names = sorted(n for n in os.listdir(OWN)
+                   if os.path.isfile(os.path.join(OWN, n))
+                   and not n.endswith((".bak", ".tmp", "~")))
+    ok, bad, unknown = [], [], []
+    for n in names:
+        p = os.path.join(OWN, n)
+        try:
+            with open(p, encoding="utf-8", errors="replace") as f:
+                src = f.read()
+        except OSError as e:
+            bad.append((n, "unreadable: %s" % e))
+            continue
+        k = kind(src, n)
+        if k == "no-shebang":
+            bad.append((n, "no shebang: the shell cannot know what to run it with"))
+        elif k == "python":
+            try:
+                compile(src, n, "exec")
+                ok.append(n)
+            except SyntaxError as e:
+                bad.append((n, "python syntax error line %s: %s" % (e.lineno, e.msg)))
+        elif k == "shell":
+            try:
+                r = subprocess.run(["bash", "-n", p], capture_output=True,
+                                   text=True, timeout=10)
+                (ok if r.returncode == 0 else bad).append(
+                    n if r.returncode == 0
+                    else (n, (r.stderr or "").strip().split("\n")[0][:120]))
+            except Exception as e:
+                unknown.append((n, "could not check: %s" % e))
+        else:
+            unknown.append((n, "interpreter not recognised from its shebang"))
+    print("%d tools: %d parse, %d do not, %d cannot be checked"
+          % (len(names), len(ok), len(bad), len(unknown)))
+    for n, why in bad:
+        print("  WILL NOT START  %-38s %s" % (n, why))
+    for n, why in unknown:
+        print("  CANNOT TELL     %-38s %s" % (n, why))
+    print("\nthis is a PARSE check and nothing was executed: a tool that parses "
+          "can still fail when you run it, and that is what your shell is for.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

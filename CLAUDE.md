@@ -227,6 +227,19 @@ not a midnight patch.**
 
 **Habits this session had to learn the hard way**, all cheap and all mine:
 
+- **READ `README.md` AND `ARCHITECTURE.md` FIRST, and again after every
+  compaction.** Tue, 2026-09-18, after catching the failure: I had concluded
+  the cousin needed work of its own and asked him to choose it, when both
+  documents say the opposite in as many words -- *success is framed as a
+  handover, but the tool STAYS HOME*, and a cousin with its own mission is a
+  second creature. **This file is the maintenance LOG, not the design.** It is
+  the longest document here and it grows every session, so in a long session
+  it quietly becomes the apparent source of truth, and a compaction summary is
+  built from the conversation, which is mostly this file. The two documents
+  that say what the project IS are short and had not been read in days. The
+  2026-09-13 outside review found exactly this drift in the files; this is the
+  same drift in the reader. Re-reading both costs a minute and it has now
+  changed a board item twice.
 - **Re-arm a monitor in the same turn as the check**, before writing the
   report. Claiming a re-arm that never happened has occurred twice.
 - **Never put a backtick in a shell string.** A monitor died on

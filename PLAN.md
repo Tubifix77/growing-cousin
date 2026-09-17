@@ -1181,8 +1181,33 @@ with the only test available to something that has no work to do: did it run.
   whatever it needs, not only the tool under test. **Acceptance:** for a tool
   the cousin chose itself, the journal shows first use, re-use on a later day,
   and the metric computed from probes rather than asserted.
-- **20.3 `[ ]` Build the cousin's instruments, which `ARCHITECTURE.md` §5
-  specifies and nobody built.** *"A handful of small deterministic scripts --
+- **20.3 `[x]` DONE 2026-09-18. Built the cousin's instruments, which
+  `ARCHITECTURE.md` §5 specified on 2026-09-10 and nobody wrote for eight
+  days.** `instruments/` holds five: `lib-startable`, `lib-stubs`,
+  `lib-twins`, `lib-deps`, `lib-stores`. They go into the cousin's bin only
+  (§2.4: a hollow-stub detector aimed at the creature's own library is telling
+  it about its own bugs), the invocation template says they exist, each says
+  what it did NOT check, and the gate proves the creature's bin never receives
+  them. Red-proven first. Nothing schedules them.
+
+  > **They found four things on their first run against the real library, which
+  > is the same pattern every instrument here has shown on its first day.**
+  > `subtask_logs_test.json` **does not parse at all** -- a shared store no
+  > reader can read, which is the fifth single-occupancy fault the README lists
+  > and the fifth brief test, and nothing in this project could see it before
+  > today. A tool called `path` is **named by 37 of 60 tools** and had never
+  > appeared in any reading of this library: the real hub is not `archive` or
+  > `plan`. `clear-baseline` and `get-baseline` are orphans that neither call
+  > nor are called. And 60 of 60 tools parse, which retires the last of the
+  > "broken floor" readings for good.
+  >
+  > **None of this is a verdict and the framework must not make one.** The
+  > facts are the cousin's to use when it wants them; §2.3's dividing line is
+  > that a scan gathers a fact and then decides what to say about it, and only
+  > the second half was ever framework.
+
+- ~~**20.3 `[ ]` Build the cousin's instruments, which `ARCHITECTURE.md` §5
+  specifies and nobody built.**~~ *"A handful of small deterministic scripts --
   startability, hollow-stub detection, duplicate-stem listing, dependency
   edges, store parse rates... They are tools, they live where tools live, and
   the cousin runs one when it wants to know something."* **This is the answer

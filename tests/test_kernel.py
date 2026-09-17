@@ -5629,6 +5629,133 @@ def test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_cousin_has_the_instruments_the_architecture_specified():
+    """PLAN item 20.3, from `ARCHITECTURE.md` \u00a75: *a handful of small
+    deterministic scripts -- startability, hollow-stub detection,
+    duplicate-stem listing, dependency edges, store parse rates... they are
+    tools, they live where tools live, and the cousin runs one when it wants to
+    know something.* Specified 2026-09-10 and never built until 2026-09-18,
+    found by Tue sending me back to the founding documents.
+
+    **This is item 16's answer, and it is a script rather than a rule.** Tue
+    asked that noticing a tool which serves nothing should rest with the
+    cousin. The architecture had already said how: give it the instrument and
+    let it look. A brief rule telling a judge to have an opinion about
+    usefulness, with no way to gather the fact, is how the 2026-09-12 scar
+    happened -- a judgement that requires a comparison gets made anyway when
+    you show one side.
+
+    **The creature must never get these** (\u00a72.4: never tell the creature
+    about its own bugs). A hollow-stub detector aimed at its own library is
+    precisely that, and the diagnosis is its work and its growth.
+
+    **Each one must say what it did NOT check.** A detector has three states,
+    never two; an instrument that reports a count with no honest qualifier is
+    the display that counted usage refusals as failures.
+    """
+    import subprocess
+    import run as runmod
+    root = _repo_root()
+    d = tmpdir()
+    instr = os.path.join(root, "instruments")
+    want = ["lib-deps", "lib-startable", "lib-stores", "lib-stubs", "lib-twins"]
+    have = sorted(os.listdir(instr)) if os.path.isdir(instr) else []
+    check("instruments: all five the architecture names exist",
+          [n for n in want if n in have] == want, have)
+    if [n for n in want if n in have] != want:
+        shutil.rmtree(d, ignore_errors=True)
+        return
+
+    # A world with one planted fault of each kind.
+    mind = os.path.join(d, "mind")
+    own = os.path.join(mind, "tools", "own")
+    data = os.path.join(mind, "data")
+    os.makedirs(own); os.makedirs(data)
+
+    def tool(name, text):
+        with io.open(os.path.join(own, name), "w", encoding="utf-8") as f:
+            f.write(text)
+
+    tool("plan", "#!/usr/bin/env python3\n# does: keeps the plan\nprint('ok')\n")
+    tool("plan-list", "#!/usr/bin/env python3\n# does: lists it\n"
+                      "import subprocess\nsubprocess.run(['plan'])\n")
+    tool("plan-broken", "#!/usr/bin/env python3\n# does: broken\ndef f(:\n")
+    tool("noshebang", "# does: has no shebang\necho hi\n")
+    tool("hollow", "#!/usr/bin/env python3\n# does: nothing yet\n"
+                   "# not written yet\npass\n")
+    tool("lonely", "#!/usr/bin/env python3\n# does: calls nobody\nprint(1)\n")
+    with io.open(os.path.join(data, "archive.json"), "w", encoding="utf-8") as f:
+        f.write('{"entries": [1, 2]}')
+    with io.open(os.path.join(data, "torn.jsonl"), "w", encoding="utf-8") as f:
+        f.write('{"a": 1}\nNOT JSON AT ALL\n{"a": 2}\n')
+
+    before = _digest_dir(mind)
+    env = dict(os.environ, MIND=mind)
+    out = {}
+    for n in want:
+        r = subprocess.run([sys.executable, os.path.join(instr, n)],
+                           capture_output=True, text=True, timeout=60, env=env)
+        out[n] = r.stdout
+        check("instruments: %s runs and exits 0" % n, r.returncode == 0,
+              (r.returncode, (r.stderr or "")[:200]))
+
+    check("instruments: startable names the tool that cannot parse",
+          "plan-broken" in out["lib-startable"], out["lib-startable"][:300])
+    check("instruments: startable names the tool with no shebang, which the "
+          "shell cannot run whatever is inside it",
+          "noshebang" in out["lib-startable"], out["lib-startable"][:300])
+    check("instruments: startable does not accuse the tools that are fine",
+          "WILL NOT START" not in out["lib-startable"].replace(
+              "WILL NOT START", "", 2), out["lib-startable"][:300])
+    check("instruments: stubs finds the hollow one",
+          "hollow" in out["lib-stubs"], out["lib-stubs"][:300])
+    check("instruments: twins groups the family and says who wraps whom",
+          "plan-*" in out["lib-twins"] and "wraps" in out["lib-twins"],
+          out["lib-twins"][:400])
+    check("instruments: deps finds the tool nothing calls",
+          "lonely" in out["lib-deps"], out["lib-deps"][:400])
+    check("instruments: deps answers for ONE tool, which is the question "
+          "before you judge it -- if this breaks, what else stops",
+          "plan-list" in subprocess.run(
+              [sys.executable, os.path.join(instr, "lib-deps"), "plan"],
+              capture_output=True, text=True, timeout=60, env=env).stdout)
+    check("instruments: stores reports the torn store as 2 of 3",
+          "2/3" in out["lib-stores"], out["lib-stores"][:400])
+    check("instruments: and does not call the intact one torn",
+          "archive.json" in out["lib-stores"] and
+          "DOES NOT PARSE" not in out["lib-stores"], out["lib-stores"][:400])
+
+    # THREE STATES, NEVER TWO: each must say what it did not check.
+    for n, phrase in (("lib-startable", "nothing was executed"),
+                      ("lib-stubs", "NOT A VERDICT"),
+                      ("lib-twins", "NOT DUPLICATION"),
+                      ("lib-deps", "NAMING IS NOT CALLING"),
+                      ("lib-stores", "NOT CORRECTNESS")):
+        check("instruments: %s says what it did NOT check" % n,
+              phrase in out[n], out[n][-200:])
+
+    check("instruments: and not one of them wrote to the world it read",
+          _digest_dir(mind) == before)
+
+    # WHO GETS THEM. The cousin, never the builder.
+    cb = runmod.PathBody(os.path.join(d, "cousin-body"))
+    names = runmod.instrument_names()
+    cb.bin = runmod.install_hands(cb, only=runmod.USER_HANDS, keep=names)
+    runmod.install_instruments(cb)
+    got = sorted(os.listdir(os.path.join(cb.root, "bin")))
+    check("instruments: the cousin has them", [n for n in want if n in got] == want, got)
+    check("instruments: and still has a user's hands, and none of a builder's",
+          "recall" in got and "remember" in got and "tool-edit" not in got
+          and "tool-new" not in got, got)
+    crb = runmod.PathBody(os.path.join(d, "creature-body"))
+    runmod.install_hands(crb)
+    cgot = sorted(os.listdir(os.path.join(crb.root, "bin")))
+    check("instruments: the CREATURE does not -- a stub detector aimed at its "
+          "own library is telling it about its own bugs (\u00a72.4)",
+          not [n for n in want if n in cgot], cgot)
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_cousin_gets_the_creatures_work_and_never_its_notes():
     """PLAN item 20.1, and it is the premise of the whole design.
 
@@ -7311,6 +7438,7 @@ def main():
                test_history_can_never_parse_as_a_command,
                test_cousin_sees_the_library,
                test_the_cousin_gets_the_creatures_work_and_never_its_notes,
+               test_the_cousin_has_the_instruments_the_architecture_specified,
                test_an_unreadable_verdict_keeps_its_evidence,
                test_cousin_probe_is_recorded,
                test_census_catches_a_fabricated_verdict,

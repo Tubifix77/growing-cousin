@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+# tool: lib-deps
+# call: lib-deps [tool]
+# does: Which tools name which others -- hubs, orphans, and what depends on one tool.
+"""ARCHITECTURE.md 5. Specified 2026-09-10, built 2026-09-18.
+
+The parent's version of this ran per wake and went quadratic in the library's
+size: 187,489 full-content regex scans per cycle, 28 seconds, getting worse
+every time the creature succeeded, and found because a human could hear the
+laptop fan. Nothing schedules this one. It runs when the cousin asks, once,
+and the whole apparatus that made the parent's expensive -- the scheduling,
+the cache, the edge-trigger state, the warning composition -- is the 99% this
+project deleted.
+
+With an argument it answers the question that matters before you judge one
+tool: if this is broken, what else stops working.
+"""
+import os
+import re
+import sys
+
+MIND = os.environ.get("MIND", ".")
+OWN = os.path.join(MIND, "tools", "own")
+
+
+def main():
+    if not os.path.isdir(OWN):
+        print("no library at %s" % OWN)
+        return 0
+    names = sorted(n for n in os.listdir(OWN)
+                   if os.path.isfile(os.path.join(OWN, n))
+                   and not n.endswith((".bak", ".tmp", "~")))
+    src = {}
+    for n in names:
+        try:
+            with open(os.path.join(OWN, n), encoding="utf-8", errors="replace") as f:
+                src[n] = f.read()
+        except OSError:
+            src[n] = ""
+    calls = {n: sorted(o for o in names
+                       if o != n and re.search(r"\b%s\b" % re.escape(o), src[n]))
+             for n in names}
+    called_by = {n: sorted(m for m in names if n in calls[m]) for n in names}
+
+    if len(sys.argv) > 1:
+        t = sys.argv[1]
+        if t not in calls:
+            print("no tool called %r in the library" % t)
+            return 1
+        print("%s\n  it names:      %s\n  named by:      %s"
+              % (t, ", ".join(calls[t]) or "(nothing)",
+                 ", ".join(called_by[t]) or "(nothing)"))
+        print("\nif this one is broken, the %d tool(s) that name it may be too."
+              % len(called_by[t]))
+        return 0
+
+    hubs = sorted(names, key=lambda n: -len(called_by[n]))[:8]
+    orphans = [n for n in names if not calls[n] and not called_by[n]]
+    print("%d tools, %d edges"
+          % (len(names), sum(len(v) for v in calls.values())))
+    print("\nmost depended on:")
+    for n in hubs:
+        if called_by[n]:
+            print("  %-38s named by %d" % (n, len(called_by[n])))
+    print("\nneither calls nor is called (%d):" % len(orphans))
+    for n in orphans:
+        print("  %s" % n)
+    print("\nNAMING IS NOT CALLING: a name inside a comment, a usage string or "
+          "an error message counts here. Read the line before you believe an "
+          "edge, and `lib-deps <tool>` for one tool's own neighbourhood.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

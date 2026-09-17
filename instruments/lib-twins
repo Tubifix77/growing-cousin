@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+# tool: lib-twins
+# call: lib-twins
+# does: Group the library by name stem and say, per family, which members wrap a sibling.
+"""ARCHITECTURE.md 5. Specified 2026-09-10, built 2026-09-18.
+
+The brief's third test asks whether a tool is genuinely new or the fifth
+variant of something already here, and until 2026-09-12 the cousin was being
+asked that while shown one side of the comparison. The listing fixed the
+showing. This answers the harder half, which no listing can: within a family
+of shared names, **who calls whom**.
+
+That distinction decided the question twice. Read by stem alone, run 2's
+library looked like a pile of twins. Measured by whether a tool NAMES a
+sibling, nine of ten `archive-*` wrapped `archive` and each layer added one
+thing -- a wrapper stack, not a duplicate. Only two tools in fifty were real
+reimplementations. So this prints both columns and refuses to collapse them
+into a count.
+"""
+import os
+import re
+import sys
+
+MIND = os.environ.get("MIND", ".")
+OWN = os.path.join(MIND, "tools", "own")
+
+
+def main():
+    if not os.path.isdir(OWN):
+        print("no library at %s" % OWN)
+        return 0
+    names = sorted(n for n in os.listdir(OWN)
+                   if os.path.isfile(os.path.join(OWN, n))
+                   and not n.endswith((".bak", ".tmp", "~")))
+    src = {}
+    for n in names:
+        try:
+            with open(os.path.join(OWN, n), encoding="utf-8", errors="replace") as f:
+                src[n] = f.read()
+        except OSError:
+            src[n] = ""
+    fam = {}
+    for n in names:
+        fam.setdefault(n.split("-")[0], []).append(n)
+    families = {k: v for k, v in fam.items() if len(v) > 1}
+    print("%d tools in %d families of 2 or more" % (len(names), len(families)))
+    for stem in sorted(families, key=lambda k: -len(families[k])):
+        members = sorted(families[stem])
+        print("\n  %s-*  (%d)" % (stem, len(members)))
+        for n in members:
+            wraps = [o for o in members
+                     if o != n and re.search(r"\b%s\b" % re.escape(o), src[n])]
+            if wraps:
+                print("    %-40s wraps %s" % (n, ", ".join(sorted(wraps))))
+            else:
+                others = [o for o in names
+                          if o != n and re.search(r"\b%s\b" % re.escape(o), src[n])]
+                print("    %-40s %s" % (n, ("calls " + ", ".join(sorted(others)[:3]))
+                                        if others else
+                                        "names no other tool -- stands alone"))
+    print("\nSHARING A STEM IS NOT DUPLICATION. A family where each member "
+          "wraps the one below it is a stack, and each layer may add exactly "
+          "one thing worth having. What is worth your attention is a member "
+          "that stands alone inside a family: it rebuilt what its siblings "
+          "call. Two of fifty were that, in run 2.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

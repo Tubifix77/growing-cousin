@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+# tool: lib-stubs
+# call: lib-stubs
+# does: Find tools that announce themselves but do almost nothing -- hollow stubs.
+"""ARCHITECTURE.md 5. Specified 2026-09-10, built 2026-09-18.
+
+The parent's stub organ was framework code that decided a tool was hollow and
+said so on its own schedule. This is the fact-gathering half only: it prints
+what it found and what it means by "hollow", and the judgement is the
+cousin's. That split is 2.3's dividing line -- a scan gathers a fact and
+decides what to say about it, and only the second half was ever framework.
+
+A marker is EVIDENCE, NOT A VERDICT, and the output says so, because run 2's
+library contained exactly one stub marker in fifty files and it was a comment.
+"""
+import os
+import re
+import sys
+
+MIND = os.environ.get("MIND", ".")
+OWN = os.path.join(MIND, "tools", "own")
+
+MARKERS = ("not written yet", "not implemented", "notimplemented", "todo",
+           "fixme", "placeholder", "coming soon", "stub", "xxx:")
+# A line that does real work. Comments, the header, shebangs, imports and the
+# bare scaffolding of a script do not count.
+IDLE = re.compile(r"^\s*(#|$|import\s|from\s+\S+\s+import|pass\b|\"\"\"|'''|"
+                  r"if\s+__name__|sys\.exit\(0\)\s*$|exit\s+0\s*$|set\s+-)")
+
+
+def body_lines(src):
+    return [l for l in src.split("\n") if l.strip() and not IDLE.match(l)]
+
+
+def main():
+    if not os.path.isdir(OWN):
+        print("no library at %s" % OWN)
+        return 0
+    names = sorted(n for n in os.listdir(OWN)
+                   if os.path.isfile(os.path.join(OWN, n))
+                   and not n.endswith((".bak", ".tmp", "~")))
+    flagged = []
+    for n in names:
+        try:
+            with open(os.path.join(OWN, n), encoding="utf-8", errors="replace") as f:
+                src = f.read()
+        except OSError:
+            continue
+        why = []
+        for i, line in enumerate(src.split("\n"), 1):
+            low = line.lower()
+            for m in MARKERS:
+                if m in low:
+                    why.append("line %d says %r" % (i, line.strip()[:70]))
+                    break
+            if len(why) >= 2:
+                break
+        work = body_lines(src)
+        if len(work) <= 2:
+            why.append("%d line(s) that do anything" % len(work))
+        if not re.search(r"^#\s*does:", src, re.M):
+            why.append("no `# does:` line, so nothing can say what it is for")
+        if why:
+            flagged.append((n, why))
+    print("%d tools, %d worth a look" % (len(names), len(flagged)))
+    for n, why in flagged:
+        print("  %-38s %s" % (n, "; ".join(why)))
+    print("\na marker is EVIDENCE, NOT A VERDICT: a tool can say TODO in a "
+          "comment and work perfectly, and a tool with no marker at all can "
+          "return you nothing. Run the ones that matter to you.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

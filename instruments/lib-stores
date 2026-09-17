@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+# tool: lib-stores
+# call: lib-stores
+# does: For each shared data file, how much of it a reader can actually parse.
+"""ARCHITECTURE.md 5. Specified 2026-09-10, built 2026-09-18.
+
+This one exists because of a specific parent fault, and it is the fifth of the
+five single-occupancy faults the README lists: a `.jsonl` store whose own
+reader could parse **3 of its 199 lines**. Fine until something that is not
+the writer tries to read it -- which is the whole class this project installs
+a second inhabitant to make visible. The fifth brief test is *what is stored
+must be readable by what reads it*, and until now the cousin had no way to ask
+that of anything but the one tool in front of it.
+
+It reads. It never writes, and never repairs.
+"""
+import json
+import os
+import sys
+
+MIND = os.environ.get("MIND", ".")
+DATA = os.path.join(MIND, "data")
+
+
+def main():
+    if not os.path.isdir(DATA):
+        print("no shared data at %s" % DATA)
+        return 0
+    names = sorted(n for n in os.listdir(DATA)
+                   if os.path.isfile(os.path.join(DATA, n)))
+    if not names:
+        print("no shared data files under %s" % DATA)
+        return 0
+    print("%d file(s) under data/" % len(names))
+    for n in names:
+        p = os.path.join(DATA, n)
+        size = os.path.getsize(p)
+        try:
+            with open(p, encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        except OSError as e:
+            print("  %-34s UNREADABLE  %s" % (n, e))
+            continue
+        if n.endswith(".jsonl"):
+            lines = [l for l in text.split("\n") if l.strip()]
+            good = 0
+            first_bad = None
+            for i, l in enumerate(lines, 1):
+                try:
+                    json.loads(l)
+                    good += 1
+                except Exception as e:
+                    if first_bad is None:
+                        first_bad = "line %d: %s" % (i, str(e)[:60])
+            note = "" if good == len(lines) else "  <-- %s" % first_bad
+            print("  %-34s %d/%d records parse%s" % (n, good, len(lines), note))
+        elif n.endswith(".json"):
+            try:
+                d = json.loads(text)
+                n_items = len(d) if isinstance(d, (list, dict)) else 1
+                print("  %-34s parses, %d top-level item(s), %d bytes"
+                      % (n, n_items, size))
+            except Exception as e:
+                print("  %-34s DOES NOT PARSE  %s" % (n, str(e)[:70]))
+        else:
+            print("  %-34s %d bytes, not JSON -- not checked" % (n, size))
+    print("\nPARSING IS NOT CORRECTNESS: a store can parse cleanly and hold the "
+          "wrong thing, and this says nothing about whether the tool that "
+          "writes it and the tool that reads it agree on what the fields mean. "
+          "It answers one question only -- can a reader that is not the writer "
+          "get the records out.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

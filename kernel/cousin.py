@@ -248,6 +248,15 @@ notes from your earlier visits -- not the builder's, which you never see.
 `remember <key> <value>` keeps one for your next visit; nothing else you do
 here survives.
 
+You also have instruments of your own, which are not the builder's tools and
+tell you about the library as a whole rather than about one file: `lib-startable`
+(which tools cannot even parse), `lib-stubs` (which announce more than they do),
+`lib-twins` (which names share a stem, and which of them wrap a sibling rather
+than rebuild it), `lib-deps <tool>` (what else stops working if this one is
+broken), `lib-stores` (how much of each shared data file a reader can actually
+get out). Each says what it did not check. Use one when it would answer
+something you actually want to know; they are not a checklist.
+
 Here is what it says about itself:
 
 {header}

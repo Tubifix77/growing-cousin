@@ -36,7 +36,50 @@ from kernel.journal import Journal
 USER_HANDS = ("recall", "remember")
 
 
-def install_hands(body, only=None):
+def instrument_names():
+    """The cousin's instruments, by name, read from the directory rather than
+    typed. A list in prose is a constant nobody chose."""
+    d = os.path.join(HERE, "instruments")
+    if not os.path.isdir(d):
+        return ()
+    return tuple(sorted(n for n in os.listdir(d)
+                        if os.path.isfile(os.path.join(d, n))))
+
+
+def install_instruments(body):
+    """`ARCHITECTURE.md` \u00a75, specified 2026-09-10 and built 2026-09-18:
+    *a handful of small deterministic scripts -- startability, hollow-stub
+    detection, duplicate-stem listing, dependency edges, store parse rates.
+    They are tools, they live where tools live, and the cousin runs one when it
+    wants to know something.*
+
+    **Nothing schedules them, nothing caches them, and nothing turns their
+    output into a warning.** That apparatus is the 99% this project deleted,
+    and it is also what made the parent's dependency scan cost 187,489 regex
+    scans per wake. A fact is gathered when somebody asks for it; deciding that
+    the fact matters is the cousin's half.
+
+    **THE CREATURE NEVER GETS THESE.** \u00a72.4: never tell the creature about
+    its own bugs, because the diagnosis is its work and its growth. A
+    hollow-stub detector pointed at its own library is exactly that sentence
+    being broken by a script. They go in the second USER's bin only, which
+    `ensure_container` mounts read-only.
+    """
+    dest = os.path.join(body.root, "bin")
+    os.makedirs(dest, exist_ok=True)
+    out = []
+    d = os.path.join(HERE, "instruments")
+    if not os.path.isdir(d):
+        return out
+    for n in instrument_names():
+        dst = os.path.join(dest, n)
+        shutil.copy2(os.path.join(d, n), dst)
+        os.chmod(dst, 0o755)
+        out.append(n)
+    return out
+
+
+def install_hands(body, only=None, keep=()):
     """The creature's hands go on PATH inside the body. They are OURS: protected
     scar tissue, never edited to work around something the creature did.
 
@@ -50,9 +93,11 @@ def install_hands(body, only=None):
     os.makedirs(dest, exist_ok=True)
     if only is not None:
         # A subset is exact: anything else already there is a hand this body
-        # must not have, whoever put it there.
+        # must not have, whoever put it there. `keep` is the one exception and
+        # it is passed in rather than assumed: the cousin's bin also holds its
+        # instruments, which are not hands and must survive this prune.
         for n in os.listdir(dest):
-            if n not in only:
+            if n not in only and n not in keep:
                 try:
                     os.unlink(os.path.join(dest, n))
                 except OSError:
@@ -594,7 +639,11 @@ def main(argv=None):
         host = PathBody(os.path.join(args.root, "cousin-body"))
         # A USER's hands only -- `recall` and `remember` -- never a builder's.
         # `ensure_container` mounts them read-only because `bin` is set.
-        host.bin = install_hands(host, only=USER_HANDS)
+        host.bin = install_hands(host, only=USER_HANDS,
+                                 keep=instrument_names())
+        # The second user's instruments (ARCHITECTURE 5). The creature's body
+        # never calls this.
+        install_instruments(host)
         if args.body == "docker":
             cousin_body = ensure_container(args.container + "-user",
                                            args.image, host)
