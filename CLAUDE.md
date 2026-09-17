@@ -259,11 +259,16 @@ not a midnight patch.**
   and `dd53e91` in these documents are the same engine -- look it up in the
   map before concluding anything. Verified before the push: 0 objects in any
   ref naming the archive, gate green. Verified after, from the outside: a
-  fresh clone from GitHub has 150 commits, HEAD `5ef847f`, 0 objects naming
+  fresh clone from GitHub had 150 commits, HEAD `5ef847f`, 0 objects naming
   the archive. The pre-rewrite history exists as a mirror on the laptop
-  (`~/growing-cousin-backup-before-rewrite.git`) and nowhere else, under the
-  tarball's rule. A clone older than the rewrite cannot merge: `git fetch &&
-  git reset --hard origin/main`. **What is NOT in our hands is GitHub's own
+  (`~/growing-cousin-backup-before-rewrite.git`) -- and, until it is
+  expired, in the REFLOG of any checkout cloned before the rewrite: the
+  verifier of this work found 76 archive objects still reachable that way in
+  the Windows checkout the same evening, under a sentence here that said
+  "nowhere else". Its reflog was expired and pruned; the sentence was wrong
+  for an hour. Otherwise the tarball's rule. A clone older than the rewrite
+  cannot merge: `git fetch && git reset --hard origin/main`, then
+  `git reflog expire --expire=now --all && git gc --prune=now`. **What is NOT in our hands is GitHub's own
   store**: checked minutes after the push, `221b978`, `add6782` and `ef812dc`
   still answered by SHA and the archive path was still served under
   `221b978` through the API -- dangling, not gone. GitHub drops such objects
@@ -292,6 +297,15 @@ fails the liveness assertion intermittently under the suite's process churn —
 it there before committing; the pattern that works without pushing first is a
 scratch `git clone ~/growing-cousin /tmp/gate-check` with the changed files
 uploaded over it.
+
+**2026-09-17: on the Windows box it is not intermittent any more, it is
+every run, and the cause is named.** An independent verifier ran the gate
+twice from a fresh clone: 92 failures both times, identical by name,
+`code=124` zero times -- every one a cascade from `LocalBody` spawning bare
+`bash` and Windows handing it `System32\bash.exe`, the WSL launcher, which
+fails under the suite's churn with *Katastrofal fejl / Bash/Service*. The
+laptop stays the authority (green the same evening); the shape of the fix is
+PLAN item 18.8, and until it ships a Windows gate run says nothing either way.
 
 **The design closes its loop in production, repeatedly.** Creature builds,
 cousin uses and accepts, cousin asks for the next capability, the want reaches
@@ -1106,7 +1120,7 @@ was measured, with what, and on what date.*
   interpreter that is the one promised, and a record of what actually ran.
   Half a body is a new way to manufacture testimony.
 
- AND THE COUSIN'S
+- **A PREDICATE BELONGS TO A QUESTION, NOT TO AN AGENT -- AND THE COUSIN'S
   SHELL WAS INERT FOR FIFTEEN HOURS WITH A GREEN GATE.** 2026-09-16, found
   by a morning checkup reading the page.
 

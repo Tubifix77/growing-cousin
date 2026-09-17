@@ -1014,6 +1014,18 @@ remembers:
   tick fix and not a brief fix; a ladder economics question. *Trigger: item
   8's baseline across several reps, so a change to the verdict call's budget
   or the ladder's order can be read against something.*
+- **18.8 The Windows gate is dead, not flaky (2026-09-17, found by the
+  verifier of item 19).** `LocalBody` spawns bare `bash`; Windows'
+  CreateProcess searches `System32` before `PATH`, so it gets the WSL
+  launcher, the body is unresponsive on every spawn, and ~92 checks fail by
+  cascade -- two runs, identical by name, `code=124` never. The laptop is the
+  authority and was green the same evening, so nothing is wrong with the code
+  under test; what is wrong is that a Windows run says nothing. *Trigger: the
+  first time anyone needs the Windows gate to mean something.* The fix's
+  shape: `LocalBody` resolves the bash it means to an absolute path -- a
+  `PATH` scan that skips `System32` -- and the liveness probe records which
+  binary answered. `shutil.which` alone may not be it if `System32` precedes
+  Git's bin in `PATH`, which it usually does.
 
 ---
 

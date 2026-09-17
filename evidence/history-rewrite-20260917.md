@@ -7,7 +7,9 @@ The path was untracked in a4c8f85; this rewrite removes it from every commit.
 18 commits from 221b978 to HEAD were rehashed on 2026-09-17. Every SHA quoted in CLAUDE.md,
 PLAN.md, commit messages or the journal's `engine_start` records from that range
 refers to the LEFT column; the commit now in history is the RIGHT column.
-The pre-rewrite history is kept on the laptop as a mirror and nowhere else.
+The pre-rewrite history is kept on the laptop as a mirror -- and in the reflog of
+any checkout cloned before the rewrite, until that is expired; the Windows
+checkout's was, 2026-09-17.
 
 | before | after |
 |---|---|
