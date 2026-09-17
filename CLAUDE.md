@@ -59,7 +59,13 @@ stated reason, not for want of work:
 - **14** -- 14.1-14.4 met; 14.5 (telling the creature `say` exists) rides
   with the brief's unfreeze and is now WATCHED rather than merely recorded.
 - **16** and **17** are open with named triggers: the cousin judging whether
-  a tool serves anything, and what of my job moves to the cousin.
+  a tool serves anything, and what of my job moves to the cousin. **Both wait
+  on 20**, and 16 as written contradicts the brief.
+- **20 is the root the rest were symptoms of**, found 2026-09-17 by reading
+  the prompts instead of the journal. **20.1 is `[x]` and deployed**: the
+  cousin no longer receives the creature's private notes, and keeps its own
+  across visits. **20.2 and 20.3 are open, and 20.3 is TUE'S** -- what work
+  the cousin should be trying to do is *what the project is for*.
 
 **TUE IS THE CUSTOMER, NOT THE ARCHITECT — he said so on 2026-09-16 and it
 changes how this file should be used.** *"i have no idea about what you ask
@@ -211,6 +217,7 @@ not a midnight patch.**
 | "the cousin ran it with arguments and it exited non-zero, so the tool failed" | **Not knowable by the framework.** Since the cousin chooses the arguments (item 9) it may have invented an ID and the tool may have correctly said so. The library reports exit codes AND the cousin's own verdicts per tool; the word FAILED was retired 2026-09-16 after `view-subtask-logs task-123` rendered as *NEVER WORKED (1 real failures)*. Read the verdict, not the exit. |
 | "the cousin keeps asking for X and the creature keeps not building it" | Since the shell (item 9), check BOTH sides before blaming either: `grep` the probes' `cmd` for X. On 2026-09-17 `plan set-deadline` existed and the cousin asking for deadlines had never run it — it ran `plan` bare, accepted the menu with the same sentence four times, and asked again. `testimony_repeated` says so; the rule behind it is item 16.5. |
 | "the cousin's container is running, so the deploy took" | A running container may predate the configuration: on 2026-09-16 the cousin's came back after a deploy with no `/hands` mount and no `recall`, reused as it stood. `ensure_container` now compares MOUNTS and recreates on drift. Check `docker inspect -f '{{json .Mounts}}' growing-cousin-body-user`, not `is-active`. |
+| "the cousin accepted it, so the handover worked" | Before 2026-09-18 the cousin's world held the creature's `state/memory.json`, so `recall` showed it the builder's own `...-verified true` and `current-phase done`. **Every verdict before that date was taken with the answer key on the table**, and two probes printed all 25 keys. Fixed (§5, item 20.1); verdicts from before it are not comparable to verdicts after. |
 | "`git show add6782` says unknown revision" / "the page names an engine commit that is not in `git log`" | History was rewritten 2026-09-17 (the habits list, above). The journal, the evidence manifests, the regression files and pre-rewrite commit messages carry the OLD names and are never edited; these documents carry the NEW ones. `evidence/history-rewrite-20260917.md` translates: `221b978` is `fb3d18a`, `add6782` is `dd53e91`, `ef812dc` is `ee5992d`. |
 
 **Habits this session had to learn the hard way**, all cheap and all mine:
@@ -859,6 +866,53 @@ guess with authority it has not earned.
 
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
+
+- **WE HANDED THE JUDGE THE BUILDER'S ANSWER KEY, INSIDE THE MECHANISM BUILT
+  TO PREVENT EXACTLY THAT.** 2026-09-18, found because Tue asked whether the
+  board was treating symptoms and the answer needed the two PROMPTS read
+  rather than the journal.
+
+  `MANAGER-PROMPT.md` opens: *"You are the person who needs its work and
+  wasn't there when it was made."* It was not true. `sync_cousin_world`
+  mirrors the creature's whole mind, the mind holds `state/memory.json`, and
+  that file is the author's own notes. Measured live: the cousin's copy was
+  **byte-identical** to the creature's, 25 keys, reading
+  `archive-graph-clusters-done true`, `compare-subtask-logs-baseline-verified
+  true`, `list-subtasks-verified = true`, `current-phase done`. `recall` with
+  no argument prints every key, and the cousin ran exactly that in two live
+  probes. **The judge was holding the builder's claim that the work was
+  verified**, which is the 2026-09-10 trial scar arriving in production: *the
+  brief had been handing every judge the answer to that case*, retracted then
+  as "not a measurement", and a verdict taken with "verified: true" on the
+  page is not a handover test either.
+
+  **The mirror's own `.cmd-*` exclusion had the instinct and stopped one step
+  short**: it withheld the creature's transcript and then handed over its
+  notebook. **Invariant: the cousin is handed the creature's WORK, never its
+  NOTES.** Tools and data are what any user receives; memory is the author's
+  head.
+
+  **It is not a reversal of the 2026-09-16 fix** that put the whole mind in
+  the copy. That fault was `recall` being ABSENT, so the creature's tools died
+  `command not found` for a reason that was ours. The hand is still there and
+  still answers; only whose store it reads has changed, and the test now
+  asserts that half explicitly. A tool that works only because the author's
+  memory holds a value is a single-occupancy fault, which is the class the
+  second inhabitant exists to catch -- an empty store is the true condition of
+  a stranger, not a broken world.
+
+  **The same file was the root of PLAN item 20**, which is why one change
+  closes both: the cousin now keeps its own notes across visits
+  (`cousin-memory.json`, beside the mirrored world and outside every mount, so
+  §2.3 is untouched and the creature never reads it). Until 2026-09-18 the
+  agent being told *its user wakes with no idea what changed while it slept*
+  was building memory, recall and planning tools for a user that had no
+  yesterday at all. It asked for deadlines four times running because it had
+  no tomorrow to spend one in.
+
+  **Both halves were red-proven on the laptop before the fix existed**, and
+  two older assertions had to be REVERSED rather than deleted -- one of them
+  had encoded the leak as the desired behaviour since 2026-09-16.
 
 - **This framework is NOT DETERMINISTIC, so one observation is not a
   measurement — and I spent a night forgetting that.** Tue, 2026-09-13, after

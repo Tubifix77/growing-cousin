@@ -10,6 +10,7 @@ hands it over unchanged. That keeps the economics (no manager call per cycle) an
 retires the wake-cost failure class outright -- reading a file costs the same on
 day 400 as on day 1, however large the library grows.
 """
+import io
 import os
 import re
 import shlex
@@ -829,6 +830,11 @@ class Engine:
         # mount and must survive, so its CONTENTS are removed, never the dir.
         # `.cmd-*` are the body's own command scripts and not part of any
         # world.
+        # KEEP WHAT THE COUSIN LEARNED BEFORE REMAKING ITS WORLD. Harvest
+        # runs here rather than at the end of the visit so that a visit which
+        # died half way still has its notes taken on the next one, and so that
+        # there is exactly ONE call site for a thing that must never be missed.
+        self.harvest_cousin_memory()
         os.makedirs(dst_mind, exist_ok=True)
         for n in os.listdir(dst_mind):
             p = os.path.join(dst_mind, n)
@@ -844,7 +850,139 @@ class Engine:
                             ignore=shutil.ignore_patterns(".cmd-*"))
         except OSError:
             pass
+        # THE CREATURE'S WORK, NEVER ITS NOTES -- and the cousin's own notes in
+        # place of them. Must come AFTER the copy, which has just written the
+        # creature's `state/memory.json` into this world.
+        self._install_cousin_memory(dst_mind)
         return len(trigmod.list_tools(os.path.join(dst_mind, "tools", "own")))
+
+    # The cousin's memory is bounded because it is written by a third-party
+    # model with a shell. Neither number is tuned; they are a ceiling, and a
+    # cousin that wants more than this is not remembering, it is logging.
+    COUSIN_MEMORY_KEYS = 120
+    COUSIN_MEMORY_CHARS = 60000
+
+    def cousin_memory_path(self):
+        """Beside the mirrored world on the host, never inside it.
+
+        Only `mind` and `bin` are mounted into the cousin's container, so a
+        file here cannot be reached by what the cousin runs -- it arrives by
+        our hand at the start of a visit and leaves by our hand at the start
+        of the next. That is what makes it survive a world that is wiped, and
+        it is also why it cannot become a channel to the creature.
+        """
+        return os.path.join(os.path.dirname(self.cousin_body.mind),
+                            "cousin-memory.json")
+
+    def _install_cousin_memory(self, dst_mind):
+        """Replace the creature's notes with the cousin's own.
+
+        **The invariant: the cousin is handed the creature's WORK, never its
+        NOTES.** Tools and data are what any user receives. `state/memory.json`
+        is the author's own head -- on the live deployment, 2026-09-18, it read
+        `archive-graph-clusters-done true`, `compare-subtask-logs-baseline-
+        verified true`, `list-subtasks-verified = true`, `current-phase done`.
+        The cousin's copy was byte-identical to it, and `recall` with no
+        argument prints every key: two live probes did exactly that. A judge
+        holding the builder's claim that the work is verified is not testing a
+        handover, and `MANAGER-PROMPT.md` opens by saying the cousin *wasn't
+        there when it was made*. This is the 2026-09-10 trial scar arriving in
+        production: the harness handing the judge the answer.
+
+        The `.cmd-*` exclusion in `sync_cousin_world` already had the instinct
+        and stopped one step short -- it withholds the creature's transcript
+        and then handed over its notebook.
+
+        **This is not a reversal of the 2026-09-16 fix** that put the whole
+        mind into the copy. That fault was `recall` being ABSENT, so the
+        creature's tools died `command not found` in the cousin's shell for a
+        reason that was ours. The hand is still there and still works. What
+        changed is whose store it reads. A tool that only works because the
+        author's memory happens to hold a value is a single-occupancy fault,
+        which is precisely what the second inhabitant exists to catch, so an
+        empty store is the true condition of a stranger and not a broken world.
+        """
+        import json
+        p = os.path.join(dst_mind, "state", "memory.json")
+        try:
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            mine = {}
+            try:
+                with io.open(self.cousin_memory_path(), encoding="utf-8") as f:
+                    loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    mine = loaded
+            except Exception:
+                mine = {}
+            tmp = p + ".tmp"
+            with io.open(tmp, "w", encoding="utf-8") as f:
+                f.write(json.dumps(mine, indent=2))
+            os.replace(tmp, p)
+        except OSError:
+            return None
+        # Only a world WE installed may be harvested. Without this flag the
+        # first sync after this change would read the creature's notes out of
+        # the world it had already been given and persist them as the cousin's
+        # own -- the leak, made permanent, by the commit that closes it.
+        self._cousin_memory_installed = True
+        return len(mine)
+
+    def harvest_cousin_memory(self):
+        """Keep what the cousin learned; discard everything else it touched.
+
+        PLAN item 20.1. The creature is told its user *"wakes with no idea what
+        changed while it slept"* and *"has no good way to plan across cycles"*,
+        and four of the five starter-map tool kinds follow from that. The
+        cousin had no continuity at all: its world was remade every visit and
+        its `remember` wrote into the copy we then threw away. It asked for
+        deadlines four times running because it had no tomorrow to spend one
+        in, and it accepted a usage menu four times because nothing it learned
+        survived to be used.
+
+        This buys that continuity WITHOUT buying a write path into the
+        creature's world (§2.3): the store lives outside the mirrored mind
+        and the creature never reads it.
+        """
+        import json
+        if not getattr(self, "_cousin_memory_installed", False):
+            return None
+        if self.cousin_body is None:
+            return None
+        src = os.path.join(self.cousin_body.mind, "state", "memory.json")
+        try:
+            with io.open(src, encoding="utf-8") as f:
+                d = json.load(f)
+        except Exception:
+            # Gone or corrupted. KEEP THE LAST GOOD ONE rather than clearing:
+            # the cousin runs bash written by a model and may have deleted its
+            # own world, which is allowed and must not cost it its notes.
+            return None
+        if not isinstance(d, dict):
+            return None
+        out = {}
+        for k in sorted(d):
+            if len(out) >= self.COUSIN_MEMORY_KEYS:
+                break
+            key = str(k)[:120]
+            out[key] = str(d[k])[:400]
+            if len(json.dumps(out)) > self.COUSIN_MEMORY_CHARS:
+                out.pop(key)
+                break
+        try:
+            p = self.cousin_memory_path()
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            tmp = p + ".tmp"
+            with io.open(tmp, "w", encoding="utf-8") as f:
+                f.write(json.dumps(out, indent=2))
+            os.replace(tmp, p)
+        except OSError:
+            return None
+        # Journalled, because a channel nothing records is a channel that can
+        # be dead while everything is green -- this file has paid for that once
+        # with the `want` channel.
+        self.j.append("cousin_memory", kept=len(out), offered=len(d),
+                      chars=len(json.dumps(out)))
+        return len(out)
 
     def evidence(self, target, executed, picked_by=None):
         """What the cousin is shown. It runs the tool ITSELF -- the transcript

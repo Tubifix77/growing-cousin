@@ -243,8 +243,10 @@ def unusable_reply(text, meta):
 
 INVOKE_TEMPLATE = """You are about to judge a tool someone else built. Before
 you do, you get to USE it, in a shell of your own. The other tools listed
-below are on your PATH too, and so is `recall`, which reads back what has
-been remembered in this world.
+below are on your PATH too, and so is `recall`, which reads back YOUR OWN
+notes from your earlier visits -- not the builder's, which you never see.
+`remember <key> <value>` keeps one for your next visit; nothing else you do
+here survives.
 
 Here is what it says about itself:
 

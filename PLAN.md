@@ -1139,13 +1139,23 @@ with the only test available to something that has no work to do: did it run.
   judged against a job
 - **item 16 contradicting the brief**, above
 
-- **20.1 `[ ]` The cousin gets continuity of its own, and §2.3 is untouched.**
-  A private store that survives its visits, held outside the mirrored world,
-  so it still cannot write into the creature's library. **Acceptance:** the
-  boundary test still passes against the symlink attack, AND a new test proves
-  a fact written on visit N is readable on visit N+1 while the creature's tools
-  are byte-identical across both. Red-proven before the fix exists, per the
-  board's first rule.
+- **20.1 `[x]` DONE 2026-09-18. The cousin gets continuity of its own, §2.3
+  untouched -- and it turned out to be hiding something worse.** Reading the
+  mechanism to build the store found that the cousin's `state/memory.json` was
+  **byte-identical to the creature's**: the judge held the builder's notes,
+  including `compare-subtask-logs-baseline-verified true` and `current-phase
+  done`, and had printed all 25 keys in two live probes with a bare `recall`.
+  **Invariant now: the cousin is handed the creature's WORK, never its NOTES.**
+  One change closes both -- the creature's notes never enter the cousin's
+  world, and what the cousin itself remembers is kept beside that world
+  (`cousin-memory.json`, outside every container mount) and reinstalled each
+  visit. **Red-proven first** on the laptop: the new test failed on exactly the
+  two properties, printing the creature's keys as evidence. Two older
+  assertions were REVERSED rather than deleted, one of which had encoded the
+  leak as desired behaviour since 2026-09-16; the boundary test is now three
+  assertions where it was one, because weakening a boundary test to let a
+  change pass is a scar in §5. Gate 841 green. **What this does not do:** give
+  the cousin anything to remember ABOUT. That is 20.2.
 - **20.2 `[ ]` The cousin has work that spans visits.** Something it is trying
   to accomplish which the library is supposed to accelerate, whose outcome can
   be checked without either agent's opinion. **Acceptance:** a verdict names

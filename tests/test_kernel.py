@@ -5273,19 +5273,48 @@ def test_the_cousins_world_mirrors_the_creatures_and_carries_only_user_hands():
     check("hands: a user's hands and none of a builder's", "USER-ONLY" in r.stdout,
           (r.code, r.stdout, r.stderr[:120]))
     r2 = cb.run("recall baseline-parent-id")
-    check("hands: recall reads the creature's memory as copied",
-          "p1" in r2.stdout, (r2.code, r2.stdout, r2.stderr[:120]))
+    # THIS ASSERTION WAS REVERSED 2026-09-18 (PLAN item 20.1). It used to read
+    # `check("recall reads the creature's memory as copied", "p1" in
+    # r2.stdout)` -- correct for the semantics of the day it was written, and
+    # wrong as a property: `state/memory.json` is the author's NOTES, and a
+    # judge that can read the builder's own "verified: true" is not testing a
+    # handover. What the 2026-09-16 scar actually required is the half kept
+    # below: the hand must EXIST and ANSWER, because its ABSENCE is what made
+    # the creature's tools die `command not found` in the cousin's shell for a
+    # reason that was ours, and be billed for it.
+    check("hands: recall RUNS in the cousin's shell -- a missing hand is how "
+          "the creature got billed for our omission",
+          r2.code == 0 and "not found" not in (r2.stderr or ""),
+          (r2.code, r2.stdout, r2.stderr[:120]))
+    check("hands: and it reads the COUSIN's notes, never the creature's",
+          "p1" not in r2.stdout, (r2.code, r2.stdout, r2.stderr[:120]))
 
     # THE ATTACK: remember in the cousin's shell must change nothing the
-    # creature will ever see, and the next visit erases it.
+    # creature will ever see. Since item 20.1 the cousin's OWN note DOES
+    # survive to its next visit -- that is the point of it, and it is why the
+    # assertion below is now three assertions instead of one. Weakening a
+    # boundary test to let a change pass is a thing this file has a scar for,
+    # so the boundary is stated more precisely rather than more loosely: the
+    # creature's work is restored whole every visit, the creature's memory is
+    # never touched, and the only thing that crosses a visit is the cousin's
+    # own note, which the creature never reads.
     cb.run("remember baseline-parent-id HIJACKED")
     with io.open(mem, encoding="utf-8") as f:
         check("boundary: remember in the cousin's shell did not reach the "
               "creature's memory", json.load(f).get("baseline-parent-id") == "p1")
     e.sync_cousin_world()
     r3 = cb.run("recall baseline-parent-id")
-    check("boundary: and the next visit starts from the creature's world again",
-          "p1" in r3.stdout and "HIJACKED" not in r3.stdout, r3.stdout)
+    check("boundary: the cousin's own note survives to its next visit, which "
+          "is item 20.1 -- it judges a builder it is told wakes and forgets",
+          "HIJACKED" in r3.stdout, r3.stdout)
+    check("boundary: and the creature's note is STILL not in its hands on a "
+          "later visit", "p1" not in r3.stdout, r3.stdout)
+    with io.open(mem, encoding="utf-8") as f:
+        check("boundary: the creature's memory is untouched after the second "
+              "visit too", json.load(f).get("baseline-parent-id") == "p1")
+    check("boundary: and the creature's WORK is restored whole each visit -- "
+          "notes are the only thing that crosses",
+          os.path.exists(os.path.join(cb.mind, "data", "plan.json")))
 
     # `only=` is exact: a stray builder's hand in that bin is removed.
     stray = os.path.join(cb.root, "bin", "tool-edit")
@@ -5598,6 +5627,100 @@ def test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing():
           "REFUSED, not documented as risky", rc == 3, rc)
     creature.destroy(); cousin.destroy()
     shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_cousin_gets_the_creatures_work_and_never_its_notes():
+    """PLAN item 20.1, and it is the premise of the whole design.
+
+    `MANAGER-PROMPT.md`: *"You are the person who needs its work and wasn't
+    there when it was made."* Measured on the live deployment 2026-09-18,
+    that was false. `sync_cousin_world` mirrors the creature's WHOLE mind,
+    and the mind holds `state/memory.json` -- the author's own notes. The
+    cousin's copy was byte-identical to the creature's, 25 keys, reading
+    `archive-graph-clusters-done true`, `compare-subtask-logs-baseline-verified
+    true`, `list-subtasks-verified = true`, `current-phase done`. The judge was
+    holding the builder's answer key, and `recall` with no argument prints all
+    of it: the cousin ran exactly that in two live probes.
+
+    This is the 2026-09-10 trial scar in the production loop -- *the brief had
+    been handing every judge the answer to that case*, retracted then as "not a
+    measurement". A verdict taken while the author's "verified: true" is on the
+    page is not a handover test either.
+
+    **The invariant: the cousin is handed the creature's WORK, never its
+    NOTES.** Tools and data are what a user receives. Memory is the author's
+    head. The `.cmd-*` exclusion already had the instinct and stopped at the
+    transcript; this is the notebook.
+
+    **Not a regression of the 2026-09-16 scar** that put the whole mind in the
+    copy. That fault was `recall` MISSING, so tools died `command not found`
+    for a reason that was ours. The hand is still there and still works; its
+    store is the cousin's own. A tool that only works because the author's
+    memory holds a value is a single-occupancy fault, which is the exact class
+    the second inhabitant exists to catch -- an empty store is the true
+    condition of a stranger, not a broken world.
+
+    **And the same file is the continuity fix.** The creature is told its user
+    "wakes with no idea what changed while it slept" and "has no good way to
+    plan across cycles", so four of the five starter-map categories are built
+    for an agent with a memory. The cousin had none: its world was remade every
+    visit and its `remember` wrote into the copy we discard. It asked for
+    deadlines four times because it had no tomorrow to spend one in.
+    """
+    e, j, b, d = build_engine(["```bash\necho hi\n```"], [])
+    import run as runmod
+    cb = runmod.PathBody(os.path.join(d, "cousin-body"))
+    e.cousin_body = cb
+    st = os.path.join(b.mind, "state")
+    os.makedirs(st, exist_ok=True)
+    notes = {"archive-graph-done": "true", "current-phase": "done",
+             "how-plan-works": "pass --keyword to filter"}
+    with io.open(os.path.join(st, "memory.json"), "w", encoding="utf-8") as f:
+        f.write(json.dumps(notes))
+    os.makedirs(os.path.join(b.mind, "data"), exist_ok=True)
+    with io.open(os.path.join(b.mind, "data", "archive.json"), "w",
+                 encoding="utf-8") as f:
+        f.write('{"entries": [1]}')
+    e.sync_cousin_world()
+    cmem = os.path.join(cb.mind, "state", "memory.json")
+    try:
+        with io.open(cmem, encoding="utf-8") as f:
+            got = json.load(f)
+    except Exception:
+        got = {}
+    check("notes: the cousin IS handed the creature's work -- its data is "
+          "there, or a tool fails for a reason that is ours",
+          os.path.exists(os.path.join(cb.mind, "data", "archive.json")))
+    check("notes: and is NOT handed the creature's notes -- a judge holding "
+          "the author's 'verified: true' is not testing a handover",
+          "archive-graph-done" not in got and "how-plan-works" not in got,
+          sorted(got))
+    check("notes: the framework has a way to keep what the cousin learned",
+          callable(getattr(e, "harvest_cousin_memory", None)))
+    if callable(getattr(e, "harvest_cousin_memory", None)):
+        with io.open(cmem, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"tried-plan-bare":
+                                "got the usage menu; try plan set-deadline"}))
+        e.harvest_cousin_memory()
+        e.sync_cousin_world()
+        try:
+            with io.open(cmem, encoding="utf-8") as f:
+                got2 = json.load(f)
+        except Exception:
+            got2 = {}
+        check("notes: what the cousin learned on one visit is there on the "
+              "next -- it judges a builder it is told wakes and forgets, and "
+              "until now the cousin was the one with no yesterday",
+              got2.get("tried-plan-bare", "").startswith("got the usage menu"),
+              sorted(got2))
+        check("notes: and it still does not receive the notes on a later "
+              "visit either", "archive-graph-done" not in got2, sorted(got2))
+    with io.open(os.path.join(st, "memory.json"), encoding="utf-8") as f:
+        cre = json.load(f)
+    check("notes: the creature's own memory is untouched by any of it -- "
+          "\u00a72.3 is unchanged and this buys continuity without buying a "
+          "write path", cre == notes, sorted(cre))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
 def test_nothing_the_cousin_runs_can_change_the_creatures_tools():
@@ -7187,6 +7310,7 @@ def main():
                test_resume_matches_a_live_run,
                test_history_can_never_parse_as_a_command,
                test_cousin_sees_the_library,
+               test_the_cousin_gets_the_creatures_work_and_never_its_notes,
                test_an_unreadable_verdict_keeps_its_evidence,
                test_cousin_probe_is_recorded,
                test_census_catches_a_fabricated_verdict,
