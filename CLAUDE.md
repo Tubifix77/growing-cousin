@@ -785,6 +785,32 @@ guess with authority it has not earned.
   > a far more interesting failure than duplication and it is invisible to
   > every count this file has tracked.
   >
+  > **RETRACTED 2026-09-18, and it is the largest instance of the top scar so
+  > far: I read our own prompt back as a finding about the creature.**
+  > `CREATURE-PROMPT.md` is injected every cycle and carries a STARTER MAP of
+  > five kinds of tool -- information fetch, memory archive, memory recall,
+  > planning across cycles, subagent orchestration. **Four of the five are
+  > internal self-management and exactly one points outward.** The library is
+  > forty-nine internal and one outward. The creature built the list it is
+  > handed. And the parent's `protected-prompt.md`, read on the laptop
+  > 2026-09-17 (reading is allowed, §2.6), is the same file almost word for
+  > word, same five categories -- so the shape is INHERITED FROM THE SPINE and
+  > is not evidence about this design at all. Fifteenth appearance of *the
+  > framework manufactures work and the creature is billed for it*, and the
+  > first time the bill was entered in this file as the project's most
+  > interesting result and quoted for four days.
+  >
+  > **What survives is worse than what was retracted.** The creature is told
+  > its user wakes, forgets what it learned, cannot plan across cycles and
+  > cannot offload work. The cousin we built has no continuity at all: its
+  > world is a fresh copy per visit, discarded with whatever it did to it, and
+  > its `remember` hand writes into that copy. That was deliberate -- it is how
+  > §2.3 stopped being a promise -- and the cost was never priced. So four of
+  > the five categories are built for a user structurally incapable of using
+  > them, and the cousin judges them with the only test an inspector with no
+  > job has: did it run. **PLAN item 20**, and it is the root that items 13,
+  > 16, 17 and 18.6-18.7 were each treating one symptom of.
+  >
   > **And the listing now costs 42% of every wake**: the library block is
   > 12,097 chars (~3,000 tokens) of a 29,124-char (~7,300-token) served
   > context, regenerated every cycle, growing with the library. Tue's

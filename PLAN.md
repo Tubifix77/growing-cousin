@@ -822,7 +822,16 @@ without asking. The decision does not follow from it:
 
 ---
 
-### 16. `[ ]` The cousin, not us, notices when a tool serves nothing
+### 16. `[!]` The cousin, not us, notices when a tool serves nothing — BLOCKED ON ITEM 20, because as written it contradicts the brief
+
+> **2026-09-18.** `MANAGER-PROMPT.md`'s section *Why this question and no
+> other* tells the cousin in as many words that the mission is NOT its
+> question: *not "is this good code", not "did it follow the rules"*, only
+> did the handover work. A rule asking it to judge whether a tool furthers
+> the mission has to change that section, which is frozen (§0) -- and it
+> would be asking a judge with no job to measure usefulness against a
+> purpose that does not exist in the system. The instinct below is right
+> and stays. What it needs first is item 20.
 
 **Tue, 2026-09-16, and it is the right instinct:** *"the reasoning if a tool
 furthers the mission or is a circle jerk of bureaucracy should rest on the
@@ -1088,3 +1097,75 @@ history too. **Acceptance, checkable by anyone:** on a fresh clone,
 prints 0; the map has one row per rehashed commit; and the page's
 `restart_owed` line reads `running the checkout` or `docs-only since`, never
 `could not diff`.
+
+---
+
+## Phase 6 — the root (added 2026-09-18)
+
+### 20. `[ ]` The cousin is SPECIFIED as an inhabitant and IMPLEMENTED as an inspector
+
+**Found 2026-09-17 in discussion, by reading the two prompts instead of the
+journal.** Tue asked whether the board was treating symptoms rather than
+something fundamental. It was, and this is the thing it was treating symptoms
+of. Nothing in this item edits a frozen prompt.
+
+`CREATURE-PROMPT.md` tells the creature exactly who it builds for: a cousin
+that *"wakes with no idea what changed while it slept"*, *"loses track of what
+it learned"*, *"has no good way to plan across cycles"*, and *"does everything
+itself with no way to offload work"*. Four of the five starter-map categories
+follow directly from that description.
+
+**The cousin we built has none of those properties.** It does not sleep and
+does not wake. It has no yesterday: `sync_cousin_world` gives it a fresh copy
+of the creature's whole mind per visit, the copy is discarded with whatever it
+did to it, and its `remember` hand writes into that copy. That was deliberate,
+and it is how §2.3 stopped being a promise and became a fact. The cost was
+never priced.
+
+**So the creature builds memory, recall, planning and offloading for an agent
+structurally incapable of using any of them**, and the cousin judges the result
+with the only test available to something that has no work to do: did it run.
+
+**What this explains, each previously filed as its own item:**
+
+- **the same want four times** (16.5) -- a capability request from an agent
+  with no tomorrow to spend it in can never be exercised, so it can never be
+  discharged, so it repeats
+- **the usage menu accepted four times** -- with no job to fail at, *it
+  started* is the whole of the available evidence
+- **the wrapper stacks** -- convenience is the only value a layer can add for
+  a user who is never under load
+- **item 8's correction half saying NOT MEASURABLE** -- a repair can only be
+  judged against a job
+- **item 16 contradicting the brief**, above
+
+- **20.1 `[ ]` The cousin gets continuity of its own, and §2.3 is untouched.**
+  A private store that survives its visits, held outside the mirrored world,
+  so it still cannot write into the creature's library. **Acceptance:** the
+  boundary test still passes against the symlink attack, AND a new test proves
+  a fact written on visit N is readable on visit N+1 while the creature's tools
+  are byte-identical across both. Red-proven before the fix exists, per the
+  board's first rule.
+- **20.2 `[ ]` The cousin has work that spans visits.** Something it is trying
+  to accomplish which the library is supposed to accelerate, whose outcome can
+  be checked without either agent's opinion. **Acceptance:** a verdict names
+  what it was trying to do and whether it got closer; *serves nothing* becomes
+  decidable, which is the evidence item 16 needs and does not have.
+- **20.3 `[ ]` TUE'S, and only his: what the work should be.** §0 reserves
+  *what the project is for* to him and this is that question wearing a
+  technical hat. I will not pick a job in his name. Two things are mine to
+  say: any job with a checkable outcome beats no job, and a job that reaches
+  outside the box is the only way to find out whether the library's inward
+  shape is the prompt's doing or the design's.
+
+**Do not start 16, 17, 18.6 or 18.7 before this** -- each tunes a loop that is
+not carrying anything. Recorded as a dependency and not a deletion, because
+the reasoning in all four is good once there is load.
+
+**The control nobody has ever moved.** The starter map is a variable. It has
+been identical in both projects since the parent wrote it, so the library's
+shape has never once been measured against a different instruction. Changing
+it is a real experiment with a real before and after -- but `CREATURE-PROMPT.md`
+is frozen (§0), it must be scored under item 8's discipline (a direction across
+several reps, split by rung, detection and correction together), and it must
+not move in the same window as 20.1 or neither is readable.
