@@ -72,6 +72,28 @@ stated reason, not for want of work:
   later*, which has never been computable here; and §5's cousin instruments,
   specified and never built, which are item 16's real answer.
 
+**AGREED WITH TUE 2026-09-18 01:30, in this order, so tomorrow starts here
+rather than re-deriving it:**
+
+1. **Confirm the two changes of 2026-09-17/18 in production.** Did the cousin
+   reach for one of its new instruments, and is its own memory being kept
+   across visits. Both shipped while the tier was dry, so **neither has been
+   observed working** -- the gate proved them and nothing else has. This is a
+   READ, not a change: grep the probes' `cmd` for `lib-`, check that
+   `live/cousin-body/cousin-memory.json` exists, and check that the cousin's
+   `state/memory.json` is no longer identical to the creature's.
+2. **Item 20.2 -- make the headline metric computable.** *Tools that start,
+   are invoked by something else, and are still invoked a week later*
+   (`ARCHITECTURE.md` §12). It is the first thing this project says it
+   measures and it has never once been computable here. The next real build.
+3. **Item 19.5 -- GitHub's unreachable copies of the purged history. TUE'S**,
+   because it is his account and outward-facing. One support request, not
+   urgent: zero credentials were involved, checked byte-for-byte.
+4. **The standing board** -- items 17, 11, 14.5, 9.5 and 18.1-18.8, each
+   already carrying its own reason and trigger. **18.8 is the live one**: the
+   Windows gate now fails every run for an environment reason, so only the
+   laptop gate means anything at all.
+
 **TUE IS THE CUSTOMER, NOT THE ARCHITECT — he said so on 2026-09-16 and it
 changes how this file should be used.** *"i have no idea about what you ask
 me you are the software architect im more like the idea guy or the
