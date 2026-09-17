@@ -41,7 +41,23 @@ import time
 #
 # `test_a_cap_downstream_never_exceeds_the_cap_upstream` holds the invariant so
 # the next raise cannot be silently swallowed again.
-EXEC_STDOUT_CHARS = 2400
+# 8000, from 2400, on 2026-09-17 -- and this time the measurement is the
+# creature's own words. `plan` had reached 6,119 bytes; between 08:00 and
+# 10:00 the creature ran `cat tools/own/plan` TWENTY times, was shown ~2,400
+# characters each time with 2,970-3,743 withheld, and 12 of its 24 thinks in
+# that window talk about the cut. It was trying to add exactly the deadline
+# feature its cousin had asked for four times over. PLAN item 13 had said "not
+# doing, and here is the symptom that would reopen it"; the symptom fired
+# four times in twenty hours (`window_reread`), and reading the raw thinks
+# answered its own question: not for its own reasons -- it cannot see the
+# file. That is the 2026-09-13 wall again at a larger size, and a cap that
+# hides 60% of the tool its author is editing is a correctness fault, not a
+# tuning.
+#
+# SIZED TO THE LIBRARY, not guessed: 29 of 60 tools exceeded 2,400 bytes; the
+# largest is 7,223 (`subagent-orchestrator`), then `plan` at 6,119. 8,000 shows
+# every tool the creature has whole, with room for the next edit.
+EXEC_STDOUT_CHARS = 8000
 EXEC_STDERR_CHARS = 600
 EXEC_CMD_CHARS = 800
 

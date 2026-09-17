@@ -342,8 +342,16 @@ class Engine:
     # It cut `log-read` (706 bytes) at exactly `print(line.str`, six characters
     # short, and the creature reported *"the previous log-read had a bug:
     # print(line.str. It was truncated"* and rewrote the tool.
-    HISTORY_OUTPUT_CHARS = 2400
-    HISTORY_TOTAL_CHARS = 6000
+    # 8000 with the journal's cap (kernel/journal.py says why, with the
+    # measurement); the two move TOGETHER or the raise is swallowed, which is
+    # the caps-in-series scar this file has already paid for once.
+    HISTORY_OUTPUT_CHARS = 8000
+    # The whole-block bound moves with them for the same reason: a per-output
+    # cap of 8000 under a total of 6000 would have hidden the raise inside the
+    # block instead of inside the journal -- the third cap in the series.
+    # Oldest lines drop first, so one whole read of the largest tool always
+    # survives with room for the command and result lines around it.
+    HISTORY_TOTAL_CHARS = 12000
 
     def recent_block(self, cycles=3):
         """The last few things it ran and what came back.

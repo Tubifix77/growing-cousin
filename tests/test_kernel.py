@@ -2124,8 +2124,12 @@ def test_history_can_never_parse_as_a_command():
     j2.append("exec_start", cmd="cat huge")
     j2.append("exec_end", exit_code=0, stdout="x" * 40000, stderr="")
     big = e2.recent_block()
+    # Against the constant, not a literal: 8000 was a literal that happened
+    # to be above the 6,000 total of the day; the total is 12,000 now.
     check("history: a huge output is capped again for the CONTEXT",
-          len(big) < 8000, "history was %d chars" % len(big))
+          len(big) < Engine.HISTORY_TOTAL_CHARS + 1200,
+          "history was %d chars against a total of %d"
+          % (len(big), Engine.HISTORY_TOTAL_CHARS))
     # The warning must SURVIVE the truncation. It was being replaced by the
     # "older lines dropped" header, so it vanished exactly when the transcript
     # was longest -- which is when the creature started re-running its own
@@ -2761,7 +2765,12 @@ def test_a_cap_downstream_never_exceeds_the_cap_upstream():
 
     # And the behaviour, not just the arithmetic: a big output must survive
     # the journal and reach the served context at the HISTORY cap.
-    big = "".join("line %04d padding padding padding\n" % i for i in range(120))
+    # Sized FROM the cap, so a raise cannot leave this proving nothing: it was
+    # 120 fixed lines (~4,200 chars), which stopped exceeding the cap the day
+    # the cap moved to 8,000 (2026-09-17) -- a fixture that quietly fell under
+    # the thing it was meant to overflow.
+    lines = Engine.HISTORY_OUTPUT_CHARS // 30 + 40
+    big = "".join("line %04d padding padding padding\n" % i for i in range(lines))
     check("caps: the fixture is larger than both caps, or it proves nothing",
           len(big) > Engine.HISTORY_OUTPUT_CHARS > 0, len(big))
 
@@ -2779,6 +2788,95 @@ def test_a_cap_downstream_never_exceeds_the_cap_upstream():
     check("caps: and the creature is shown far more than one screen of its tool",
           shown.count("line ") > 40, shown.count("line "))
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_window_shows_the_creature_its_largest_tool_whole():
+    """PLAN item 13, reopened by the trigger it named for itself.
+
+    2026-09-17, 08:00-10:00: `plan` at 6,119 bytes, the caps at 2,400, and
+    the creature ran `cat tools/own/plan` TWENTY times -- shown ~2,400
+    characters each time, 2,970-3,743 withheld -- while trying to add the
+    deadline feature its cousin had asked for four times. Twelve of its
+    twenty-four thinks in that window talk about the cut. `window_reread`
+    fired four times in twenty hours. Item 13's own text said: read the raw
+    thinks, is it re-reading because it cannot see the whole file, or for its
+    own reasons? It cannot see the file.
+
+    The invariant this asserts is not a number. It is that the caps are sized
+    to the library the creature actually has: every tool it has built must
+    fit through the journal AND the served context, or the framework is
+    hiding a tool from its author -- the 2026-09-13 wall at a new size.
+    Measured on the laptop: 29 of 60 tools exceeded the old cap; the largest
+    is 7,223 bytes.
+    """
+    largest_known = 7223                      # subagent-orchestrator, 2026-09-17
+    check("window: the journal keeps a tool the size of the largest one built",
+          EXEC_STDOUT_CHARS >= largest_known,
+          "journal cap %d < largest tool %d" % (EXEC_STDOUT_CHARS, largest_known))
+    check("window: and the served context shows it whole",
+          Engine.HISTORY_OUTPUT_CHARS >= largest_known,
+          "context cap %d < largest tool %d" % (Engine.HISTORY_OUTPUT_CHARS, largest_known))
+    check("window: the block bound leaves room for one whole read plus its "
+          "command and result lines, or the third cap in the series swallows "
+          "the other two", Engine.HISTORY_TOTAL_CHARS >= Engine.HISTORY_OUTPUT_CHARS + 1000,
+          (Engine.HISTORY_TOTAL_CHARS, Engine.HISTORY_OUTPUT_CHARS))
+    # BEHAVIOUR, not arithmetic: a tool of the largest real size, read once,
+    # arrives in the creature's history without a single character withheld.
+    src = "".join("line %04d of a tool as large as the largest one built\n" % i
+                  for i in range(largest_known // 52 + 1))
+    check("window: the fixture is at least as large as the largest real tool",
+          len(src) >= largest_known, len(src))
+    e, j, b, d = build_engine(["thinking"], [])
+    j.append("exec_start", cmd="cat tools/own/big")
+    j.append("exec_end", exit_code=0, stdout=capped(src, EXEC_STDOUT_CHARS), stderr="")
+    hist = e.recent_block()
+    check("window: the creature is shown ALL of it -- nothing withheld by the log",
+          "withheld" not in hist and "line %04d" % (largest_known // 52) in hist,
+          hist[-300:])
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_same_testimony_every_visit_is_reported_as_a_form():
+    """The brief's own test for a form -- "if your sentence would still make
+    sense with another tool's name dropped into it, you have written a form
+    and not a report" -- had no instrument. 2026-09-17: four consecutive
+    ACCEPTs of `plan` carried the identical sentence, the want they carried
+    repeated four times, and the feature it asked for, already built, had
+    never been run by the cousin that asked. Visibility only: the judgement
+    is the brief's (PLAN item 16), and §2.2 forbids touching a verdict.
+    """
+    from monitor import detectors as det
+    now = 1789600000.0
+
+    def ctx_of(texts, tools=None):
+        rows = []
+        for i, t in enumerate(texts):
+            rows.append({"ts": now - 3600 + i, "kind": "cousin_verdict",
+                         "verdict": "ACCEPTED", "to_creature": t,
+                         "tool": (tools or ["plan"] * len(texts))[i]})
+        return det.Context(rows, now=now)
+
+    same = "I ran `plan` and got the usage menu. I can now see how to manage my goals."
+    f = det.testimony_repeated(ctx_of([same, same, "I set a baseline and read it back.", same]))
+    check("testimony: the same sentence three of the last five times is an ALARM",
+          f.state == det.ALARM, (f.state, f.msg[:90]))
+    check("testimony: and it names the brief's own test",
+          "form, not a report" in f.msg, f.msg[:160])
+    check("testimony: and points at the probes, where the cause is",
+          "probes" in f.msg, f.msg[-160:])
+    f2 = det.testimony_repeated(ctx_of(["I linked task 3 to entry 36 and it showed the link.",
+                                        "I exported the plan and got entry 37.",
+                                        "I cleared the baseline and recall showed nothing."]))
+    check("testimony: distinct reports are OK", f2.state == det.OK, (f2.state, f2.msg[:80]))
+    f3 = det.testimony_repeated(ctx_of([same, same]))
+    check("testimony: two verdicts cannot tell a form from a report -- CANNOT "
+          "TELL, never OK", f3.state == det.CANNOT_TELL, (f3.state, f3.msg[:80]))
+    # Whitespace and case are not different testimony.
+    f4 = det.testimony_repeated(ctx_of([same, same.upper(), "  " + same + "  "]))
+    check("testimony: case and spacing do not make a form into three reports",
+          f4.state == det.ALARM, (f4.state, f4.msg[:80]))
+    check("testimony: it is registered, or the page never says it",
+          det.testimony_repeated in det.ALL)
 
 
 def test_a_reply_with_no_verdict_falls_through_to_the_next_rung():
@@ -7009,6 +7107,8 @@ def main():
                test_the_chat_channel_is_a_scheduled_intention,
                test_the_inherited_library_is_recorded_as_not_executed,
                test_a_starved_cousin_is_told_apart_from_a_dry_tier,
+               test_the_window_shows_the_creature_its_largest_tool_whole,
+               test_the_same_testimony_every_visit_is_reported_as_a_form,
                test_the_shared_tier_is_watched_and_the_doctrine_cannot_drift_from_it,
                test_the_cousins_audit_has_a_named_trigger,
                test_the_evidence_tarballs_home_is_recorded,

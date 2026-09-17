@@ -87,9 +87,20 @@ RUNBOOK = {
     "want_repeated": "Read the last five wants and the probes behind their accepts. "
                      "A want the cousin cannot verify (bare probe) or whose answers "
                      "it cannot see (hidden tool) repeats forever; the fix is in the "
-                     "framework's probe or listing, never in the creature.",
+                     "framework's probe or listing, never in the creature. AND since "
+                     "the cousin has hands (item 9): grep the probes' `cmd` for the "
+                     "thing it keeps asking for. On 2026-09-17 `plan set-deadline` "
+                     "existed and had never once been run by the cousin that asked "
+                     "for deadlines four times -- it ran `plan` bare, accepted the "
+                     "menu, and asked again. That half is the brief's (item 16).",
+    "testimony_repeated": "The brief's own test for a form: the sentence would fit any "
+                          "tool. Read the probes behind the identical verdicts -- if "
+                          "they are bare calls to a menu, the cousin judged on nothing "
+                          "it exercised, and the rule that lets it accept a usage "
+                          "refusal was written for the harness's empty hands, not for "
+                          "its own (PLAN item 16). Never edit a verdict (§2.2).",
     "window_reread": "This is the SYMPTOM that would reopen PLAN item 13 (the "
-                     "2400-character window), not proof of it. Read the raw "
+                     "output window), not proof of it. Read the raw "
                      "thinks: is it re-reading because it cannot see the whole "
                      "file, or for its own reasons? A cap changed without a "
                      "before/after across several windows, split by rung, is "

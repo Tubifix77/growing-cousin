@@ -731,6 +731,52 @@ def cousin_starved(ctx):
          "last_error": (lost[-1].get("error") or "")[:200]},
         scar="a second caller inherited the first one's contract")
 
+# THE SAME TESTIMONY, VERDICT AFTER VERDICT. The brief's own test for a
+# report that is really a form: "if your sentence would still make sense with
+# another tool's name dropped into it, you have written a form and not a
+# report, and it tells the creature nothing." Found live 2026-09-17: four
+# consecutive ACCEPTs of `plan` carried the identical sentence -- *I ran
+# `plan` and got the usage menu. I can now see how to manage my goals and
+# tasks in one place* -- while the want they carried ("assign deadlines")
+# repeated four times and the feature it asked for, already built, was never
+# once run. The cousin was judging on a menu it had chosen to summon.
+TESTIMONY_LAST_N = 5
+TESTIMONY_MIN = 3
+
+
+def testimony_repeated(ctx):
+    """The cousin saying the same thing about every visit is the cousin
+    judging on nothing it exercised. Visibility, never a gate; the judgement
+    itself is the brief's (PLAN item 16)."""
+    vs = [r for r in ctx.recent(24) if r.get("kind") == "cousin_verdict"
+          and r.get("verdict") in ("ACCEPTED", "RETURNED")]
+    last = vs[-TESTIMONY_LAST_N:]
+    if len(last) < TESTIMONY_MIN:
+        return Finding("testimony_repeated", CANNOT_TELL,
+                       "%d verdict(s) in 24h; need %d to tell a form from a report"
+                       % (len(last), TESTIMONY_MIN), human=False)
+
+    def norm(t):
+        return " ".join((t or "").lower().split())
+    counts = collections.Counter(norm(v.get("to_creature")) for v in last)
+    text, n = counts.most_common(1)[0]
+    if text and n >= TESTIMONY_MIN:
+        tools = sorted({v.get("tool") or "?" for v in last if norm(v.get("to_creature")) == text})
+        return Finding(
+            "testimony_repeated", ALARM,
+            "the same testimony on %d of the last %d verdicts (about %s) -- \"%s\" -- "
+            "a report that could be about any visit is a form, not a report (the "
+            "brief's own test), and a cousin that says the same thing every time "
+            "has exercised nothing. Read the probes behind them: a bare call to a "
+            "menu means the feature it keeps asking for was never tried"
+            % (n, len(last), ", ".join("`%s`" % t for t in tools), text[:120]),
+            {"n": n, "of": len(last), "text": text[:300], "tools": tools},
+            scar="any field that gives a shortfall a comfortable home will be used")
+    return Finding("testimony_repeated", OK,
+                   "%d distinct testimonies across the last %d verdicts"
+                   % (len(counts), len(last)), human=False)
+
+
 # The sibling project's unit. Named here rather than in the caller so the
 # detector and the unit list cannot drift apart.
 SPINE_UNIT = "growing-spine.service"
@@ -1238,7 +1284,7 @@ ALL = (engine_silent, gave_up, unusable_verdicts, commands_lost,
        restart_owed, ladder_dry, journal_integrity, twin_pressure,
        deploy_regression, want_repeated, probe_stuck, complaint_fidelity,
        body_unrecoverable, window_reread, creature_said,
-       shared_tier_contested, cousin_starved)
+       shared_tier_contested, cousin_starved, testimony_repeated)
 
 
 def run_all(ctx, detectors=ALL):
