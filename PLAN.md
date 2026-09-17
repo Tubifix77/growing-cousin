@@ -1,4 +1,4 @@
-# PLAN.md — the thirteen, with the test that says each one is done
+# PLAN.md — the board, with the test that says each one is done
 
 Written 2026-09-16. Every open item this project knows about, in the order they
 will be done, **one at a time**, each with acceptance criteria that can be
@@ -326,7 +326,7 @@ shell"* since 2026-09-10.
 > and exited 1. That single row is the first real knowledge this project has
 > ever had about that tool, and it is what item 9 was for.
 >
-> **THE CHOOSER CHANGE OF THE SAME EVENING IS HELD, NOT SHIPPED.** `777c975`
+> **THE CHOOSER CHANGE OF THE SAME EVENING IS HELD, NOT SHIPPED.** `b7d5e96`
 > makes the probe go to tools whose outcome nobody knows. It is committed,
 > gated and red-proven — and it is NOT deployed, because it changes WHICH
 > tool gets probed, which is the very thing this window measures. The
@@ -338,7 +338,7 @@ shell"* since 2026-09-10.
 > `restart_owed` will correctly say a restart is owed, and it is owed
 > deliberately.
 >
-> **REOPENED AGAIN AT 2026-09-16 20:14:20 (engine `85349ac`), AND THIS TIME THE INSTRUMENT WAS READ FIRST.**
+> **REOPENED AGAIN AT 2026-09-16 20:14:20 (engine `1d3ff99`), AND THIS TIME THE INSTRUMENT WAS READ FIRST.**
 > Tue's review request found four faults in the shell path itself (§5,
 > 2026-09-16 "read end to end"): `bare=False` hard-coded, so a rejected
 > invented ID rendered as a real failure; a cousin world missing `state/`
@@ -346,7 +346,7 @@ shell"* since 2026-09-10.
 > with stale mounts after the deploy that changed them; and a cousin body
 > never proven before use, so its death would have become a verdict. The
 > 18:36 and 20:06 windows measured a shell with those faults in it. The
-> record from 2026-09-16 20:14:20 (engine `85349ac`) on is the first taken with the shell whole. Read it
+> record from 2026-09-16 20:14:20 (engine `1d3ff99`) on is the first taken with the shell whole. Read it
 > no sooner than 48 hours in, and read `lost` beside the exit columns.
 >
 > **The library line changed under both inhabitants in this window** — the
@@ -357,7 +357,7 @@ shell"* since 2026-09-10.
 > comparable on the "what the library said" axis, and nothing needs to be.
 >
  Reopened
-> 2026-09-16 18:36:16, engine `3f20c3f`.** Fifteen hours produced **112
+> 2026-09-16 18:36:16, engine `9a90303`.** Fifteen hours produced **112
 > probes, 112 of them lost, 0 verdicts, 0 wants** while the creature thought
 > 112 times on the same rungs. The cousin's shell had never once worked: the
 > command-choosing call was asked through the ladder that rejects any reply
@@ -368,7 +368,7 @@ shell"* since 2026-09-10.
 > matters** — it was live and inert, which is the state this project's
 > doctrine says is hardest to see. Read the after-window from 18:36 only.
 >
-> **THE AFTER-WINDOW STARTS 2026-09-16 03:19:13, ENGINE `221b978`.** It was
+> **THE AFTER-WINDOW STARTS 2026-09-16 03:19:13, ENGINE `fb3d18a`.** It was
 > opened at 02:49 on `02d3460` and re-opened half an hour later rather than
 > left to span two engines: §0's rule is that every figure names its
 > instrument, and a window whose code changed inside it names two. Half an
@@ -417,7 +417,7 @@ shell"* since 2026-09-10.
 > stopped happening instead.
 
 > **THE WINDOW CLOSED AT 23.3 HOURS (2026-09-17 19:31), when item 13's fix
-> was deployed.** Engine `85349ac`, 0 restarts; spine OFF 20:14→23:56 then ON
+> was deployed.** Engine `1d3ff99`, 0 restarts; spine OFF 20:14→23:56 then ON
 > (Tue restarted it after the retraction) — so the first 3.7 h are on the
 > other side of the spine line and the read below is taken over the whole
 > window with that stated. 505 wakes / 257 thinks / 308 commands; 1,656 rung
@@ -458,13 +458,27 @@ shell"* since 2026-09-10.
 >    deferred.** The invocation call took the answer the verdict needed.
 >    Item 18.
 >
-> **A new window opens at 2026-09-17 19:33:33 (engine `add6782`) on the new caps.** Item 9.5's question is
+> **A new window opens at 2026-09-17 19:33:33 (engine `dd53e91`) on the new caps.** Item 9.5's question is
 > answered; what this window measures is item 13's fix (does `window_reread`
 > stay quiet on `plan`) and whether the deadline want gets discharged now that
 > its author can read its own tool.
 >
+> **Restarted 2026-09-17 20:50 on `5ef847f` -- same code, new
+> identity.** The history rewrite (item 19) rehashed every commit from
+> `221b978` on, so the running engine's recorded `add6782` named a commit
+> nobody could check out, and the page's `restart_owed` could no longer diff
+> against it. Restarted so the identity on the page is a commit in the log.
+> The caps are unchanged, so 19:33-20:50 is the same instrument
+> under its old name (`add6782`, which the map renders as `dd53e91`); this
+> window's clock is read from the restart. The journal also carries a
+> start at 20:43 on the same commit marked DIRTY TREE: the two documents
+> you are reading had been uploaded to the laptop a minute before that
+> record was written, and nothing else; it ran one cycle on a dry tier
+> and was stopped and started again on the clean tree. Three starts on
+> one evening, each recorded, none of them a fault.
+>
 > **INTERIM READ AT 3.6 HOURS (2026-09-16 23:52), from a 10-minute watch Tue
-> asked for and then stopped for the night.** Engine `85349ac` since 20:14,
+> asked for and then stopped for the night.** Engine `1d3ff99` since 20:14,
 > 0 restarts, spine OFF throughout. 65 wakes / 44 thinks / 54 commands; 204
 > rung declines -- the tier was the limiting factor all evening.
 >
@@ -685,7 +699,7 @@ unprompted.
 > 8,000, context 8,000, block total 12,000 — all three together, or the
 > caps-in-series scar swallows the raise; the gate asserts every built tool
 > fits through all three and derives its fixtures from the constants. Engine
-> `add6782`. Context cost: the history block may grow from ≤6,000 to ≤12,000
+> `dd53e91`. Context cost: the history block may grow from ≤6,000 to ≤12,000
 > chars per wake in the worst case; measured against a 6 KB tool read blind
 > twenty times, that is cheap.
 >
@@ -959,7 +973,7 @@ sorts my job cleanly:
 Tue, 2026-09-16, on Fable 5.1: *"inspect everything for bugs and especially
 the new additions to the cousin part — for architectural issues."* The
 findings and fixes are in CLAUDE.md §5 (*read end to end*) and the commits
-`2746b48` onward; every new test was red against the code that shipped, and
+`3a4d567` onward; every new test was red against the code that shipped, and
 the gate count is not written here for the reason §0 gives. What this item records is **what was seen and NOT
 fixed**, with its reason and trigger, so it does not become a thing nobody
 remembers:
@@ -1000,3 +1014,65 @@ remembers:
   tick fix and not a brief fix; a ladder economics question. *Trigger: item
   8's baseline across several reps, so a change to the verdict call's budget
   or the ladder's order can be read against something.*
+
+---
+
+## Phase 5 — the public repo (added 2026-09-17)
+
+### 19. `[~]` The archive that reached the public repo — found, checked, untracked, purged from history; 19.5 is Tue's
+
+**What happened.** 2026-09-16 03:19, commit `221b978`: an unscoped
+`git add -A` in a tree holding run 1's archived live root pushed **80 files**
+-- journal, engine log, served context, the creature's tools -- to this
+public repository. `.gitignore` guarded the name `live/`; the archive was
+called `archive-contaminated-20260913-1244`. Found the same day by reading
+the diff of the commit that shipped it; the habit is in CLAUDE.md §0.
+
+- **19.1 `[x]` Nothing in it was a credential.** Byte-for-byte against the
+  four real key files: 0 hits in the 80 pushed files, 0 in 213 live files.
+  The regex that had reported one (`sk-` inside `subtask-`) was retracted.
+  The check is the pack's now (`monitor/pack.py`: `real_keys`,
+  `scan_real_keys`), so an evidence pack refuses to exist around a real key.
+- **19.2 `[x]` Untracked, and ignored by CONTENT rather than by name.** The
+  path left the index the same day (`a4c8f85`, pre-rewrite name);
+  `.gitignore` gained `archive-*/`, `*-archive-*/`, `live-*/`; and
+  `test_no_live_root_is_tracked_by_git_whatever_it_is_called` asserts that
+  no tracked file is a live-root file whatever its directory is called --
+  seen red against the tree that shipped.
+- **19.3 `[x]` Purged from history, 2026-09-17 20:32.** Tue: *"do the purge
+  if you find it prudent"*, then *"do it yourself"*. In order, each step
+  refusing on the one before: a mirror of the whole repo on the laptop
+  (`~/growing-cousin-backup-before-rewrite.git`, at `ef812dc`); a dry run on
+  a throwaway clone (18 rehashed, 0 archive objects, gate green); then the
+  real one -- `git filter-branch --index-filter 'git rm -r --cached ...'
+  -- --all`, backup refs dropped, reflogs expired, `gc --prune=now`; **0
+  objects naming the archive across all refs**, gate green, and only THEN
+  the force-push. The map is committed beside this file:
+  `evidence/history-rewrite-20260917.md`, 18 rows, `221b978` → `fb3d18a`
+  through `ef812dc` → `ee5992d`. The engine was restarted afterwards so its
+  recorded identity names a commit in the log (item 9's note).
+- **19.4 `[x]` Checked from the outside, not from the tree that did it.** A
+  fresh `git clone` from GitHub on the laptop: 150 commits, HEAD `5ef847f`,
+  0 objects naming the archive. At the push the repository had 0 forks and
+  0 pull requests (`gh api`), so there is no other copy to chase. What
+  GitHub itself still holds is 19.5.
+- **19.5 `[ ]` GitHub's own copies -- Tue's, because it is his account and
+  it is outward-facing.** Minutes after the force-push, `gh api` still
+  answered for `221b978`, `add6782` and `ef812dc` by SHA, and still served
+  the archive directory under `221b978` (6 entries). Unreachable from every
+  branch, so no clone can get them; reachable by URL until GitHub's garbage
+  collection or a support request removes them. **The ask, when Tue wants
+  it made:** GitHub Support → *"please remove cached views and run garbage
+  collection for the unreachable commits `221b978`..`ef812dc` on
+  Tubifix77/growing-cousin; history rewritten 2026-09-17; no credentials
+  involved."* Not urgent by the same measure (0 keys, by bytes), which is
+  why it can wait for him.
+
+**What it is NOT.** Not a credential leak -- 0, by bytes. It is raw model
+output and the creature's tools in a public place, which is exactly the rule
+the tarball lives under (CLAUDE.md §0), and that rule now holds for the
+history too. **Acceptance, checkable by anyone:** on a fresh clone,
+`git rev-list --objects --all | grep -c archive-contaminated-20260913-1244`
+prints 0; the map has one row per rehashed commit; and the page's
+`restart_owed` line reads `running the checkout` or `docs-only since`, never
+`could not diff`.

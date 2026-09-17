@@ -36,23 +36,30 @@ keeps it that way.
 against the directory rather than typed: see
 `test_the_module_list_matches_the_kernel`.
 
-### Handover — updated 2026-09-16, read this before touching anything
+### Handover — updated 2026-09-17, read this before touching anything
 
 **The board is `PLAN.md`.** Every open item this project knows about, in the
 order they are being done, one at a time, each with acceptance criteria that
 can be checked rather than asserted, and each verified by a reader who did not
 build it. Do not start work that is not on it; do not leave work off it.
 
-**Where the board stands after the verification round of 2026-09-16 03:00.**
-Items 1-8, 10, 13 and 15 are `[x]`. Three remain `[~]` and each for a stated
-reason, not for want of work:
+**Where the board stands, 2026-09-17 evening, after the daily check and the
+history rewrite.** Items 1-8, 10, 13, 15 and 18 are `[x]`; 19 is `[~]` with
+only 19.5 open, and that one is Tue's to trigger. The rest is open for a
+stated reason, not for want of work:
 
-- **9** is built and live; **9.5 is MEASURING.** Its after-window opened at
-  02:49 on engine `02d3460` and should not be read before 2026-09-18.
+- **9** is built and live, and **9.5 is answered on the one figure the spine
+  cannot move**: bare probes 93% → 20% over the first 23-hour shell window.
+  What is measured now is item 13's fix. That window restarted at
+  20:50 on engine `5ef847f` -- same code, new identity, item 19
+  says why -- and should not be read before 2026-09-19.
 - **11** -- 11.2 and 11.3 are met; run 3 itself is deliberately not taken.
-- **12** reverses Tue's standing pause on the spine. His call, not mine.
+- **12** is overtaken: the spine runs, by my decision, retracted within the
+  hour and recorded in §4.
 - **14** -- 14.1-14.4 met; 14.5 (telling the creature `say` exists) rides
   with the brief's unfreeze and is now WATCHED rather than merely recorded.
+- **16** and **17** are open with named triggers: the cousin judging whether
+  a tool serves anything, and what of my job moves to the cousin.
 
 **TUE IS THE CUSTOMER, NOT THE ARCHITECT — he said so on 2026-09-16 and it
 changes how this file should be used.** *"i have no idea about what you ask
@@ -204,6 +211,7 @@ not a midnight patch.**
 | "the cousin ran it with arguments and it exited non-zero, so the tool failed" | **Not knowable by the framework.** Since the cousin chooses the arguments (item 9) it may have invented an ID and the tool may have correctly said so. The library reports exit codes AND the cousin's own verdicts per tool; the word FAILED was retired 2026-09-16 after `view-subtask-logs task-123` rendered as *NEVER WORKED (1 real failures)*. Read the verdict, not the exit. |
 | "the cousin keeps asking for X and the creature keeps not building it" | Since the shell (item 9), check BOTH sides before blaming either: `grep` the probes' `cmd` for X. On 2026-09-17 `plan set-deadline` existed and the cousin asking for deadlines had never run it — it ran `plan` bare, accepted the menu with the same sentence four times, and asked again. `testimony_repeated` says so; the rule behind it is item 16.5. |
 | "the cousin's container is running, so the deploy took" | A running container may predate the configuration: on 2026-09-16 the cousin's came back after a deploy with no `/hands` mount and no `recall`, reused as it stood. `ensure_container` now compares MOUNTS and recreates on drift. Check `docker inspect -f '{{json .Mounts}}' growing-cousin-body-user`, not `is-active`. |
+| "`git show add6782` says unknown revision" / "the page names an engine commit that is not in `git log`" | History was rewritten 2026-09-17 (the habits list, above). The journal, the evidence manifests, the regression files and pre-rewrite commit messages carry the OLD names and are never edited; these documents carry the NEW ones. `evidence/history-rewrite-20260917.md` translates: `221b978` is `fb3d18a`, `add6782` is `dd53e91`, `ef812dc` is `ee5992d`. |
 
 **Habits this session had to learn the hard way**, all cheap and all mine:
 
@@ -236,6 +244,31 @@ not a midnight patch.**
   `.gitignore` guarded the name `live/` and the archive was called something
   else. `test_no_live_root_is_tracked_by_git_whatever_it_is_called` asserts
   the CONTENT now; the ignore file covers the names. Scope every add.
+
+  **And on 2026-09-17 the history was rewritten to take those files out of
+  every commit** -- `git filter-branch --index-filter` over all refs, then a
+  force-push at 20:32; Tue's instruction (*"do the purge if you find it
+  prudent"*, then *"do it yourself"*), executed by me. Eighteen commits from
+  `221b978` to `ef812dc` were rehashed, and
+  **`evidence/history-rewrite-20260917.md` maps every old SHA to its new
+  one.** What that means for a reader: the SHAs in THIS file and in `PLAN.md`
+  were translated to the new names the same evening; the journal's
+  `engine_start` records, the evidence manifests, the monitor's regression
+  files and every commit message written before the rewrite still carry the
+  OLD names, because none of those is ever edited. So `add6782` on the page
+  and `dd53e91` in these documents are the same engine -- look it up in the
+  map before concluding anything. Verified before the push: 0 objects in any
+  ref naming the archive, gate green. Verified after, from the outside: a
+  fresh clone from GitHub has 150 commits, HEAD `5ef847f`, 0 objects naming
+  the archive. The pre-rewrite history exists as a mirror on the laptop
+  (`~/growing-cousin-backup-before-rewrite.git`) and nowhere else, under the
+  tarball's rule. A clone older than the rewrite cannot merge: `git fetch &&
+  git reset --hard origin/main`. **What is NOT in our hands is GitHub's own
+  store**: checked minutes after the push, `221b978`, `add6782` and `ef812dc`
+  still answered by SHA and the archive path was still served under
+  `221b978` through the API -- dangling, not gone. GitHub drops such objects
+  on its own schedule or on a support request, and the request is Tue's
+  (PLAN item 19.5).
 
 **Nothing in `live/` is committed** — but the per-run evidence pack now exists:
 `python3 -m monitor pack --root live --out ~/growing-cousin-evidence --run run-2`
@@ -638,7 +671,7 @@ guess with authority it has not earned.
   > 3,743 withheld each time — and 12 of its 24 thinks in that window talk
   > about the cut, while it tried to add the feature its cousin had asked for
   > four times. The window was a wall for READING, whatever it was for
-  > editing. Caps raised to fit the library (PLAN item 13, engine `add6782`). **Acted on:** the direction channel was discarding 29 of 50 wants
+  > editing. Caps raised to fit the library (PLAN item 13, engine `dd53e91`). **Acted on:** the direction channel was discarding 29 of 50 wants
   before the creature had a turn, so it was chasing a target that moved every
   visit. Fixed in `17d8951`.
 
