@@ -1179,7 +1179,7 @@ with the only test available to something that has no work to do: did it run.
 - **20.2 `[x]` DONE 2026-09-19. The headline metric is computable, and it
   says NOT YET rather than zero.** `monitor/derive.surviving_capability` plus
   a page section; red-proven before it existed; gate 885. **First live
-  reading, 2026-09-19 15:10, run 6.1 days old: 0 survived / 0 have not / 58
+  reading, 2026-09-19 14:58, run 6.1 days old: 0 survived / 0 have not / 58
   cannot be judged yet**, because the window is 7 days and the run is younger
   than it. The leading indicators, which ARE true today: **49 of 58 tools have
   been reached more than once by their user, and the widest first-to-last span
