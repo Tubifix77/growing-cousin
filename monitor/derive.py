@@ -261,6 +261,169 @@ def probe_record(rows):
     return rec
 
 
+# THE HEADLINE METRIC (`ARCHITECTURE.md` 12), specified 2026-09-10 and not
+# computable until 2026-09-18: *tools that start, are invoked by something
+# else, and are still invoked a week later -- surviving useful capability, the
+# thing the goal actually names.*
+#
+# It needs the same user reaching for the same tool across days, and until the
+# cousin had continuity of its own it got a wiped world and one nominated tool
+# per visit. Everything here is DERIVED: the journal says what ran and when,
+# the library says what names what.
+SURVIVES_AFTER_DAYS = 7
+
+# A CEILING, STATED. The parent's dependency scan ran 187,489 full-content
+# regex scans per wake -- 28 seconds, getting worse every time the creature
+# succeeded, found because a human could hear the laptop fan. This one reads
+# each file once against a single compiled alternation, and above the ceiling
+# it REFUSES and says so rather than quietly costing the monitor a minute.
+EDGE_SCAN_MAX = 400
+
+
+def tool_names(own_dir):
+    """The library on disk, or None when it cannot be read."""
+    try:
+        return sorted(n for n in os.listdir(own_dir)
+                      if os.path.isfile(os.path.join(own_dir, n))
+                      and not n.endswith((".bak", ".tmp", "~")))
+    except (OSError, TypeError):
+        return None
+
+
+def tool_edges(own_dir, names=None):
+    """`{tool: set of tools naming it}`, or None when it cannot be answered.
+
+    NAMING IS NOT CALLING and this cannot tell the difference: a name inside a
+    comment, a usage string or an error message counts. That is stated where
+    the number is shown rather than corrected here, because guessing which
+    mentions are real is a judgement and this file holds none.
+    """
+    if names is None:
+        names = tool_names(own_dir)
+    if not names or len(names) > EDGE_SCAN_MAX:
+        return None
+    pat = re.compile(r"\b(" + "|".join(re.escape(n) for n in names) + r")\b")
+    named_by = dict((n, set()) for n in names)
+    for n in names:
+        try:
+            with open(os.path.join(own_dir, n), encoding="utf-8",
+                      errors="replace") as f:
+                src = f.read()
+        except OSError:
+            continue
+        for other in set(pat.findall(src)):
+            if other != n and other in named_by:
+                named_by[other].add(n)
+    return named_by
+
+
+def surviving_capability(rows, own_dir=None, now=None,
+                         window_days=SURVIVES_AFTER_DAYS):
+    """Three bars per tool, each able to say CANNOT TELL.
+
+    **starts** -- the journal records the body running it. Exit 127 is the
+    shell saying there was nothing to run; a tool the cousin never reached
+    says nothing either way and must NOT be counted against it, which is the
+    2026-09-14 scar (the harness's empty hands read as the tool's failure).
+
+    **invoked by something else** -- **someone other than its AUTHOR ran it**,
+    which in this design is the cousin. Not "another tool names it": 4 defines
+    a single-occupancy fault as *a defect that survives only because the
+    author is the sole user*, and a tool called by another of the author's own
+    tools is still single-occupancy, because the author wrote both. A wrapper
+    stack does not make a second party. Composition is reported beside this,
+    because it is worth knowing and already computed, but it is not the bar.
+
+    **still invoked a week later** -- its user reached for it again after the
+    window. **Before the window has elapsed the answer is `not yet`, never
+    0.** A metric that reports zero survivors on a four-day-old run is a wrong
+    number with a clean face, and this page has paid for that shape twice.
+    """
+    now = time.time() if now is None else now
+    names = tool_names(own_dir)
+    if not names:
+        names = sorted(library_from_journal(rows))
+    edges = tool_edges(own_dir, names)
+    ts = [float(r.get("ts", 0)) for r in rows if r.get("ts")]
+    run_days = ((max(ts) - min(ts)) / 86400.0) if len(ts) > 1 else 0.0
+
+    used = collections.defaultdict(list)
+    ran = collections.defaultdict(list)
+    for r in rows:
+        if r.get("kind") != "cousin_probe":
+            continue
+        name, code = r.get("tool"), r.get("exit_code")
+        if not name or code is None:      # a dry ladder never reached the tool
+            continue
+        used[name].append(float(r.get("ts", 0)))
+        ran[name].append(code)
+
+    out, n_yes, n_no, n_tell = [], 0, 0, 0
+    not_yet = 0
+    never_reached = 0
+    reused = 0
+    widest = 0.0
+    for name in names:
+        runs = sorted(used.get(name, []))
+        codes = ran.get(name, [])
+        if not runs:
+            started = None
+        elif all(c == 127 for c in codes):
+            started = False
+        else:
+            started = True
+        named_by = None if edges is None else len(edges.get(name, ()))
+        first = runs[0] if runs else None
+        last = runs[-1] if runs else None
+        span = ((last - first) / 86400.0) if runs else None
+
+        if started is None:
+            # Never reached by its user: the second bar is unanswered, and an
+            # unanswered bar is CANNOT TELL. Counting it as a failure is the
+            # harness's empty hands read as the tool's fault.
+            surviving = None
+            never_reached += 1
+        elif started is False:
+            surviving = False
+        elif span is not None and span >= window_days:
+            surviving = True
+        elif first is not None and (now - first) >= window_days * 86400.0:
+            surviving = False           # the week passed and nobody came back
+        else:
+            surviving = None            # the week has not passed yet
+            not_yet += 1
+        out.append({"tool": name, "started": started, "named_by": named_by,
+                    "first_use": first, "last_use": last,
+                    "span_days": span, "surviving": surviving,
+                    "runs": len(runs)})
+        n_yes += surviving is True
+        n_no += surviving is False
+        n_tell += surviving is None
+        # LEADING INDICATORS, so the page says something true before the
+        # window has elapsed rather than printing a zero for days.
+        reused += len(runs) >= 2
+        widest = max(widest, span or 0.0)
+
+    why = []
+    if edges is None:
+        why.append("the library could not be read -- either the directory is "
+                   "unreadable or it is past the %d-tool ceiling this scan "
+                   "refuses to cross, so nothing can be judged on composition"
+                   % EDGE_SCAN_MAX)
+    if not_yet:
+        why.append("the run is %.1f days old, younger than the %d-day window, "
+                   "so %d tool(s) cannot be judged yet -- that is NOT YET and "
+                   "not a zero" % (run_days, window_days, not_yet))
+    if never_reached:
+        why.append("%d tool(s) have never been reached by their user at all"
+                   % never_reached)
+    return {"window_days": window_days, "run_days": run_days,
+            "tools": out, "edges": edges,
+            "surviving": n_yes, "not_surviving": n_no, "cannot_tell": n_tell,
+            "reused": reused, "widest_span_days": widest,
+            "why_cannot_tell": "; ".join(why)}
+
+
 def measure(rows):
     """Everything is a COUNT or a ratio of counts. No judgements live here.
     Rates are split by rung; the unsplit accept rate is deliberately absent

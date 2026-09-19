@@ -316,6 +316,13 @@ def build_data(ctx, findings, since, changes):
                        "returned": (rec or {}).get("returned", 0),
                        "last_code": (rec or {}).get("last_code")})
     fam = derive.stems(ctx.library)
+    # The headline metric reads the library on disk for its edges, so it is
+    # given the creature's real tools directory rather than the journal's
+    # idea of one.
+    surviving = derive.surviving_capability(
+        ctx.rows,
+        os.path.join(ctx.root, "body", "mind", "tools", "own"),
+        now=getattr(ctx, "now", None))
     last = ctx.rows[-1] if ctx.rows else None
     return {
         "generated": ctx.now,
@@ -333,6 +340,7 @@ def build_data(ctx, findings, since, changes):
         "changes": changes,
         "windows": _windows(ctx),
         "quota": ctx.quota,
+        "surviving": surviving,
         "library": {"tools": len(ctx.library),
                     "families": {s: len(v) for s, v in fam.items() if len(v) >= 3},
                     # §6.2's binding requirement: every metric split on the
@@ -361,6 +369,56 @@ def build_data(ctx, findings, since, changes):
 
 
 # ---------------------------------------------------------------- render
+
+def render_surviving(s):
+    """`ARCHITECTURE.md` 12's headline, rendered so the three states survive
+    the trip. The count of survivors is meaningless without the count of
+    things that cannot be judged yet, so they are printed together or not at
+    all."""
+    out = []
+    if not s:
+        return out
+    out.append("## Surviving capability (ARCHITECTURE 12's headline metric)")
+    out.append("")
+    out.append("*Tools that start, are invoked by something else, and are "
+               "still invoked %d days later.* Run is %.1f days old."
+               % (s["window_days"], s["run_days"]))
+    out.append("")
+    out.append("| survived | has not | cannot tell yet |")
+    out.append("|---|---|---|")
+    out.append("| **%d** | %d | %d |"
+               % (s["surviving"], s["not_surviving"], s["cannot_tell"]))
+    out.append("")
+    out.append("Leading indicators, true before the window elapses: "
+               "**%d** tool(s) their user has reached for more than once, and "
+               "the widest first-to-last span so far is **%.1f days**."
+               % (s.get("reused", 0), s.get("widest_span_days", 0.0)))
+    out.append("")
+    yes = [t for t in s["tools"] if t["surviving"] is True]
+    if yes:
+        out.append("Survived: " + ", ".join(
+            "`%s` (named by %d, used %d times over %.1f days)"
+            % (t["tool"], t["named_by"], t["runs"], t["span_days"])
+            for t in sorted(yes, key=lambda t: -(t["span_days"] or 0))[:10]))
+        out.append("")
+    dead = [t for t in s["tools"] if t["started"] is False]
+    if dead:
+        out.append("Did not start when its user ran it: "
+                   + ", ".join("`%s`" % t["tool"] for t in dead[:10]))
+        out.append("")
+    out.append("**Cannot tell:** %s." % (s["why_cannot_tell"] or
+                                         "nothing -- every tool could be judged"))
+    out.append("")
+    out.append("_The middle bar is **someone other than the AUTHOR ran it**, "
+               "which here means the cousin -- not `another tool names it`, "
+               "because a tool called by its author's own other tools is still "
+               "single-occupancy. Composition is shown beside it as context. "
+               "And surviving this bar means its user kept coming back, which "
+               "is NOT the same as doing what its header claims: that is the "
+               "verdict's job, not this page's._")
+    out.append("")
+    return out
+
 
 def _pct(num, den):
     v, note = derive.share(num, den)
@@ -511,6 +569,8 @@ def render_md(d):
     out.append("")
 
     lib = d["library"]
+    out.extend(render_surviving(d.get("surviving")))
+
     out.append("## Library (%d tools the journal knows of)" % lib["tools"])
     out.append("")
     # EVERY METRIC SPLIT ON THE TAG (§6.2). Stated in words either way,

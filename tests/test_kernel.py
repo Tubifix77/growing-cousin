@@ -5629,6 +5629,152 @@ def test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_headline_metric_can_actually_be_computed():
+    """PLAN item 20.2. `ARCHITECTURE.md` \u00a712 names what this project
+    measures before anything else: *tools that start, are invoked by something
+    else, and are still invoked a week later*, glossed as **surviving useful
+    capability -- the thing the goal actually names**. It was written
+    2026-09-10 and **has never once been computable here**, because the cousin
+    got a wiped world and one nominated tool per visit.
+
+    Three bars, and each has to be able to say CANNOT TELL:
+
+    - **starts** -- the journal records the body running it. A probe that only
+      ever exited 127 did not start; a tool the cousin never reached says
+      nothing either way, and must not be counted as failing.
+    - **invoked by something else** -- another tool names it in its source.
+      That is composition, which is what the creature's own prompt asks for:
+      *the toolkit is most alive when its LATER tools are built OUT OF its
+      earlier ones*.
+    - **still invoked a week later** -- its user reached for it again after the
+      window. Before the window has elapsed the honest answer is NOT ZERO, it
+      is *not yet*, and a metric that reports 0 while the run is four days old
+      is the 2026-09-14 scar wearing a new hat.
+
+    The edge scan is bounded and single-pass. The parent's version of this ran
+    187,489 full-content regex scans per wake, took 28 seconds, got worse every
+    time the creature succeeded, and was found because a human could hear the
+    laptop fan.
+    """
+    from monitor import derive
+    check("metric: the derivation exists at all",
+          callable(getattr(derive, "surviving_capability", None)))
+    if not callable(getattr(derive, "surviving_capability", None)):
+        return
+    d = tmpdir()
+    own = os.path.join(d, "tools", "own")
+    os.makedirs(own)
+
+    def tool(name, text):
+        with io.open(os.path.join(own, name), "w", encoding="utf-8") as f:
+            f.write(text)
+
+    tool("alpha", "#!/bin/sh\n# does: a\nbeta --go\n")
+    tool("beta", "#!/bin/sh\n# does: b\necho b\n")
+    tool("orphan", "#!/bin/sh\n# does: nobody names me\necho o\n")
+    tool("deadstart", "#!/bin/sh\n# does: never starts\necho d\n")
+    tool("nevertried", "#!/bin/sh\n# does: the cousin never reached it\necho n\n")
+
+    T0, DAY = 1000000000.0, 86400.0
+
+    def probe(name, ts, code):
+        return {"ts": ts, "kind": "cousin_probe", "tool": name, "exit_code": code}
+
+    rows = [{"ts": T0, "kind": "loop_start"},
+            probe("beta", T0, 0), probe("beta", T0 + 8 * DAY, 0),
+            probe("alpha", T0, 0),
+            probe("orphan", T0, 0), probe("orphan", T0 + 8 * DAY, 0),
+            probe("deadstart", T0, 127),
+            {"ts": T0 + 10 * DAY, "kind": "wake"}]
+    got = derive.surviving_capability(rows, own, now=T0 + 10 * DAY)
+    by = {t["tool"]: t for t in got["tools"]}
+    check("metric: every tool in the directory gets a row",
+          sorted(by) == ["alpha", "beta", "deadstart", "nevertried", "orphan"],
+          sorted(by))
+    check("metric: a tool that starts and whose USER reached for it again "
+          "after the window SURVIVES -- the one thing the goal names",
+          by["beta"]["surviving"] is True, by["beta"])
+    check("metric: composition is reported beside it, as context",
+          by["beta"]["named_by"] == 1, by["beta"])
+    # THE MIDDLE BAR IS NOT COMPOSITION, and getting this wrong would have
+    # shipped a metric that fails every leaf tool its user depends on daily.
+    # \u00a74: a single-occupancy fault survives *because the author is the
+    # sole user*. A tool called by another of the author's own tools is still
+    # single-occupancy -- the author wrote both -- so a wrapper stack does not
+    # make a second party, and `orphan` survives on its user's repeat use.
+    check("metric: a tool no other tool names still survives if its USER kept "
+          "coming back -- composition is not a second party",
+          by["orphan"]["surviving"] is True and by["orphan"]["named_by"] == 0,
+          by["orphan"])
+    check("metric: a tool whose only run exited 127 did not start",
+          by["deadstart"]["started"] is False, by["deadstart"])
+    check("metric: a tool the cousin never reached is CANNOT TELL, never a "
+          "failure -- the harness's empty hands are not the tool's fault",
+          by["nevertried"]["surviving"] is None
+          and by["nevertried"]["started"] is None, by["nevertried"])
+    check("metric: a tool last reached more than a window ago has not survived",
+          by["alpha"]["surviving"] is False, by["alpha"])
+    check("metric: and the leading indicators are there, so the page says "
+          "something true before the window has elapsed",
+          got["reused"] == 2 and got["widest_span_days"] >= 8.0,
+          (got["reused"], got["widest_span_days"]))
+    check("metric: the three states account for every tool",
+          got["surviving"] + got["not_surviving"] + got["cannot_tell"]
+          == len(got["tools"]),
+          (got["surviving"], got["not_surviving"], got["cannot_tell"]))
+
+    # THE YOUNG RUN. Before the window has elapsed the answer is *not yet*.
+    young = [{"ts": T0, "kind": "loop_start"}, probe("beta", T0, 0),
+             probe("alpha", T0, 0), {"ts": T0 + 3 * DAY, "kind": "wake"}]
+    y = derive.surviving_capability(young, own, now=T0 + 3 * DAY)
+    yby = {t["tool"]: t for t in y["tools"]}
+    check("metric: inside the window nothing is called failed -- 'not yet' and "
+          "'no' are different answers and this page has paid for conflating "
+          "them", yby["beta"]["surviving"] is None, yby["beta"])
+    check("metric: and it SAYS why, with the run's age in it",
+          "3.0" in (y.get("why_cannot_tell") or "")
+          and "7" in (y.get("why_cannot_tell") or ""), y.get("why_cannot_tell"))
+
+    # BOUNDED. The parent's dependency scan went quadratic and cost 28s a wake.
+    check("metric: the edge scan declares a ceiling rather than growing "
+          "without one", isinstance(getattr(derive, "EDGE_SCAN_MAX", None), int))
+    big = os.path.join(d, "big")
+    os.makedirs(big)
+    for i in range(derive.EDGE_SCAN_MAX + 1):
+        with io.open(os.path.join(big, "t%04d" % i), "w", encoding="utf-8") as f:
+            f.write("#!/bin/sh\necho %d\n" % i)
+    over = derive.surviving_capability(rows, big, now=T0 + 10 * DAY)
+    check("metric: over the ceiling it refuses to scan and says so, rather "
+          "than quietly costing the monitor a minute",
+          over["edges"] is None and "ceiling" in (over.get("why_cannot_tell") or "").lower(),
+          over.get("why_cannot_tell"))
+    check("metric: and with no library to read, every tool is CANNOT TELL "
+          "rather than absent", over["cannot_tell"] == len(over["tools"]),
+          (over["cannot_tell"], len(over["tools"])))
+
+    # IT REACHES THE PAGE, or it is a derivation nobody reads -- the dead
+    # `want` channel is this file's scar for exactly that.
+    from monitor import status as statusmod
+    check("metric: the page has a renderer for it, or it is a derivation "
+          "nobody reads -- the dead `want` channel is this file's scar for "
+          "exactly that",
+          callable(getattr(statusmod, "render_surviving", None)))
+    if callable(getattr(statusmod, "render_surviving", None)):
+        NL = chr(10)
+        md = NL.join(statusmod.render_surviving(got))
+        check("metric: the section names the metric and its source",
+              "surviving" in md.lower() and "12" in md, md[:300])
+        check("metric: it prints the tools that cleared all three bars",
+              "beta" in md, md[:400])
+        check("metric: and it states what it cannot tell, every render",
+              "cannot tell" in md.lower(), md[-400:])
+        y_md = NL.join(statusmod.render_surviving(y))
+        check("metric: on a young run the section says NOT YET rather than a "
+              "zero that reads as a finding",
+              "3.0" in y_md and "0 survived" not in y_md.lower(), y_md[:400])
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_cousin_has_the_instruments_the_architecture_specified():
     """PLAN item 20.3, from `ARCHITECTURE.md` \u00a75: *a handful of small
     deterministic scripts -- startability, hollow-stub detection,
@@ -7439,6 +7585,7 @@ def main():
                test_cousin_sees_the_library,
                test_the_cousin_gets_the_creatures_work_and_never_its_notes,
                test_the_cousin_has_the_instruments_the_architecture_specified,
+               test_the_headline_metric_can_actually_be_computed,
                test_an_unreadable_verdict_keeps_its_evidence,
                test_cousin_probe_is_recorded,
                test_census_catches_a_fabricated_verdict,

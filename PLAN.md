@@ -1017,8 +1017,15 @@ remembers:
   a window, prefer among the tools the creature ran the one its user has
   probed least, before falling to `unknown_outcome`.* A chooser rule, so it
   ships with a red-proof against the journal slice where it fired.
-- **18.7 Two calls per visit starves the judgement on a dry tier — measured
-  now: 88 probes, 14 verdicts, 52 visits deferred in 23 hours.** The
+- **18.7 Two calls per visit starves the judgement on a dry tier. MEASURED
+  AGAIN 2026-09-19 and it is worse than the first reading: since the
+  instruments deployed, 69 probes produced 12 verdicts -- 17% -- with 45
+  visits deferred.** And it now has a face: on 09-18 22:59 and 09-19 01:28 the
+  cousin composed `lib-deps plan` with its own stated reason, got exactly the
+  fact it wanted, and **both times every rung was at quota when the verdict was
+  asked, so the visit was deferred and the work was discarded.** The cousin did
+  the thing the design wants and the tier ate the result. Earlier reading: 88
+  probes, 14 verdicts, 52 visits deferred in 23 hours.** The
   invocation call is served and the verdict call then finds no rung. Not a
   tick fix and not a brief fix; a ladder economics question. *Trigger: item
   8's baseline across several reps, so a change to the verdict call's budget
@@ -1169,7 +1176,38 @@ with the only test available to something that has no work to do: did it run.
 > instructive part: I was reasoning from CLAUDE.md, which is the maintenance
 > log, instead of from the two documents that say what this is.
 
-- **20.2 `[ ]` A visit is a WAKE, not an inspection -- so that §12's headline
+- **20.2 `[x]` DONE 2026-09-19. The headline metric is computable, and it
+  says NOT YET rather than zero.** `monitor/derive.surviving_capability` plus
+  a page section; red-proven before it existed; gate 885. **First live
+  reading, 2026-09-19 15:10, run 6.1 days old: 0 survived / 0 have not / 58
+  cannot be judged yet**, because the window is 7 days and the run is younger
+  than it. The leading indicators, which ARE true today: **49 of 58 tools have
+  been reached more than once by their user, and the widest first-to-last span
+  is 6.0 days.** The metric starts answering tomorrow, which is the first time
+  this project can answer the question it says it asks first.
+
+  > **THE MIDDLE BAR WAS READ WRONG FIRST, and the correction is the
+  > interesting part.** *"Invoked by something else"* -- I built it as
+  > *another TOOL names it*, i.e. composition, and the first render said 44
+  > tools had failed that bar. Wrong, by §4 of the same document: a
+  > single-occupancy fault is *a defect that survives only because the author
+  > is the sole user*, and **a tool called by another of the author's own
+  > tools is still single-occupancy, because the author wrote both.** A
+  > wrapper stack does not make a second party. The bar is *someone other than
+  > the AUTHOR ran it*, which in this design is the cousin. Composition stays
+  > on the page as context, because it is worth knowing, but it no longer
+  > fails a leaf tool its user reaches for daily. Caught by reading the output
+  > and disbelieving it, before the commit.
+
+  > **The edge scan carries a stated ceiling** (`EDGE_SCAN_MAX`, 400) and
+  > reads each file once against one compiled alternation. The parent's
+  > version of this ran 187,489 full-content regex scans per wake, took 28
+  > seconds, got worse every time the creature succeeded, and was found
+  > because a human could hear the laptop fan.
+
+  Original entry follows, because its reasoning is what produced the item:
+
+- **20.2 (original) A visit is a WAKE, not an inspection -- so that §12's headline
   metric can exist at all.** `ARCHITECTURE.md` §12 names what this project
   measures first: **"tools that start, are invoked by something else, and are
   still invoked a week later"**, glossed as *surviving useful capability -- the
@@ -1217,7 +1255,31 @@ with the only test available to something that has no work to do: did it run.
   rather than adding a rule telling it to have an opinion. **Acceptance:** the
   scripts exist where the cousin can run them, the cousin is told they are
   there (the invocation template, which is kernel text, not the frozen brief),
-  and the journal records a visit where it ran one unprompted.
+  the journal records a visit where it ran one unprompted.
+
+  > **CONFIRMED IN PRODUCTION 2026-09-19.** The cousin ran `lib-deps plan`
+  > twice, unprompted, and wrote its own reason into the block: *"See what
+  > other tools the `plan` command depends on (helps understand its
+  > requirements)"*. It got back that `plan` is named by nine tools and that
+  > if it breaks those nine may too. That is §5's instrument doing exactly
+  > what §5 said it would, on a library its user cannot otherwise see whole.
+  > **Both visits were then deferred with every rung at quota** (item 18.7),
+  > so neither reached a verdict. The instrument works; the economics around
+  > it do not.
+
+- **20.4 `[ ]` The cousin has continuity now and does not use it.** Confirmed
+  in production 2026-09-19: **68 harvests since the fix, every one empty.**
+  The leak is closed (its `state/memory.json` differs from the creature's,
+  checked byte-for-byte) and the store is being written and re-installed every
+  visit, so the mechanism works. The cousin simply never writes a note.
+  **The likely cause is structural rather than a wording problem**: its only
+  shell is the INVOCATION call, which happens *before* it sees the output and
+  before it forms a judgement. At the moment it learns something worth keeping
+  -- writing the verdict -- it has no hands. So *remember this for next time*
+  is close to impossible by construction. *Trigger: when 20.2's metric has a
+  week of data, so a change here can be read against something.* Do not fix it
+  by telling the cousin harder in the template; that is the mechanism-not-
+  invariant fault, and the template already says the store exists.
 
 **Do not start 16, 17, 18.6 or 18.7 before this** -- each tunes a loop that is
 not carrying anything. Recorded as a dependency and not a deletion, because
