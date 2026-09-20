@@ -5561,6 +5561,56 @@ def test_a_container_whose_mounts_drifted_is_recreated_not_reused():
           not any(a[:3] == ["docker", "rm", "-f"] for a in calls2)
           and not any(a[:2] == ["docker", "run"] for a in calls2), calls2)
 
+    # PLAN 18.4, the same shape one field over. A container is created FROM an
+    # image and keeps it for life, so `docker build` can succeed, the tag can
+    # move, and the body goes on running yesterday's Dockerfile while every
+    # document says otherwise. The unit rebuilds on every start, so this drift
+    # is guaranteed rather than unlikely.
+    def drive_img(container_image, tag_image):
+        calls = []
+
+        class R(object):
+            def __init__(self, rc=0, out=""):
+                self.returncode, self.stdout, self.stderr = rc, out, ""
+
+        def fake_run(argv, **_k):
+            calls.append(argv)
+            if argv[:2] == ["docker", "inspect"] and "{{.State.Running}}" in argv:
+                return R(0, "true\n")
+            if argv[:2] == ["docker", "inspect"] and "{{json .Mounts}}" in argv:
+                return R(0, current)
+            if argv[:2] == ["docker", "inspect"] and "{{.Image}}" in argv:
+                return R(0, container_image) if container_image else R(1, "")
+            if argv[:3] == ["docker", "image", "inspect"]:
+                return R(0, tag_image) if tag_image else R(1, "")
+            return R(0, "true")
+        keep = _sp.run
+        try:
+            _sp.run = fake_run
+            runmod.ensure_container("c", "img", Host())
+        finally:
+            _sp.run = keep
+        return calls
+
+    moved = drive_img("sha256:old\n", "sha256:new\n")
+    check("drift: a container still running the image it was BUILT from is "
+          "recreated when the tag has moved -- the unit rebuilds every start, "
+          "so this is guaranteed rather than unlikely",
+          any(a[:3] == ["docker", "rm", "-f"] for a in moved)
+          and any(a[:2] == ["docker", "run"] for a in moved), moved)
+    same = drive_img("sha256:same\n", "sha256:same\n")
+    check("drift: and left alone when the image is the one it holds",
+          not any(a[:3] == ["docker", "rm", "-f"] for a in same), same)
+    # CANNOT TELL, never a reason to act -- the mounts check earned this rule
+    # and it applies to every field beside it.
+    blind = drive_img(None, "sha256:new\n")
+    check("drift: an unreadable image id does NOT recreate the container, "
+          "because a daemon that cannot answer is not evidence that it drifted",
+          not any(a[:3] == ["docker", "rm", "-f"] for a in blind), blind)
+    blind2 = drive_img("sha256:old\n", None)
+    check("drift: and neither does an unreadable tag",
+          not any(a[:3] == ["docker", "rm", "-f"] for a in blind2), blind2)
+
 
 def test_a_dead_cousin_body_is_a_lost_probe_never_a_transcript():
     """The creature's body is proven before every block (`ensure_body`); the

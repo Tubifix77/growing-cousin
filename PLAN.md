@@ -1079,12 +1079,20 @@ remembers:
   *make up plausible inputs*, it invents IDs and every tool correctly refuses
   them. The whole-block change lets it look up then call; whether it does is
   a brief and workflow matter — items 16 and 17.
-- **18.4 A rebuilt image is not adopted by a running container.**
-  `ensure_container` now compares mounts; it does not compare the image id,
-  so after a Dockerfile change the container keeps the old image until
-  recreated. *Trigger: the next Dockerfile change — add the image-id
-  comparison in the same commit, with the same shape of test as the mount
-  drift.*
+- **18.4 `[x]` FIXED 2026-09-21. A rebuilt image is now adopted.**
+  `ensure_container` compares the image the container was CREATED from against
+  the id the tag points at today, and recreates on drift -- the same shape as
+  the mount check beside it, which is what the item asked for. **Both ids or
+  nothing**: an unreadable answer is CANNOT TELL and never a reason to destroy
+  a container, the rule the mount check earned. Four assertions, including
+  both blind cases.
+
+  > **It was more certain than "unlikely".** The unit runs `docker build` on
+  > every start, so the tag moves on every start; a container created once
+  > would have gone on running the first Dockerfile it ever saw for the life
+  > of the deployment, while `deploy/Dockerfile` in the repo said otherwise.
+  > §5's oldest systemd shape for the third time: present in the code, absent
+  > from the running thing.
 - **18.5 `deploy_regression` did not see the shell's fifteen silent hours.**
   Its floors are for the creature's indicators; `cousin_starved` now covers
   the cousin. Left as is, noted so the next reader does not expect it to.
@@ -1119,6 +1127,23 @@ remembers:
   bash gets an honest `setup_failed` naming `COUSIN_BASH` as the override.
   On this Windows box it resolves to Git's `usr/bin/bash.EXE` and runs `[[ ]]`,
   which is neither POSIX sh nor reachable by the launcher.
+
+  > **THE WINDOWS GATE IS GREEN, 2026-09-21: 864/864 in 48 seconds**, with
+  > three tests that say plainly they could not run here. The path from 92
+  > failures took three fixes and the last two were only findable because the
+  > first one worked: **92 -> 23** (the body ran the launcher) **-> 11** (the
+  > path translator ASKED the launcher where Windows drives live, so every
+  > PATH entry reached the real shell as `/mnt/c/...`) **-> 1** (the suite
+  > reported a missing host capability as a failure) **-> 0**. The last one
+  > was an assertion comparing `C:\Users\...\Temp\X` against `/tmp/X` as
+  > strings; Git bash maps the Windows temp directory to `/tmp`, so both
+  > spellings are right and the question had to be asked of the shell.
+  >
+  > **The laptop remains the authority** and nothing about that changes. What
+  > changes is that a Windows run is now evidence rather than noise, and that
+  > the suite counts what it could not check instead of printing all-green
+  > over it -- the laptop had not been able to reach the local model for days
+  > without once saying so.
 
   > **The gate caught a bug in this very fix, which is the part worth
   > keeping.** The first version asked `os.path.dirname` for the parent

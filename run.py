@@ -436,6 +436,18 @@ def ensure_container(container, image, host_body, timeout=120):
         return {(os.path.realpath(m.get("Source", "")), m.get("Destination"),
                  bool(m.get("RW", True))) for m in data if isinstance(m, dict)}
 
+    def image_of(name):
+        """The image id this container was CREATED from, or None."""
+        r = d("inspect", "-f", "{{.Image}}", name)
+        out = (r.stdout or "").strip()
+        return out if r.returncode == 0 and out else None
+
+    def image_now():
+        """The image id that tag points at TODAY, or None."""
+        r = d("image", "inspect", "-f", "{{.Id}}", image)
+        out = (r.stdout or "").strip()
+        return out if r.returncode == 0 and out else None
+
     st = d("inspect", "-f", "{{.State.Running}}", container)
     have = mounts_of(container) if st.returncode == 0 else None
     if st.returncode == 0 and have is not None and have != want:
@@ -443,6 +455,22 @@ def ensure_container(container, image, host_body, timeout=120):
               "(had %d mount(s), need %d)" % (container, len(have), len(want)))
         d("rm", "-f", container)
         st.returncode = 1
+    # PLAN 18.4. A container is created FROM an image and keeps that image for
+    # life, so `docker build` can succeed, the tag can move, and this body goes
+    # on running yesterday's Dockerfile while every document says otherwise.
+    # §5's oldest systemd shape a third time: present in the code, absent from
+    # the running thing -- and the unit rebuilds the image on every start, so
+    # the drift is guaranteed rather than unlikely.
+    #
+    # BOTH ids or nothing. An unreadable answer is CANNOT TELL and must never
+    # recreate a container on the strength of it, exactly as for the mounts.
+    if st.returncode == 0:
+        was, now = image_of(container), image_now()
+        if was and now and was != now:
+            print("container %s: image changed since it was created -- "
+                  "recreating (%s -> %s)" % (container, was[:19], now[:19]))
+            d("rm", "-f", container)
+            st.returncode = 1
     if st.returncode != 0:
         d("rm", "-f", container)
         argv = ["run", "-d", "--init", "--name", container,
