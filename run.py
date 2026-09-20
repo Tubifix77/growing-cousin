@@ -112,6 +112,12 @@ def install_hands(body, only=None, keep=()):
     return dest
 
 
+# Which binary answered the question below. None until something actually
+# needed translating, which on a posix host is never -- three states, so
+# "nobody asked" and "asked the wrong shell" cannot render the same.
+_PREFIX_SHELL = None
+
+
 def _probe_prefix():
     """ASK the shell where a Windows drive lives. Never assume.
 
@@ -125,12 +131,25 @@ def _probe_prefix():
     Every round produced the same symptom -- the cousin reporting "command not
     found" over a perfectly good tool, truthfully, about an event the harness
     had invented. So this asks the shell instead of reasoning about it.
+
+    **FOURTH ROUND, 2026-09-21, and it is PLAN 18.8 one layer up.** This asked
+    a BARE `bash` -- the very name 18.8 had just stopped trusting. On a box
+    with WSL installed the launcher answers `/mnt/` while the bash the body
+    actually runs answers `/`, so every PATH entry reached the real shell as
+    `/mnt/c/...`, a directory that does not exist there, and 23 assertions came
+    back 127 with the body reporting healthy. **Asking the shell instead of
+    reasoning about it is only right if you ask the shell that will answer.**
+    The binary that answered is recorded in `_PREFIX_SHELL`, so a future
+    disagreement is visible rather than inferred.
     """
     import subprocess
+    global _PREFIX_SHELL
+    shell = bodymod.find_bash() or "bash"
+    _PREFIX_SHELL = shell
     for pre in ("/mnt/", "/"):
         probe = "test -d %sc && echo yes" % pre
         try:
-            r = subprocess.run(["bash", "-c", probe], capture_output=True,
+            r = subprocess.run([shell, "-c", probe], capture_output=True,
                                text=True, timeout=20)
             if "yes" in r.stdout:
                 return pre
