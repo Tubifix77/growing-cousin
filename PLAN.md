@@ -554,7 +554,32 @@ unprompted.
 
 ## Phase 5 — settle
 
-### 11. `[~]` Run 3  — 11.2 and 11.3 met; the run itself is deliberately not taken
+### 11. `[~]` Run 3  — GATED BEHIND AN EMPTY BOARD (Tue, 2026-09-21), and it is a THIRD experiment
+
+> **Tue, 2026-09-21, two decisions in one sentence and both his.**
+> *"It made so many tools on its own. Where would it branch, sitting in the
+> parent's seat, and see them diverge, is a completely third experiment now.
+> We need to iron out the baby issues here before we get there. I would as a
+> minimum first do that when all not-fixed and not-implemented issues are
+> gone."*
+>
+> **First: it is a different experiment from the one §6.2 chose in 2026-09-10.**
+> That one wanted a known-answer library so the cousin's JUDGEMENT could be
+> refuted in a week. This one wants a shared starting library so the two
+> frameworks' OUTPUT can be watched diverging. Different designs, different
+> lengths, different things held still. Pick one in advance and name it, or
+> the run measures neither.
+>
+> **Second: it is gated, not merely deferred.** The gate is every open item
+> on this board except 11 itself — as of 2026-09-21: 9.5, 14, 16, 17, 19.5,
+> 20 with 20.4, 21 with 21.2, and 18.1 through 18.8. Two are not ours to
+> close (19.5 is Tue's, 9.5 elapses), so the working reading is *nothing is
+> left that we are holding*. **Run 3 is not a way out of a hard item**: it
+> spends unattended days on a shared free tier, which is the one resource
+> this project cannot make more of, and spending them on an engine still
+> being repaired produces a run whose numbers span its own repairs. Run 2
+> already is that.
+
 
 - **11.1** Clean start on a framework that has stopped changing weekly.
 - **11.2** Carries item 3's decision, with every inherited tool tagged at t=0

@@ -949,6 +949,21 @@ guess with authority it has not earned.
   removed.** Not before — the twins may be an artifact of a user that could
   only ever call things bare.
 
+- **RUN 3 WAITS FOR AN EMPTY BOARD** (Tue, 2026-09-21): *"we need to iron
+  out the baby issues here before we get there — I would as a minimum first
+  do that when all not-fixed and not-implemented issues are gone."* A
+  priority call, which is his. It changes item 11 from *deliberately not
+  taken* to *gated*, and the gate is a list rather than a feeling: **every
+  open item on the board except 11 itself**, which as of 2026-09-21 is
+  9.5, 14, 16, 17, 19.5, 20 with 20.4, 21 with 21.2, and 18.1 through 18.8.
+  Two of those are not mine to close — 19.5 is Tue's and 9.5 is a window that
+  closes by elapsing — so the honest reading of the gate is *nothing is left
+  that WE are holding*. **Do not start run 3 to escape a hard item.** The
+  reason for the order is that run 3 costs the only thing this project cannot
+  make more of, which is unattended days on a shared free tier, and spending
+  them on an engine still being fixed every few days produces a run whose
+  numbers span its own repairs — exactly what run 2 already is.
+
 - **Free tier only, permanently.** "We get what is available without paying
   anything ever." A rung behind a paywall is defunct by definition; removing one
   needs no decision. Rung count and concentration are *outcomes*, not targets.
@@ -1813,6 +1828,21 @@ Carried forward from `ARCHITECTURE.md` so they are not lost:
    > **Bound to run 3 (PLAN item 11)**, with the tagging requirement intact:
    > every inherited tool tagged at t=0 and every metric split on that tag, or
    > the run measures a mixture and reports it as one number.
+   >
+   > **AND IT IS A THIRD EXPERIMENT, NOT A CONTINUATION — Tue, 2026-09-21,
+   > and the distinction is his and it is right.** *"It made so many tools on
+   > its own. Where would it branch, sitting in the parent's seat, and see
+   > them diverge, is a completely third experiment now."* The rationale
+   > written here on 2026-09-10 was **refutation speed**: a known-answer
+   > library lets the cousin's judgement be checked against tools whose
+   > answers we already have. What Tue is describing is **divergence**: seed
+   > both projects from one library and watch what each framework grows out of
+   > it. Those need different designs — the first needs labelled cases and a
+   > short run, the second needs a long one, an untouched engine on both
+   > sides, and a shared starting library neither has modified. **Running one
+   > and reporting the other is how a study measures neither**, which is this
+   > file's oldest shape. Whichever is taken, it is taken deliberately and
+   > named in advance.
    >
    > **Still open: does it also inherit the journal and memory?** Tue's call,
    > and it can be taken at run 3 rather than now.
