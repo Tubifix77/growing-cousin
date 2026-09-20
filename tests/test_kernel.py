@@ -32,6 +32,56 @@ from kernel.journal import (EXEC_STDOUT_CHARS, Journal, capped, marker_total)
 
 PASS = []
 FAIL = []
+# A THIRD STATE, because this suite demands one of every detector it ships.
+# `a container body needs a POSIX host` is not a defect in the code under
+# test; it is a fact about the host running the suite, and reporting it as a
+# failure is what made the Windows gate unreadable long after the real fault
+# (PLAN 18.8) was fixed. Skips are printed loudly and counted in the final
+# line, so a skip on the authority box -- where nothing should skip -- is
+# visible rather than quiet.
+CANNOT = []
+_CAPS = {}
+
+
+def host_missing(*caps):
+    """Which of `caps` this HOST does not have. Empty tuple means run it."""
+    missing = []
+    for c in caps:
+        if c not in _CAPS:
+            _CAPS[c] = _detect(c)
+        if not _CAPS[c]:
+            missing.append({"posix": "a POSIX host",
+                            "docker": "a docker daemon",
+                            "posix_python": "a POSIX python3 the body's shell "
+                                            "can run"}.get(c, c))
+    return missing
+
+
+def _detect(cap):
+    if cap == "posix":
+        return hasattr(os, "getuid")
+    if cap == "docker":
+        return bool(shutil.which("docker"))
+    if cap == "posix_python":
+        # ASK THE SHELL, never assume -- the same rule `_probe_prefix` learned
+        # the hard way. On Windows `python3` is usually the Store stub, which
+        # prints an advert and exits non-zero, and every hand is a python
+        # script with a `#!` line.
+        d = tempfile.mkdtemp(prefix="cousin-cap-")
+        try:
+            b = bodymod.LocalBody(os.path.join(d, "body"))
+            r = b.run("python3 -c 'print(1)'", timeout=30)
+            return r.code == 0 and "1" in (r.stdout or "")
+        except Exception:
+            return False
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+    return False
+
+
+def cannot_run(name, why):
+    CANNOT.append((name, why))
+    print("SKIP %s -- needs %s" % (name, why))
 
 
 def check(name, cond, extra=""):
@@ -428,8 +478,9 @@ def test_observer_shell_assembles():
     try:
         import PyQt6  # noqa: F401
     except ImportError:
-        print("SKIP observer shell: PyQt6 not installed "
-              "(engine does not need it; the observer is only a window)")
+        cannot_run("the observer's shell",
+                   "PyQt6 (the engine does not need it; the observer is "
+                   "only a window)")
         return
 
     import observer
@@ -2415,13 +2466,13 @@ def test_live_model():
     if os.environ.get("COUSIN_NO_LOCAL_MODEL"):
         # Probing loads a 12B model into VRAM. Set this when the GPU is wanted
         # for something else -- the gate should never be a reason not to run it.
-        print("SKIP live model (COUSIN_NO_LOCAL_MODEL is set; VRAM left alone)")
+        cannot_run("the live model", "COUSIN_NO_LOCAL_MODEL unset (it is set; VRAM left alone)")
         return
     model = os.environ.get("COUSIN_MODEL", "gemma4:12b")
     ask = backends.ollama(model, num_predict=700)
     ok, why = backends.preflight(ask, "ollama/%s" % model)
     if not ok:
-        print("SKIP live model (%s)" % why)
+        cannot_run("the live model", why)
         return
     brief_path = os.path.join(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))), "MANAGER-PROMPT.md")
@@ -2509,14 +2560,23 @@ def test_the_creatures_shell_does_not_inherit_the_engines_secrets():
     b = bodymod.LocalBody(os.path.join(d, "body"))
     os.environ["SPINE_API_KEY_CANARY"] = "sk-do-not-leak-me"
     try:
-        r = b.run('echo "[$SPINE_API_KEY_CANARY]"; echo "home=$HOME"')
+        # `pwd -P` on both sides, inside the one shell that has to agree
+        # with itself. cwd is the mind, so `..` is the body root.
+        r = b.run('echo "[$SPINE_API_KEY_CANARY]"; echo "home=$HOME"; '
+                  'echo "root=$(cd .. && pwd -P)"; '
+                  'echo "home_is=$(cd "$HOME" 2>/dev/null && pwd -P)"')
         check("env: a secret in the engine's environment does not reach the "
               "creature's shell",
               "do-not-leak-me" not in r.stdout, repr(r.stdout)[:120])
+        # ASKED OF THE SHELL, never compared as strings. Two attempts at a
+        # normaliser failed for the same reason: Git bash maps the Windows
+        # temp directory to `/tmp`, so the same directory has two spellings
+        # and neither side is wrong. `pwd -P` on both sides inside one shell
+        # has nothing to translate and nothing to assume.
+        got = dict(l.split("=", 1) for l in r.stdout.splitlines() if "=" in l)
         check("env: HOME points into the body, so `~` is the creature's own tree",
-              os.path.realpath(b.root) in os.path.realpath(
-                  r.stdout.split("home=", 1)[-1].strip() or "/nowhere"),
-              r.stdout)
+              bool(got.get("home_is")) and got.get("home_is") == got.get("root"),
+              {k: got.get(k) for k in ("home", "home_is", "root")})
         # It must still be a WORKING shell: stripping the environment is only
         # correct if the creature can still run things.
         ok = b.run("echo alive && which bash >/dev/null && echo hasbash")
@@ -4885,6 +4945,12 @@ def test_the_human_can_speak_to_the_creature_once():
     the STALL trigger nagged eleven times in twenty-two cycles and how a want
     with no completion signal was re-served forever.
     """
+    # `say` is a python hand with a `#!` line; without a python3 the body's
+    # shell can run, this measures the host and not the channel.
+    lacks = host_missing("posix_python")
+    if lacks:
+        cannot_run("the human speaking to the creature", " and ".join(lacks))
+        return
     e, j, b, d = build_engine(["thinking", "thinking again", "and again"], [])
     cdir, inbox, readlog = e.chat_paths()
     os.makedirs(cdir, exist_ok=True)
@@ -5240,6 +5306,11 @@ def test_the_cousins_world_mirrors_the_creatures_and_carries_only_user_hands():
     shell writes to the copy, which the next visit throws away -- so the
     boundary is unchanged and asserted here by attack.
     """
+    lacks = host_missing("posix", "posix_python")
+    if lacks:
+        cannot_run("the cousin's mirrored world and user hands",
+                   " and ".join(lacks))
+        return
     import json
     import run as runmod
     e, j, b, d = build_engine([""], [""])
@@ -5436,6 +5507,10 @@ def test_a_container_whose_mounts_drifted_is_recreated_not_reused():
     recreating one when its mounts no longer match costs nothing and is the
     only honest response.
     """
+    lacks = host_missing("posix")
+    if lacks:
+        cannot_run("container mount drift", " and ".join(lacks))
+        return
     import json
     import subprocess as _sp
     import run as runmod
@@ -7660,8 +7735,16 @@ def main():
             traceback.print_exc()
 
     total = len(PASS) + len(FAIL)
-    print("\n%d/%d green (%.1f%%) in %.1fs"
-          % (len(PASS), total, 100.0 * len(PASS) / max(1, total), time.time() - t0))
+    print("\n%d/%d green (%.1f%%) in %.1fs%s"
+          % (len(PASS), total, 100.0 * len(PASS) / max(1, total), time.time() - t0,
+             ("  [%d test(s) COULD NOT RUN on this host]" % len(CANNOT))
+             if CANNOT else ""))
+    if CANNOT:
+        # Loud, and above the failures, because a skip on the box that is the
+        # authority means the authority just stopped checking something.
+        print("\nCOULD NOT RUN HERE (not a pass and not a failure):")
+        for n, why in CANNOT:
+            print("  %-58s needs %s" % (n, why))
     if FAIL:
         print("\nFAILURES:")
         for n, x in FAIL:
