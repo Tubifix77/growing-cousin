@@ -4,7 +4,20 @@ Written 2026-09-16. Every open item this project knows about, in the order they
 will be done, **one at a time**, each with acceptance criteria that can be
 checked rather than asserted.
 
-**Two hard rules, both earned:**
+**Three hard rules, all earned:**
+
+- **AN ITEM THAT NEEDS TUE CARRIES A QUESTION HE CAN ANSWER WITHOUT THIS
+  FILE.** Tue, 2026-09-21: *"the list is vibe-coded as much as everything
+  else, I have no idea what 19.5 means, and the gates and decisions about them
+  are made by you or your predecessor before compaction, so to say it is mine
+  is always a bit awkward."* He is right. 19.5 sat for four days labelled
+  *Tue's, because it is his account*, and was never once put to him as a
+  sentence. **Filing something under his name is not deferring to him; it is
+  parking it.** So: no item is marked his without a plain-language question
+  written out beside it -- no item number, no jargon, what is being asked and
+  what each answer costs. If it cannot be written that way it is not his
+  decision, it is mine, and the rule at the top of `CLAUDE.md` §0 already says
+  to take it.
 
 - **The test comes first and is seen RED before the fix exists.** *A test that
   has never been seen red is a guess* (`CLAUDE.md` §5, the `shlex.quote` scar).
@@ -570,6 +583,47 @@ unprompted.
 > lengths, different things held still. Pick one in advance and name it, or
 > the run measures neither.
 >
+> **TUE'S DESIGN, IN HIS WORDS, 2026-09-21** -- and it is neither of the two
+> experiments offered to him, it is the one this whole project was built to
+> run:
+>
+> > *"I was thinking refutation, where I pause the parent, make the current
+> > project there into a prompt where we start off the growing cousin too, so
+> > a full sync of sorts of the growing cousin. Then we just leave both on
+> > uninterrupted for a week and stop both brains at the exact same time and
+> > compare. But the growing cousin with the parent's tools and job is in
+> > itself a third instance of a spine, not the current growing cousin
+> > written over."*
+>
+> Read as a design, that is: **one shared starting point (the parent's
+> library AND the parent's current job, turned into the opening prompt), two
+> engines, one week, nothing touched in between, both stopped at the same
+> instant, then compared.** §4 has said since 2026-09-12 that same hardware,
+> same network and same shared quota is *the only configuration in which the
+> comparison means anything* -- this is that comparison, finally specified.
+>
+> **The constraint that is not negotiable and is his, stated first:** it is a
+> **THIRD INSTANCE**, standing beside the current one. Run 2 is not reset, not
+> overwritten and not seeded over. Its journal and its library are the
+> evidence for everything in §7 and they survive intact.
+>
+> **What that costs, and it is mine to solve before this can run.** Three
+> engines on one free tier is a third of a tier each, and the current pair
+> already produces 12 verdicts in 37 hours. The clean answer is to **pause the
+> current growing cousin for the comparison week**: run 2 keeps its journal and
+> resumes afterwards, and the week is measured under exactly the two-way
+> contention §4 describes. That is a pause, not a reset, and it is the only
+> version of this I can see that does not measure a tier nobody runs.
+>
+> **What must be settled before it starts, none of it Tue's:** a third live
+> root, unit and container set that cannot collide with the running pair;
+> every inherited tool tagged at t=0 with every metric split on that tag
+> (§6.2's standing requirement); how the parent's current job becomes an
+> opening prompt without editing anything in `~/growing-spine` (§2.6 -- reading
+> is allowed, writing never); and a way to stop two engines at the same
+> instant, which `touch STOP` on each does not give, because each finishes its
+> cycle in its own time.
+>
 > **Second: it is gated, not merely deferred.** The gate is every open item
 > on this board except 11 itself — as of 2026-09-21: 9.5, 14, 16, 17, 19.5,
 > 20 with 20.4, 21 with 21.2, and 18.1 through 18.8. Two are not ours to
@@ -1109,8 +1163,17 @@ the diff of the commit that shipped it; the habit is in CLAUDE.md §0.
   0 objects naming the archive. At the push the repository had 0 forks and
   0 pull requests (`gh api`), so there is no other copy to chase. What
   GitHub itself still holds is 19.5.
-- **19.5 `[ ]` GitHub's own copies -- Tue's, because it is his account and
-  it is outward-facing.** Minutes after the force-push, `gh api` still
+- **19.5 `[x]` DECIDED 2026-09-21: LEAVE THEM.** Asked in plain words at
+  last and answered in one click. They are unreachable by browsing or
+  cloning, they answer only to an exact 40-character address nobody holds,
+  they contain no credential (checked byte-for-byte), and GitHub clears this
+  kind of leftover on its own schedule. **This is closed by choice, not
+  pending.** It sat on the board for four days labelled *Tue's* while never
+  once being put to him in a sentence he could answer, which is the fault
+  recorded at the end of this item.
+
+  ~~**19.5 (original) GitHub's own copies -- Tue's, because it is his account and
+  it is outward-facing.**~~ Minutes after the force-push, `gh api` still
   answered for `221b978`, `add6782` and `ef812dc` by SHA, and still served
   the archive directory under `221b978` (6 entries). Unreachable from every
   branch, so no clone can get them; reachable by URL until GitHub's garbage
