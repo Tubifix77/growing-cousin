@@ -200,6 +200,39 @@ with the chooser fixed, the remaining cause is the **bare probe** — the cousin
 cannot supply arguments — which is the design question in §6 (a shell for the
 cousin), not a patch.
 
+**DID THE REPAIR CAMPAIGN LAND? MEASURED 2026-09-21, because Tue asked.**
+The fence bug (§5, 2026-09-14) cut heredocs mid-file, and the answer to it was
+three things on the same day: the parser fix so no new tool is born cut
+(`7a18d69`, corrected by `aad203f`), the catalogue that shows the creature how
+many times its cousin ran each tool and how many worked (`cf66183`), and the
+rule to repair rather than delete (`9c37026`).
+
+| | |
+|---|---|
+| tools the journal records a syntax-level failure on, ever | **2** (`subagent-orchestrator` 11 times, `integrate-subagent-orchestrator-with-plan` once) |
+| last such failure attributable to a tool | **2026-09-14 04:35**, none in the six days since |
+| tools that parse today (`instruments/lib-startable`) | **62 of 62** |
+| flagged "never exited 0 for its user" on 2026-09-15 | 14 |
+| of those: now work / deleted / still flagged | **7 / 4 / 3** |
+
+**And every tool still flagged is behaving correctly.** Read one by one: 54 of
+`view-subtask-logs`' 64 non-zero runs are BARE probes from the chooser fault,
+its single run with arguments was the cousin's invented `task-123`,
+`summarize-subtask-logs` was handed the literal word `Parent` by a pipeline
+the cousin wrote, and `progress-reporter` was given a non-numeric progress and
+said so. **None of the seven tools that have never exited 0 is broken.**
+
+**Two cautions, and they matter more than the counts.** First, *"a lot of its
+tools were bug-filled"* was substantially OUR display: until `f52ac78` the
+catalogue counted a usage refusal as a failure, so the breakage looked far
+wider than the two files the fence actually cut. Second, **this is not the
+before/after those prompt changes still owe.** The parser fix, the chooser fix
+and the display correction all landed inside the same window, four of the
+fourteen were deleted rather than repaired, and several flags were artifacts
+to begin with. Four causes and one window is exactly the confound §5's top
+entry warns about. It says the campaign landed; it does not say which change
+did it.
+
 **Frozen, and the condition to unfreeze it.** `MANAGER-PROMPT.md` and
 `CREATURE-PROMPT.md` are NOT to be edited. Three prompt changes shipped on
 2026-09-14 (repair-not-delete, handover-completes, record display) and none has
