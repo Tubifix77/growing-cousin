@@ -1066,19 +1066,53 @@ the gate count is not written here for the reason §0 gives. What this item reco
 fixed**, with its reason and trigger, so it does not become a thing nobody
 remembers:
 
-- **18.1 Both containers have network.** The creature needs it for `fetch`;
-  the cousin does not obviously need it, and it runs bash written by a
-  third-party model with a copy of the creature's world. Nothing sensitive is
-  in that copy today (0 real keys, byte-for-byte). *Trigger: the first time
-  anything key-shaped or personal lands in `data/` or `state/` — the pack's
-  scan will say so — the cousin's container goes `--network none`.*
-- **18.2 The library listing is 42% of every wake** (12 KB of 29 KB) and the
-  invocation prompt carries it too. Tuning, not correctness (§5 split), so it
-  waits for a before/after. *Trigger: item 9's window closes.*
-- **18.3 The cousin cannot discover what exists before it acts.** Told to
-  *make up plausible inputs*, it invents IDs and every tool correctly refuses
-  them. The whole-block change lets it look up then call; whether it does is
-  a brief and workflow matter — items 16 and 17.
+- **18.1 `[x]` CLOSED 2026-09-21, and the premise was wrong.** *"The cousin
+  does not obviously need it"* -- **measured, it does**: two probes ran
+  `fetch https://example.com "Example Domain" ; archive-list`, which is the
+  cousin testing the one tool in the whole library that reaches outside.
+  `--network none` would have made that tool fail in the cousin's shell for a
+  reason that is OURS, the cousin would have reported it faithfully, and the
+  creature would have been billed -- the exact fault this project has now
+  recorded sixteen times, and it would have hit the single outward-facing
+  tool it owns.
+
+  **So the trigger stands and now carries its cost.** The condition is
+  unchanged (*the first time anything key-shaped or personal lands in `data/`
+  or `state/`, which the pack's scan reports*), and the price of pulling it is
+  recorded beside it: `fetch` stops working for its only user, so whoever
+  pulls it must also decide what happens to the tool that needed it. Today the
+  copy holds 0 real credentials, checked byte-for-byte.
+- **18.2 `[x]` CLOSED 2026-09-21: measured, bounded, and deliberately not
+  changed.** Item 9's window closed, which was the trigger. **The served
+  context has gone from 7,758 characters at the start of run 2 to 38,024
+  now**, across 3,977 wakes -- roughly five-fold, tracking the library.
+
+  **It is bounded and it degrades rather than hiding**: 40 of 62 tools are
+  shown as full entries and the remaining 22 by name and purpose, which is the
+  rule §5 earned when an alphabetical cut hid seven tools from their own
+  author. So this grows toward a ceiling, not without one.
+
+  **Not changed, and the reason is the §5 split.** A listing bound is TUNING:
+  every number in it is a behaviour under one model, and cutting it needs a
+  before/after across several windows split by rung, not a judgement at
+  01:00. It also collides with a standing decision of Tue's -- both
+  inhabitants see the library every time, as state rather than news -- which
+  is not mine to trade away for context. *Re-opening condition, and it is
+  specific rather than a feeling: the creature losing commands to a FULL
+  context (a rung refusing on input length, not output), which nothing has
+  ever recorded here.*
+- **18.3 `[x]` CLOSED 2026-09-21: it can, and it does.** The worry was that,
+  told to make up plausible inputs, it would invent IDs and every tool would
+  correctly refuse them. **Measured over 179 probes with a recorded command:
+  96 of them are more than one command, and 54 capture the output of one into
+  another.** It writes things like `parent_id=$(obtain-parent-task-id)` and
+  then uses it, and `list-parent-tasks` first so it can pick a real keyword.
+
+  That is the whole-block change of item 9 doing what it was built for, plus
+  the instruments of 20.3 for questions about the library rather than about a
+  record. **What remains is not discovery but judgement** -- whether it looks
+  up the RIGHT thing, and whether it notices a tool that serves nothing -- and
+  that is items 16 and 17, where it already sat.
 - **18.4 `[x]` FIXED 2026-09-21. A rebuilt image is now adopted.**
   `ensure_container` compares the image the container was CREATED from against
   the id the tag points at today, and recreates on drift -- the same shape as
