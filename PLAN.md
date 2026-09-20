@@ -1093,17 +1093,30 @@ remembers:
   > of the deployment, while `deploy/Dockerfile` in the repo said otherwise.
   > §5's oldest systemd shape for the third time: present in the code, absent
   > from the running thing.
-- **18.5 `deploy_regression` did not see the shell's fifteen silent hours.**
-  Its floors are for the creature's indicators; `cousin_starved` now covers
-  the cousin. Left as is, noted so the next reader does not expect it to.
-- **18.6 The `ran` reason is a hub magnet (2026-09-17).** 54 of 88 probes in
-  the first shell window were chosen because the creature had just run the
-  tool — and the creature runs `plan` on most cycles, so `probe_stuck` fired
-  (5 of 8 visits to `plan`). The reason is correct by design: a done-claim is
-  about what it just ran. *Trigger: if `probe_stuck` fires on `ran` twice in
-  a window, prefer among the tools the creature ran the one its user has
-  probed least, before falling to `unknown_outcome`.* A chooser rule, so it
-  ships with a red-proof against the journal slice where it fired.
+- **18.5 `[x]` CLOSED 2026-09-21 as a decision, not a gap.** `deploy_regression`
+  did not see the shell's fifteen silent hours and still would not: its floors
+  are the creature's correctness indicators, and a cousin that has gone quiet
+  is not one of them. **`cousin_starved` is the detector for that** and it
+  fires in four hours rather than waiting for a deploy. Re-checked against
+  `deploy_regression_day` (21.3): a day-long window does not help either,
+  because nothing in `regression_table` alarms on *verdicts fell to zero* --
+  by design, since a dry tier does exactly that and is weather. **Two
+  instruments, two questions**; wiring the cousin's silence into the deploy
+  comparison would give one face to *the deploy broke something* and *the tier
+  is dry*, which is §5's oldest confusion.
+- **18.6 `[x]` FIXED 2026-09-21, by its own trigger.** `probe_stuck` fired on
+  `ran` twice more (09-19 23:54 and 09-20 14:57, both 5 of 8 visits to
+  `plan`), which is exactly the condition this item named. `ran` stays the
+  reason -- a done-claim IS about something the creature just ran -- and what
+  changed is which one when it ran several: **the one its user knows least
+  about, ties broken by recency**, so the hub the creature touches every cycle
+  stops absorbing every visit. Same fault as the alphabetical fallback §5
+  records: not a wrong reason, a reason that always returns the same answer.
+
+  **Red-proven on the laptop against the previous commit's chooser**: with the
+  old rule the test got `plan`, with the new one `archive-graph-path`. Five
+  assertions, including that recency still decides when nothing is known about
+  either, so one fixed answer was not swapped for another.
 - **18.7 Two calls per visit starves the judgement on a dry tier. MEASURED
   AGAIN 2026-09-19 and it is worse than the first reading: since the
   instruments deployed, 69 probes produced 12 verdicts -- 17% -- with 45

@@ -5754,6 +5754,64 @@ def test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_tool_the_creature_runs_every_cycle_stops_absorbing_every_visit():
+    """PLAN item 18.6. `ran` is the right REASON -- a done-claim is about
+    something the creature just ran -- and it was still a magnet, because the
+    creature runs `plan` on most cycles and the rule took the most recent
+    name. Measured over the first shell window: **54 of 88 probes chosen by
+    `ran`**, `probe_stuck` firing on 5 of 8 visits to `plan`, and firing again
+    on 2026-09-19 and 2026-09-20, which is the trigger this item named for
+    itself.
+
+    Same shape as the alphabetical fallback §5 records: not a wrong reason, a
+    reason that always returns the same answer. The fix keeps the reason and
+    changes which of several it picks -- the one its user knows least about,
+    ties by recency, so the visit still concerns what just ran.
+    """
+    e, j, b, d = build_engine(["thinking"], [])
+    own = os.path.join(b.mind, "tools", "own")
+    for n in ("plan", "archive-graph-path"):
+        _write_tool(own, n, does="does %s" % n, call="%s x" % n)
+    tools = ["plan", "archive-graph-path"]
+
+    # Its user has run `plan` many times with arguments it chose, and has
+    # never once reached the other.
+    for i in range(9):
+        j.append("cousin_probe", tool="plan", exit_code=1, bare=False,
+                 picked_by="ran", stdout="", stderr="")
+
+    # One cycle, both tools invoked, `plan` last -- which is the live shape.
+    executed = [("archive-graph-path 3", 0), ("plan list", 0)]
+    name, how = e.choose_target(executed, tools, tools)
+    check("magnet: the reason is still `ran`, because the visit IS about what "
+          "the creature just ran", how == "ran", (name, how))
+    check("magnet: but it goes to the one its user knows least about, not the "
+          "hub it touches every cycle",
+          name == "archive-graph-path", (name, how))
+
+    # RECENCY STILL DECIDES when there is nothing to choose between them --
+    # otherwise this would have swapped one fixed answer for another.
+    e2, j2, b2, d2 = build_engine(["thinking"], [])
+    own2 = os.path.join(b2.mind, "tools", "own")
+    for n in ("alpha", "omega"):
+        _write_tool(own2, n, does="does %s" % n, call="%s x" % n)
+    both = ["alpha", "omega"]
+    n2, h2 = e2.choose_target([("alpha 1", 0), ("omega 2", 0)], both, both)
+    check("magnet: with nothing known about either, the most recent wins",
+          (n2, h2) == ("omega", "ran"), (n2, h2))
+    n3, h3 = e2.choose_target([("omega 2", 0), ("alpha 1", 0)], both, both)
+    check("magnet: and it really is recency, not a name order",
+          (n3, h3) == ("alpha", "ran"), (n3, h3))
+
+    # A SINGLE tool it ran is still that tool -- no cleverness where there is
+    # no choice to make.
+    n4, h4 = e2.choose_target([("alpha 1", 0)], both, both)
+    check("magnet: one tool run means one tool probed", (n4, h4) == ("alpha", "ran"),
+          (n4, h4))
+    b.destroy(); b2.destroy()
+    shutil.rmtree(d, ignore_errors=True); shutil.rmtree(d2, ignore_errors=True)
+
+
 def test_a_regression_that_takes_a_day_to_arrive_is_still_caught():
     """PLAN item 21.3. On 2026-09-17 the read caps were raised, the creature
     began rewriting whole tools, and `truncated|lost` went from 1% of thinks
@@ -7854,6 +7912,7 @@ def main():
                test_the_headline_metric_can_actually_be_computed,
                test_the_body_runs_the_bash_it_means_and_not_windows_wsl_launcher,
                test_a_regression_that_takes_a_day_to_arrive_is_still_caught,
+               test_the_tool_the_creature_runs_every_cycle_stops_absorbing_every_visit,
                test_an_unreadable_verdict_keeps_its_evidence,
                test_cousin_probe_is_recorded,
                test_census_catches_a_fabricated_verdict,

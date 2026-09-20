@@ -765,11 +765,31 @@ class Engine:
                     # Only if the library actually holds it.
                     if guess in have:
                         return guess, "written"
+        # PLAN 18.6. `ran` used to return the MOST RECENT tool the creature
+        # invoked, and a done-claim is indeed most likely about that -- but
+        # the creature runs `plan` on most cycles, so the most recent name is
+        # usually the same name. Measured over the first shell window: 54 of
+        # 88 probes were chosen by `ran`, `probe_stuck` fired on 5 of 8 visits
+        # to `plan`, and it fired again twice on 09-19 and 09-20.
+        #
+        # The reason stays `ran` -- the visit IS about something it just ran.
+        # What changes is WHICH one when it ran several: the one its user
+        # knows least about, ties broken by recency, so a hub the creature
+        # touches every cycle stops absorbing every visit. Same fault as the
+        # alphabetical fallback this file already replaced: not a wrong
+        # reason, a reason that always picks the same answer.
+        ran, seen = [], set()
         for cmd, _ in reversed(executed):
             for m in self.TOOL_CALL_RE.finditer(cmd or ""):
                 name = m.group(1) or m.group(2)
-                if name in have:
-                    return name, "ran"
+                if name in have and name not in seen:
+                    seen.add(name)
+                    ran.append(name)          # most-recent-first
+        if ran:
+            h = librarymod.use_history(self.j)
+            i = min(range(len(ran)),
+                    key=lambda k: (librarymod.qualified_runs(h.get(ran[k])), k))
+            return ran[i], "ran"
         if not tools_after:
             return "", "none"
         hist = librarymod.use_history(self.j)
