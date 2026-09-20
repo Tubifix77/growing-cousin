@@ -5754,6 +5754,94 @@ def test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_probe_that_ran_and_lost_its_verdict_is_finished_not_discarded():
+    """PLAN item 18.7. A visit costs TWO model calls -- what to type, then
+    what you think -- and on a dry free tier the second is the one that finds
+    nothing. Measured 2026-09-19: **69 probes produced 12 verdicts**, with 45
+    visits deferred. Twice the cousin composed `lib-deps plan` with its own
+    stated reason, got exactly the fact it asked for, and had it thrown away.
+
+    A deferred visit RE-RAISES, so its trigger is never cleared and fires
+    again. Answering the orphaned probe on the next visit therefore answers
+    the SAME question rather than swapping it for another, and costs one call
+    instead of two.
+
+    Nothing is queued: the orphan is derived from the journal, the rule the
+    manager's whole state follows.
+    """
+    e, j, b, d = build_engine(["thinking"], [])
+    own = os.path.join(b.mind, "tools", "own")
+    _write_tool(own, "plan", does="keeps the plan", call="plan list")
+
+    check("orphan: a journal with no probes has nothing to finish",
+          e.orphan_probe() is None)
+
+    j.append("cousin_probe", tool="plan", exit_code=1, bare=False,
+             picked_by="ran", cmd="plan list", stdout="Usage: plan <cmd>",
+             stderr="")
+    o = e.orphan_probe()
+    check("orphan: a probe that RAN and got no verdict is unfinished work",
+          o is not None and o.get("tool") == "plan", o)
+
+    j.append("cousin_verdict", verdict="ACCEPTED", tool="plan")
+    check("orphan: once it has been judged there is nothing to finish",
+          e.orphan_probe() is None)
+
+    # A probe the ladder never reached has no experience to judge: exit_code
+    # is None, and asking for a verdict on it would be asking the cousin to
+    # judge a run that never happened -- §2.5, with the framework as author.
+    j.append("cousin_probe", tool="plan", exit_code=None, bare=False,
+             chosen_by="ladder_dry", cmd=None, stdout="", stderr="")
+    check("orphan: a probe that never reached the tool is NOT unfinished "
+          "work -- there is no experience to judge",
+          e.orphan_probe() is None)
+
+    # STALE IS DROPPED, not judged late. The library moves; a verdict about a
+    # tool as it was six hours ago is testimony about a world that is gone.
+    j.append("cousin_probe", tool="plan", exit_code=0, bare=False,
+             cmd="plan list", stdout="ok", stderr="")
+    rows = j.read(kinds=["cousin_probe"])
+    check("orphan: a fresh one is picked up",
+          e.orphan_probe() is not None)
+    old_now = float(rows[-1]["ts"]) + e.ORPHAN_MAX_AGE_S + 60
+    check("orphan: and an old one is dropped rather than judged late",
+          e.orphan_probe(now=old_now) is None)
+
+    # WHAT THE COUSIN IS SHOWN. Rebuilt from the journal, never re-run: the
+    # experience being judged is the one that happened.
+    claim, header, transcript, library = e.replay_evidence(
+        j.read(kinds=["cousin_probe"])[-1])
+    check("orphan: the transcript is the output it actually got",
+          "$ plan list" in transcript and "exit 0" in transcript
+          and "ok" in transcript, transcript[:200])
+    check("orphan: and it is TOLD the run is not fresh, so a stale transcript "
+          "cannot read as a live one",
+          "ago" in transcript and "Nothing was re-run" in transcript,
+          transcript[:200])
+    check("orphan: it still gets the tool's own header and the library",
+          "keeps the plan" in (header + library), (header[:80], library[:80]))
+    check("orphan: and the claim names the tool", "plan" in claim, claim)
+    # BOUNDED, or a dry spell starves the thing this was meant to feed.
+    e2, j2, b2, d2 = build_engine(["thinking"], [])
+    _write_tool(os.path.join(b2.mind, "tools", "own"), "plan",
+                does="keeps the plan", call="plan list")
+    j2.append("cousin_probe", tool="plan", exit_code=1, bare=False,
+              cmd="plan list", stdout="Usage", stderr="")
+    pts = float(j2.read(kinds=["cousin_probe"])[-1]["ts"])
+    for i in range(e2.ORPHAN_MAX_TRIES - 1):
+        check("orphan: still offered after %d attempt(s)" % i,
+              e2.orphan_probe() is not None)
+        j2.append("verdict_recovered", tool="plan", probe_ts=pts)
+    check("orphan: offered on the last permitted attempt",
+          e2.orphan_probe() is not None)
+    j2.append("verdict_recovered", tool="plan", probe_ts=pts)
+    check("orphan: and LET GO after that, so a long dry spell cannot keep the "
+          "cousin from everything the creature built in the meantime",
+          e2.orphan_probe() is None)
+    b2.destroy(); shutil.rmtree(d2, ignore_errors=True)
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_tool_the_creature_runs_every_cycle_stops_absorbing_every_visit():
     """PLAN item 18.6. `ran` is the right REASON -- a done-claim is about
     something the creature just ran -- and it was still a magnet, because the
@@ -7913,6 +8001,7 @@ def main():
                test_the_body_runs_the_bash_it_means_and_not_windows_wsl_launcher,
                test_a_regression_that_takes_a_day_to_arrive_is_still_caught,
                test_the_tool_the_creature_runs_every_cycle_stops_absorbing_every_visit,
+               test_a_probe_that_ran_and_lost_its_verdict_is_finished_not_discarded,
                test_an_unreadable_verdict_keeps_its_evidence,
                test_cousin_probe_is_recorded,
                test_census_catches_a_fabricated_verdict,

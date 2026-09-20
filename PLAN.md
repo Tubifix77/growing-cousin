@@ -1151,7 +1151,33 @@ remembers:
   old rule the test got `plan`, with the new one `archive-graph-path`. Five
   assertions, including that recency still decides when nothing is known about
   either, so one fixed answer was not swapped for another.
-- **18.7 Two calls per visit starves the judgement on a dry tier. MEASURED
+- **18.7 `[x]` FIXED 2026-09-21. A probe that ran and lost its judgement is
+  finished, not discarded.** The visit costs two model calls -- what to type,
+  then what you think -- and on a dry tier the second is the one that finds
+  nothing. **A deferred visit RE-RAISES, so its trigger was never cleared and
+  fires again**, which means answering the orphaned probe on the next visit
+  answers the same question rather than swapping it for another, and costs
+  ONE call instead of two.
+
+  Nothing is queued: the orphan is DERIVED from the journal -- the most recent
+  probe with a real exit code and no verdict after it -- which is the rule the
+  manager's whole state follows (§6.1). The transcript is rebuilt rather than
+  re-run, because the experience being judged is the one that happened, and
+  **the cousin is told plainly that the run is not fresh**; a stale transcript
+  that reads as live would be the fabricated-experience fault (§2.5) with the
+  framework as author.
+
+  **Two bounds, and the second was a trap I nearly shipped.** A probe older
+  than six hours is dropped rather than judged late, because the library has
+  moved and a verdict about a tool as it was is testimony about a world that
+  is gone. And **at most three attempts**: unbounded, a long dry spell would
+  re-offer the same orphan every visit until it aged out, and the cousin would
+  never see anything the creature built in between -- a fix that starves the
+  thing it was meant to feed. Red-proven, 14 assertions, including that a
+  probe which never reached the tool is NOT unfinished work, since there is no
+  experience to judge.
+
+  ~~**18.7 (original) Two calls per visit starves the judgement on a dry tier. MEASURED
   AGAIN 2026-09-19 and it is worse than the first reading: since the
   instruments deployed, 69 probes produced 12 verdicts -- 17% -- with 45
   visits deferred.** And it now has a face: on 09-18 22:59 and 09-19 01:28 the
@@ -1159,7 +1185,7 @@ remembers:
   fact it wanted, and **both times every rung was at quota when the verdict was
   asked, so the visit was deferred and the work was discarded.** The cousin did
   the thing the design wants and the tier ate the result. Earlier reading: 88
-  probes, 14 verdicts, 52 visits deferred in 23 hours.** The
+  probes, 14 verdicts, 52 visits deferred in 23 hours.**~~ The
   invocation call is served and the verdict call then finds no rung. Not a
   tick fix and not a brief fix; a ladder economics question. *Trigger: item
   8's baseline across several reps, so a change to the verdict call's budget

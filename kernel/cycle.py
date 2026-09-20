@@ -674,9 +674,25 @@ class Engine:
 
     def visit_cousin(self, fired, executed, tools_after, tools_before):
         trigger, _fields = fired
-        target, how = self.choose_target(executed, tools_after, tools_before)
-        claim, header, transcript, library = self.evidence(target, executed,
-                                                           picked_by=how)
+        # PLAN 18.7. Finish what the last visit started before starting
+        # another: a probe that ran and never got its judgement is work this
+        # project has already paid a model call for, and the trigger that
+        # summoned it was never cleared, so this answers the same question.
+        # It also costs ONE call instead of two, which is the half of the
+        # problem a dry tier actually punishes.
+        orphan = self.orphan_probe()
+        if orphan is not None:
+            target = orphan.get("tool") or ""
+            claim, header, transcript, library = self.replay_evidence(orphan)
+            self.j.append("verdict_recovered", tool=target,
+                          probe_ts=float(orphan.get("ts") or 0),
+                          age_s=int(time.time() - float(orphan.get("ts") or 0)),
+                          exit_code=orphan.get("exit_code"),
+                          picked_by=orphan.get("picked_by"))
+        else:
+            target, how = self.choose_target(executed, tools_after, tools_before)
+            claim, header, transcript, library = self.evidence(target, executed,
+                                                               picked_by=how)
 
         v = cousinmod.visit(self.ask_cousin, self.brief, claim, header,
                             transcript, journal=self.j, trigger=trigger,
@@ -1003,6 +1019,96 @@ class Engine:
         self.j.append("cousin_memory", kept=len(out), offered=len(d),
                       chars=len(json.dumps(out)))
         return len(out)
+
+    # A probe older than this is not judged late: the library has moved on,
+    # and a verdict about a tool as it was six hours ago is testimony about a
+    # world that no longer exists. Dropping it is honest; judging it is not.
+    ORPHAN_MAX_AGE_S = 6 * 3600
+    # AND A BOUND ON TRYING. Unbounded, a long dry spell means the same
+    # orphan is re-offered every visit until it ages out, and the cousin never
+    # sees anything the creature built in the meantime -- a fix that starves
+    # the thing it was meant to feed. Three attempts, then it is let go and
+    # the visit does what it would have done anyway.
+    ORPHAN_MAX_TRIES = 3
+
+    def orphan_probe(self, now=None):
+        """A probe that really ran and never got its judgement, or None.
+
+        **PLAN 18.7.** The visit costs two model calls -- `choose_invocation`
+        asks what to type, then `visit` asks what it thinks -- and on a dry
+        free tier the second is the one that finds nothing. The tool really
+        ran, its output is in the journal, and the judgement was discarded:
+        69 probes produced 12 verdicts in the window measured 2026-09-19, with
+        45 visits deferred. Twice the cousin composed `lib-deps plan` with its
+        own stated reason, got the fact it asked for, and lost it.
+
+        A deferred visit RE-RAISES, so its trigger is never cleared and fires
+        again -- which means answering this probe on the next visit is
+        answering the same question, not swapping it for another.
+
+        **Nothing is queued.** This is derived from the journal, the same rule
+        the manager's state follows (§6.1): the most recent probe with a real
+        exit code and no verdict and no unusable-reply after it.
+        """
+        now = time.time() if now is None else now
+        last = None
+        tries = {}
+        for r in self.j.read(kinds=("cousin_probe", "cousin_verdict",
+                                    "cousin_unusable", "verdict_recovered")):
+            k = r.get("kind")
+            if k == "cousin_probe":
+                # `exit_code is None` is a probe that never reached the tool
+                # (a dry ladder at the FIRST call). There is nothing to judge.
+                last = r if r.get("exit_code") is not None else None
+            elif k == "verdict_recovered":
+                ts = float(r.get("probe_ts") or 0)
+                tries[ts] = tries.get(ts, 0) + 1
+            else:
+                last = None
+        if last is None:
+            return None
+        ts = float(last.get("ts") or 0)
+        if now - ts > self.ORPHAN_MAX_AGE_S:
+            return None
+        if tries.get(ts, 0) >= self.ORPHAN_MAX_TRIES:
+            # Let it go rather than keep the cousin from everything else.
+            return None
+        return last
+
+    def replay_evidence(self, probe, now=None):
+        """What the cousin is shown when judging a run it already made.
+
+        The transcript is rebuilt from the journal rather than re-run: running
+        it again would be a SECOND experience, and the one being judged is the
+        one that happened. **It is told plainly that the run is not fresh**,
+        because a verdict on a stale transcript that reads as live is the
+        fabricated-experience fault (§2.5) with the framework as author.
+        """
+        now = time.time() if now is None else now
+        target = probe.get("tool") or ""
+        library = librarymod.render(
+            os.path.join(self.body.mind, "tools", "own"), self.j,
+            exclude=target, title=None)
+        header = ""
+        path = os.path.join(self.body.mind, "tools", "own", target)
+        if target and os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8", errors="replace") as f:
+                    header = "".join(f.readlines()[:8])
+            except OSError:
+                header = ""
+        claim = "I finished %s." % (target or "this work")
+        ran = probe.get("cmd") or target
+        age = max(0, int(now - float(probe.get("ts") or 0)))
+        transcript = (
+            "(you ran this %d minute(s) ago; no rung could be reached to hear "
+            "your verdict at the time, so you are being asked for it now. "
+            "Nothing was re-run -- this is the output you actually got.)\n\n"
+            "$ %s\nexit %s\n%s%s"
+            % (age // 60, ran, probe.get("exit_code"),
+               probe.get("stdout") or "",
+               ("\n" + probe.get("stderr")) if probe.get("stderr") else ""))
+        return claim, header, transcript, library
 
     def evidence(self, target, executed, picked_by=None):
         """What the cousin is shown. It runs the tool ITSELF -- the transcript
