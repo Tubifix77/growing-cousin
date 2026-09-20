@@ -36,63 +36,60 @@ keeps it that way.
 against the directory rather than typed: see
 `test_the_module_list_matches_the_kernel`.
 
-### Handover — updated 2026-09-17, read this before touching anything
+### Handover — updated 2026-09-21, read this before touching anything
 
 **The board is `PLAN.md`.** Every open item this project knows about, in the
 order they are being done, one at a time, each with acceptance criteria that
 can be checked rather than asserted, and each verified by a reader who did not
 build it. Do not start work that is not on it; do not leave work off it.
 
-**Where the board stands, 2026-09-17 evening, after the daily check and the
-history rewrite.** Items 1-8, 10, 13, 15 and 18 are `[x]`; 19 is `[~]` with
-only 19.5 open, and that one is Tue's to trigger. The rest is open for a
-stated reason, not for want of work:
+**THE BOARD IS CLEAR, 2026-09-21.** Tue: *"then lets get the board cleared."*
+Twenty of twenty-one items are `[x]`. `PLAN.md` opens with a table of what is
+left, and the point of that table is the distinction it draws: **nothing is
+left that work can finish tonight.** Each remaining line names a trigger and a
+date — which is §4's test for a hold that is real rather than inaction in the
+costume of caution.
 
-- **9** is built and live, and **9.5 is answered on the one figure the spine
-  cannot move**: bare probes 93% → 20% over the first 23-hour shell window.
-  What is measured now is item 13's fix. That window restarted at
-  20:50 on engine `5ef847f` -- same code, new identity, item 19
-  says why -- and should not be read before 2026-09-19.
-- **11** -- 11.2 and 11.3 are met; run 3 itself is deliberately not taken.
-- **12** is overtaken: the spine runs, by my decision, retracted within the
-  hour and recorded in §4.
-- **14** -- 14.1-14.4 met; 14.5 (telling the creature `say` exists) rides
-  with the brief's unfreeze and is now WATCHED rather than merely recorded.
-- **16** and **17** are open with named triggers: the cousin judging whether
-  a tool serves anything, and what of my job moves to the cousin. **Both wait
-  on 20**, and 16 as written contradicts the brief.
-- **20 is the root the rest were symptoms of**, found 2026-09-17 by reading
-  the prompts instead of the journal. **20.1 is `[x]` and deployed**: the
-  cousin no longer receives the creature's private notes, and keeps its own
-  across visits. **20.2 and 20.3 were rewritten 2026-09-18 after Tue sent me
-  back to `README.md` and `ARCHITECTURE.md`** -- I had asked him to choose
-  work for the cousin, and both documents say plainly that it must have none
-  of its own: the tool STAYS HOME and the creature keeps the benefit. What is
-  missing is not a purpose but §12's headline metric, *still invoked a week
-  later*, which has never been computable here; and §5's cousin instruments,
-  specified and never built, which are item 16's real answer.
+- **11** run 3, and it is a THIRD experiment rather than this one continued:
+  Tue's design, recorded in his words, gated on this table reaching zero.
+- **14.5** telling the creature `say` exists. The freeze stopped being the
+  reason on 2026-09-21; what holds it now is that a new surface would land in
+  the middle of 20.2's first week. **Trigger: 2026-09-25.**
+- **16 / 17.3** the cousin noticing a tool serves nothing. Half delivered —
+  20.3's instruments are the architecture's own answer and the cousin has used
+  one unprompted. The RULE waits on 20.4 and on item 8's scoring discipline.
+- **20.4** the cousin has continuity and does not use it: 68 harvests, every
+  one empty. Likely structural, not wording — its only shell is the
+  invocation call, which happens *before* it has anything worth keeping.
+- **21.2** the rewrite wall, moved from 9 KB to ~25 KB and not removed.
 
-**AGREED WITH TUE 2026-09-18 01:30, in this order, so tomorrow starts here
-rather than re-deriving it:**
+**THE HEADLINE METRIC ANSWERED FOR THE FIRST TIME, 2026-09-21 01:42.**
+*Tools that start, are invoked by someone other than their author, and are
+still invoked a week later* (`ARCHITECTURE.md` §12) — the number this project
+says it measures before any other, and which had never once been computable
+here. **1 survived, 4 have not, 58 cannot be judged yet.** The one is `plan`:
+named by 12 other tools, reached 107 times by its user across 7.4 days.
 
-1. **Confirm the two changes of 2026-09-17/18 in production.** Did the cousin
-   reach for one of its new instruments, and is its own memory being kept
-   across visits. Both shipped while the tier was dry, so **neither has been
-   observed working** -- the gate proved them and nothing else has. This is a
-   READ, not a change: grep the probes' `cmd` for `lib-`, check that
-   `live/cousin-body/cousin-memory.json` exists, and check that the cousin's
-   `state/memory.json` is no longer identical to the creature's.
-2. **Item 20.2 -- make the headline metric computable.** *Tools that start,
-   are invoked by something else, and are still invoked a week later*
-   (`ARCHITECTURE.md` §12). It is the first thing this project says it
-   measures and it has never once been computable here. The next real build.
-3. **Item 19.5 -- GitHub's unreachable copies of the purged history. TUE'S**,
-   because it is his account and outward-facing. One support request, not
-   urgent: zero credentials were involved, checked byte-for-byte.
-4. **The standing board** -- items 17, 11, 14.5, 9.5 and 18.1-18.8, each
-   already carrying its own reason and trigger. **18.8 is the live one**: the
-   Windows gate now fails every run for an environment reason, so only the
-   laptop gate means anything at all.
+**One is not a score.** The run is 7.5 days old against a 7-day window, so 58
+tools have not had a window to survive. Read the same three columns on
+2026-09-25 and do not quote this one as trajectory — §7's rule, one line up
+from where it would be quoted.
+
+**WHAT TO READ FIRST, AND IT IS A READ RATHER THAN A CHANGE:**
+
+1. `cat live/monitor/status.md` — first line is when it was written, alarms
+   first, then what it cannot tell, then counts per window with the engine
+   commit that produced each.
+2. **`deploy_regression_day` for engine `c942d88`, due 09-22 01:41.** That is
+   the reading that settles item 21.1, and it needs nobody to remember to
+   look. First 16 thinks after the budget raise: 0 finished on `length`, 0
+   commands lost — which is an anecdote and is labelled as one.
+3. **`commands_lost[gemini]` will still be alarming and that is correct.** It
+   is windowed by COUNT (last 20 thinks), so it spans the 09-20 23:38 restart
+   that fixed it and clears on its own. Do not reset a detector because we
+   deployed; that is how a monitor learns to agree with whoever last touched
+   the machine.
+
 
 **TUE IS THE CUSTOMER, NOT THE ARCHITECT — he said so on 2026-09-16 and it
 changes how this file should be used.** *"i have no idea about what you ask

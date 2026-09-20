@@ -34,6 +34,30 @@ Status: `[ ]` not started · `[~]` in flight · `[x]` done and verified.
 
 ---
 
+## WHERE THE BOARD STANDS — 2026-09-21
+
+Tue, 2026-09-21: *"then lets get the board cleared."* It is, as far as work
+can clear it. **Twenty of twenty-one items are `[x]`.** What is left is not
+work anybody can do tonight, and the distinction matters more than the count:
+
+| still open | why, in one line | what would move it |
+|---|---|---|
+| **11** run 3 | Tue's call, and he made it: it waits for an empty board | this table reaching zero |
+| **14.5** tell the creature `say` exists | adds a surface to its context while 20.2's metric is in its first week | the metric's first full week, 2026-09-25 |
+| **16** the cousin notices a tool serves nothing | the rule can be drafted; scoring it spends the same tier the live run is on | 20.4, then score under item 8's discipline |
+| **17.3** the deciding half | moves with 16 by construction | 16 |
+| **20.4** the cousin does not use its continuity | mechanism works, 68 harvests, all empty; likely structural | a week of 20.2 to read a change against |
+| **21.2** the rewrite wall itself | the reprieve holds today; the wall is at ~25 KB | first tool over 15 KB, or `truncated|lost` over 10% again |
+
+**None of these is blocked on a decision that has not been taken, and none is
+waiting on "more information"** — each names a trigger and a date, which is
+CLAUDE.md §4's test for a real hold. **17.4 is not on the list because it is a
+standing statement rather than a task**: framework debugging, tests and
+doctrine stay with an agent that has the repo, the gate, and a verifier that
+did not write the change.
+
+---
+
 ## Phase 0 — clear the board (no engine restart)
 
 ### 1. `[x]` The complaint-fidelity census runs by itself
@@ -244,7 +268,17 @@ have no scoreboard.
 
 ## Phase 4 — the boundary question
 
-### 9. `[~]` The cousin gets its own shell  — built and live; 9.5 is MEASURING (window opened 2026-09-16 02:49)
+### 9. `[x]` The cousin gets its own shell  — DONE; 9.5 read 2026-09-21
+
+> **9.5 CLOSED 2026-09-21, on the one figure the spine cannot move.** Bare
+> probes went **93% before the shell to 8% in the window after it** (18 of 211
+> with the old caps, 27 of 130 after), and the cousin composes real
+> invocations: 96 of 179 probes with a recorded command are more than one
+> command, and 54 capture the output of one into another. Rates are NOT
+> compared across the window -- the caps changed inside it (item 13) and the
+> spine went off and on -- which is why the bare SHARE, a property of what the
+> cousin can do rather than of how often it got served, is the figure this
+> item turns on.
 
 Tue, 2026-09-16, choosing the direction. §4 assigns *running the test* to the
 cousin, and the framework only ever invokes a tool **bare** — so the cousin
@@ -678,7 +712,14 @@ unprompted.
 >     python3 seed_run.py --root ~/growing-cousin/live \
 >         --inherit ~/growing-spine-mind --label run2 --yes
 
-### 12. `[!]` Spine restarts — OVERTAKEN BY EVENTS
+### 12. `[x]` Spine restarts — CLOSED 2026-09-21, overtaken and superseded
+
+> The spine runs, the decision was mine rather than Tue's, it was retracted
+> within the hour, and the state is now WATCHED by `shared_tier_contested`
+> reading the unit against this file's own claim every five minutes rather
+> than written down. A sentence was the thing that drifted for 27 hours; the
+> detector is the fix. Nothing is left in this item that is not recorded in
+> `CLAUDE.md` §4.
 
 - **12.1** `systemctl --user enable --now growing-spine`.
 - **12.2** §4's era note records the date, so no figure crosses it silently.
@@ -813,7 +854,7 @@ something forgotten.
 
 ## After the plan
 
-### 14. `[~]` The chat channel (item 2's build)  — 14.1–14.4 met; 14.5 rides with the brief's unfreeze, and is now watched
+### 14. `[~]` The chat channel (item 2's build)  — 14.1–14.4 met and verified; 14.5 waits on a window, not on work
 
 Slotted here because it adds a surface to the creature's context and must not
 land while anything is being measured.
@@ -835,13 +876,25 @@ land while anything is being measured.
 - **14.5** The creature is TOLD the channel exists. Until then the channel is
   one-way in practice, and that is stated rather than assumed.
 
-> **14.5 is NOT met and cannot be met yet.** `CREATURE-PROMPT.md` lists the
-> built-in hands and is FROZEN (§0) until item 8.4 has a baseline. So `say`
-> exists, works, and the creature has not been told about it — a hand nobody
-> mentioned is a hand nobody uses, which is this project's *dead channel*
-> scar with the freeze as its cause. **Trigger: add `say` to the prompt's
-> hand list in the same change that unfreezes the brief.** Recorded here so
-> the unfreeze does not quietly forget it.
+> **14.5 is NOT met, and the reason CHANGED on 2026-09-21 — which is worth
+> saying rather than letting the old reason stand.** It used to be the freeze:
+> `CREATURE-PROMPT.md` lists the built-in hands and was frozen until item 8.4
+> had a baseline. **That baseline exists** (2026-09-16,
+> `trial/baselines/baseline-frozen_gemma-4-31b-it.json`), so the freeze is no
+> longer what holds it.
+>
+> **What holds it now is a measurement in flight.** On 2026-09-21 this
+> project's headline metric started answering for the first time in its life
+> (item 20.2: 1 survived, 4 have not, 58 cannot tell yet, run 7.5 days old).
+> Its window is seven days. Adding a chat surface to the creature's context
+> now would land in the middle of the first one, and §0's rule is that a new
+> surface mid-measurement makes every number either side of it incomparable.
+> A hand nobody mentioned is a hand nobody uses — the *dead channel* scar —
+> so this is a cost being paid knowingly, not an oversight.
+>
+> **Trigger: 2026-09-25, when the metric has a full week behind it.** Add
+> `say` to the prompt's hand list then, in one change, and read the metric
+> either side of it as an experiment rather than as noise.
 
 ### 15. `[x]` Should a body that cannot be respawned end the run?
 
@@ -901,7 +954,7 @@ without asking. The decision does not follow from it:
 
 ---
 
-### 16. `[!]` The cousin, not us, notices when a tool serves nothing — BLOCKED ON ITEM 20, because as written it contradicts the brief
+### 16. `[!]` The cousin, not us, notices when a tool serves nothing — HALF DELIVERED (20.3's instruments), and the RULE waits on 20.4
 
 > **2026-09-18.** `MANAGER-PROMPT.md`'s section *Why this question and no
 > other* tells the cousin in as many words that the mission is NOT its
@@ -978,7 +1031,7 @@ the brief comes after.
 
 ---
 
-### 17. `[ ]` What of MY job belongs to the cousin — and what does not
+### 17. `[~]` What of MY job belongs to the cousin — 17.1 and 17.2 done and confirmed in production; 17.3 moves with 16; 17.4 is a standing statement
 
 **Tue, 2026-09-16:** *"a lot of what we two do here in this line should be
 taken over by the cousin — either as an extension of its prompts or
@@ -1035,12 +1088,20 @@ sorts my job cleanly:
 
 **So the sequencing, and it is the same shape as every other item here:**
 
-- **17.1** The mechanical scans I run by hand become scripts — the library
-  audit of 2026-09-16 first, since it is the one that produced a real finding.
-  A script is not a model call and costs nothing.
-- **17.2** Those scripts go where the COUSIN can run them, not where only I
-  can, and the cousin's own shell (item 9) is what makes that possible at
-  all. Subject to the containment rule above.
+- **17.1 `[x]` DONE 2026-09-18, by item 20.3.** The library audit of
+  2026-09-16 -- the one that produced a real finding -- is now five scripts in
+  `instruments/`: `lib-startable`, `lib-stubs`, `lib-twins`, `lib-deps`,
+  `lib-stores`. A script is not a model call and costs nothing. On their first
+  run they found a shared store no reader can parse and a hub tool named by 37
+  of 60 that no reading of that library had noticed.
+- **17.2 `[x]` DONE 2026-09-18, and CONFIRMED IN PRODUCTION 2026-09-19.**
+  They are installed into the cousin's bin and nowhere else -- the gate
+  asserts the creature's bin never receives them, which is the containment
+  rule above (§2.4: never tell the creature about its own bugs). The cousin
+  ran `lib-deps plan` twice, unprompted, writing its own reason into the
+  block. **Every instrument reports a FACT it could have gathered itself, and
+  none of them carries our analysis**, which is the line that keeps this from
+  becoming a path out of our fault-finding into the creature's world.
 - **17.3** The DECIDING half moves with item 16, and only after it is scored.
 - **17.4** The framework half — code, tests, doctrine — stays with an agent
   that has the repo, the gate and a verifier that did not write the change.
@@ -1246,7 +1307,7 @@ remembers:
 
 ## Phase 5 — the public repo (added 2026-09-17)
 
-### 19. `[~]` The archive that reached the public repo — found, checked, untracked, purged from history; 19.5 is Tue's
+### 19. `[x]` The archive that reached the public repo — CLOSED 2026-09-21
 
 **What happened.** 2026-09-16 03:19, commit `221b978`: an unscoped
 `git add -A` in a tree holding run 1's archived live root pushed **80 files**
@@ -1337,7 +1398,26 @@ and the process failure are in `CLAUDE.md` §5; the short form:
 3072 -> 8192 on every rung. The ladder is configuration, not code, so this is
 not a commit; the backup is `~/rungs.local.json.bak-20260920`. **Acceptance,
 and it is a measurement rather than an assertion:** `truncated|lost` as a
-share of thinks returns toward the 1% it sat at before 2026-09-17. The
+share of thinks returns toward the 1% it sat at before 2026-09-17.
+
+> **FIRST READING 2026-09-21 01:50, and it is an anecdote by this file's own
+> rule.** The config was edited 09-20 23:36 and the first engine to load it
+> started **23:38:48**. Since that second: **16 thinks, 0 finished on
+> `length`, 0 commands lost.** The 102 length-finishes of 09-20, and the 16
+> `truncated|lost` still showing in the page's six-hour column, are all from
+> before it.
+>
+> **Do not read the page's alarm as a contradiction.** `commands_lost` is
+> windowed by COUNT -- the last 20 thinks from a rung -- so it spans the
+> restart and keeps firing until twenty new thinks have gone by. That is the
+> detector working: a count window cannot know a config changed inside it,
+> and the alternative -- resetting a detector when we deploy -- is how a
+> monitor learns to agree with whoever last touched the machine.
+>
+> **Sixteen thinks is one window and one window is an anecdote** (§5, top).
+> What settles 21.1 is `deploy_regression_day` for engine `c942d88`, due
+> 09-22 01:41: a full day against the day before it, needing nobody to
+> remember to look. The
 before/after exists already and is unusually clean, because the regression had
 a single known cause and a dated start.
 
@@ -1398,7 +1478,7 @@ the creature's next big edit.
 
 ## Phase 6 — the root (added 2026-09-18)
 
-### 20. `[ ]` The cousin is SPECIFIED as an inhabitant and IMPLEMENTED as an inspector
+### 20. `[~]` The cousin is SPECIFIED as an inhabitant and IMPLEMENTED as an inspector — 20.1-20.3 done; 20.4 open with a dated trigger
 
 **Found 2026-09-17 in discussion, by reading the two prompts instead of the
 journal.** Tue asked whether the board was treating symptoms rather than
@@ -1474,6 +1554,25 @@ with the only test available to something that has no work to do: did it run.
   been reached more than once by their user, and the widest first-to-last span
   is 6.0 days.** The metric starts answering tomorrow, which is the first time
   this project can answer the question it says it asks first.
+
+  > **AND IT DID. 2026-09-21 01:42, run 7.5 days old: 1 survived, 4 have
+  > not, 58 cannot be judged yet.** The one is **`plan` -- named by 12 other
+  > tools, reached by its user 107 times over 7.4 days.** Four tools were
+  > reached by the cousin and not reached again inside the window. The other
+  > 58 were first reached less than seven days ago, so their own windows are
+  > still open; 57 have been reached more than once.
+  >
+  > **One is not a score and must not be quoted as one.** It is the first
+  > non-empty answer to the question `ARCHITECTURE.md` §12 says this project
+  > asks before any other, and the honest reading is *the metric works and the
+  > run is barely old enough to use it*. The number that will mean something
+  > is the same three columns a week from now, when most of the 58 have closed
+  > their windows -- and it counts capability that SURVIVED, so it can go down
+  > as well as up.
+  >
+  > **What it does not say:** that `plan` does what its header claims. This
+  > page measures that its user kept coming back; whether the handover worked
+  > is the verdict's job, and `plan` carries 10 accepts against 6 returns.
 
   > **THE MIDDLE BAR WAS READ WRONG FIRST, and the correction is the
   > interesting part.** *"Invoked by something else"* -- I built it as
