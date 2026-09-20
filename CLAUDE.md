@@ -244,6 +244,7 @@ not a midnight patch.**
 | "the cousin ran it with arguments and it exited non-zero, so the tool failed" | **Not knowable by the framework.** Since the cousin chooses the arguments (item 9) it may have invented an ID and the tool may have correctly said so. The library reports exit codes AND the cousin's own verdicts per tool; the word FAILED was retired 2026-09-16 after `view-subtask-logs task-123` rendered as *NEVER WORKED (1 real failures)*. Read the verdict, not the exit. |
 | "the cousin keeps asking for X and the creature keeps not building it" | Since the shell (item 9), check BOTH sides before blaming either: `grep` the probes' `cmd` for X. On 2026-09-17 `plan set-deadline` existed and the cousin asking for deadlines had never run it — it ran `plan` bare, accepted the menu with the same sentence four times, and asked again. `testimony_repeated` says so; the rule behind it is item 16.5. |
 | "the cousin's container is running, so the deploy took" | A running container may predate the configuration: on 2026-09-16 the cousin's came back after a deploy with no `/hands` mount and no `recall`, reused as it stood. `ensure_container` now compares MOUNTS and recreates on drift. Check `docker inspect -f '{{json .Mounts}}' growing-cousin-body-user`, not `is-active`. |
+| "the creature is losing commands, so the parser broke again" | Read the CLASSIFICATION before the count. `untagged_fence` and `unclosed_fence` are ours; **`truncated` is the budget**, and the two have opposite fixes. 2026-09-20: 244 lost commands were all `truncated|lost`, with `finish=length` on half of gemini's thinks, because the creature was rewriting a 9 KB tool inside a 3072-token budget (§5). The page splits them; do not read `commands LOST` as a parser fault. |
 | "the cousin accepted it, so the handover worked" | Before 2026-09-18 the cousin's world held the creature's `state/memory.json`, so `recall` showed it the builder's own `...-verified true` and `current-phase done`. **Every verdict before that date was taken with the answer key on the table**, and two probes printed all 25 keys. Fixed (§5, item 20.1); verdicts from before it are not comparable to verdicts after. |
 | "`git show add6782` says unknown revision" / "the page names an engine commit that is not in `git log`" | History was rewritten 2026-09-17 (the habits list, above). The journal, the evidence manifests, the regression files and pre-rewrite commit messages carry the OLD names and are never edited; these documents carry the NEW ones. `evidence/history-rewrite-20260917.md` translates: `221b978` is `fb3d18a`, `add6782` is `dd53e91`, `ef812dc` is `ee5992d`. |
 
@@ -906,6 +907,53 @@ guess with authority it has not earned.
 
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
+
+- **I RAISED THE WINDOW SO IT COULD READ ITS TOOL, AND IT SPENT THREE DAYS
+  UNABLE TO FINISH WRITING ONE.** 2026-09-20, found by Tue asking *"how has
+  the creature fared?"* and by the page having said so since 09-17.
+
+  PLAN item 13 raised the read caps on 2026-09-17 (`HISTORY_OUTPUT_CHARS`
+  2400 -> 8000, total 6000 -> 12000) because the creature could not see its
+  6 KB `plan` whole. It worked. And then the creature did what its own prompt
+  tells it to do with a tool it can now read -- *`tool-edit <name>` with the
+  COMPLETE new content on stdin* -- and its replies went from a median of
+  **1,069 characters to 7,657**, against an output budget of 3072 tokens that
+  cuts at about 8,400.
+
+  | | thinks | `finish=length` | truncated **and lost** |
+  |---|---|---|---|
+  | 2 days before the caps | 228 | 13 | **1%** |
+  | 1 day before | 262 | 4 | **1%** |
+  | 1 day after | 144 | 54 | **32%** |
+  | 3 days after | 167 | 96 | **53%** |
+
+  **298 of the 346 cut-off replies were a whole-tool rewrite** (164 heredoc,
+  134 `tool-edit`). `plan` is now 9,182 bytes. A 9 KB file plus any reasoning
+  does not fit in 3072 tokens, so **the creature had become structurally
+  unable to edit its own central tool, and kept trying.**
+
+  **What saved it from something much worse**: the classifier calls a
+  truncated block LOST and does not run it, so no half-written `plan` ever
+  landed -- `plan` compiles, and there were zero SyntaxErrors in four days.
+  The 2026-09-14 fence scar wrote twelve broken files this way before that
+  bound existed.
+
+  **The fix is configuration, not code**: `num_predict` 3072 -> 8192 on every
+  rung (the ladder is config; backup at `~/rungs.local.json.bak-20260920`).
+  **That is a reprieve and not a cure** -- it moves the wall from 9 KB to
+  roughly 25 KB. The wall itself is PLAN item 21: the creature's only editing
+  idiom is a whole-file rewrite, so every tool it owns becomes uneditable once
+  it outgrows one reply.
+
+  **The process failure is the part worth keeping.** This file's own habit
+  says *after changing a parser the creature speaks through, hunt for the cost
+  in the next hour*, and a cap is exactly such a change. I shipped it, wrote
+  it up, and never looked. `deploy_regression` ran its hour and saw nothing,
+  because the effect built over a day rather than an hour -- and
+  `commands_lost[gemini]` DID fire, repeatedly, from 09-18 onward, into a page
+  nobody was reading because the work had moved on. **Sixteenth appearance of
+  *the framework manufactures work and the creature is billed for it*, and the
+  first one the instruments called out for three days while it ran.**
 
 - **WE HANDED THE JUDGE THE BUILDER'S ANSWER KEY, INSIDE THE MECHANISM BUILT
   TO PREVENT EXACTLY THAT.** 2026-09-18, found because Tue asked whether the

@@ -411,9 +411,23 @@ def surviving_capability(rows, own_dir=None, now=None,
                    "refuses to cross, so nothing can be judged on composition"
                    % EDGE_SCAN_MAX)
     if not_yet:
-        why.append("the run is %.1f days old, younger than the %d-day window, "
-                   "so %d tool(s) cannot be judged yet -- that is NOT YET and "
-                   "not a zero" % (run_days, window_days, not_yet))
+        # THIS SENTENCE WENT FALSE ONCE, ON ITS SECOND DAY. It used to say
+        # flatly "the run is younger than the window", which was true on
+        # 2026-09-19 (6.1 days) and false on 2026-09-20 (7.4 days) while the
+        # count it explained was still large -- because by then the reason was
+        # per-tool, not per-run: a tool FIRST reached three days ago has its
+        # own window open whatever the run's age is. A reason that is only
+        # true for a day is a wrong number with a clean face.
+        if run_days < window_days:
+            why.append("the run is %.1f days old, younger than the %d-day "
+                       "window, so nothing can have survived it yet -- that is "
+                       "NOT YET and not a zero"
+                       % (run_days, window_days))
+        else:
+            why.append("%d tool(s) were first reached less than %d days ago, "
+                       "so their own window has not closed yet (the run is "
+                       "%.1f days old) -- that is NOT YET and not a zero"
+                       % (not_yet, window_days, run_days))
     if never_reached:
         why.append("%d tool(s) have never been reached by their user at all"
                    % never_reached)

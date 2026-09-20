@@ -1107,6 +1107,61 @@ prints 0; the map has one row per rehashed commit; and the page's
 
 ---
 
+## Phase 7 — the creature's own wall (added 2026-09-20)
+
+### 21. `[~]` A tool the creature cannot rewrite in one reply is a tool it can no longer change
+
+**Measured 2026-09-20**, after Tue asked how the creature had fared and the
+answer turned out to be *badly, for three days, because of me*. Full numbers
+and the process failure are in `CLAUDE.md` §5; the short form:
+
+- `CREATURE-PROMPT.md` gives exactly one way to change a tool: **`tool-edit
+  <name>` with the COMPLETE new content on stdin.** The creature also uses
+  `cat << EOF > $(which <tool>)`, which is the same idiom by hand.
+- So **editing a tool costs at least as many output tokens as the tool is
+  long**, plus whatever reasoning it does around the change.
+- Its output budget was 3072 tokens, cutting at roughly 8,400 characters.
+  `plan` is **9,182 bytes**. It had become uneditable, and the creature kept
+  trying: **298 of 346 cut-off replies were a whole-tool rewrite**, and half
+  of all its thinks lost their command.
+
+**21.1 `[x]` The immediate reprieve, shipped 2026-09-20.** `num_predict`
+3072 -> 8192 on every rung. The ladder is configuration, not code, so this is
+not a commit; the backup is `~/rungs.local.json.bak-20260920`. **Acceptance,
+and it is a measurement rather than an assertion:** `truncated|lost` as a
+share of thinks returns toward the 1% it sat at before 2026-09-17. The
+before/after exists already and is unusually clean, because the regression had
+a single known cause and a dated start.
+
+**21.2 `[ ]` The wall itself, which the reprieve only moved from 9 KB to about
+25 KB.** A library whose tools keep growing will hit it again, and the failure
+is silent from inside: the creature sees its command not run and has no way to
+learn that the reason was its own length. *Trigger: the first tool over 15 KB,
+or `truncated|lost` crossing 10% of thinks again after 21.1 settles.*
+
+**What NOT to do about it, stated now because each is tempting and each is a
+scar in this file.** Do not tell the creature to write shorter tools -- that is
+a mechanism, not an invariant, and it aims the fix at the creature for a bound
+that is ours. Do not keep raising the budget on a shared free tier; §4 makes
+that a rung's terms rather than a knob. And do not have the framework split
+the write for it, which would be the framework editing `tools/own` through a
+side door (§2.1). **The shape that fits the design is a partial-edit hand** --
+the creature already has hands, and a hand that replaces a range rather than a
+file costs output proportional to the CHANGE instead of to the tool. That is a
+change to the creature's world, so it lands the way item 14 lands: not while
+something is being measured.
+
+**21.3 `[ ]` Why nobody noticed for three days, which is the more expensive
+half.** `commands_lost[gemini]` fired on 09-18 and kept firing. The page was
+right, the detector was right, and the reader had moved on to other work.
+`deploy_regression` compared the hour after the cap change against the hour
+before and saw nothing, because the effect built over a day. *Trigger for a
+fix, not a rule: `deploy_regression` gets a second reading at 24 hours as well
+as at one hour.* A one-hour window cannot see a regression that arrives with
+the creature's next big edit.
+
+---
+
 ## Phase 6 — the root (added 2026-09-18)
 
 ### 20. `[ ]` The cousin is SPECIFIED as an inhabitant and IMPLEMENTED as an inspector
