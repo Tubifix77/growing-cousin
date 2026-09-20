@@ -222,16 +222,43 @@ its single run with arguments was the cousin's invented `task-123`,
 the cousin wrote, and `progress-reporter` was given a non-numeric progress and
 said so. **None of the seven tools that have never exited 0 is broken.**
 
-**Two cautions, and they matter more than the counts.** First, *"a lot of its
-tools were bug-filled"* was substantially OUR display: until `f52ac78` the
-catalogue counted a usage refusal as a failure, so the breakage looked far
-wider than the two files the fence actually cut. Second, **this is not the
-before/after those prompt changes still owe.** The parser fix, the chooser fix
-and the display correction all landed inside the same window, four of the
-fourteen were deleted rather than repaired, and several flags were artifacts
-to begin with. Four causes and one window is exactly the confound §5's top
-entry warns about. It says the campaign landed; it does not say which change
-did it.
+**CORRECTED WITHIN THE HOUR, 2026-09-21, and the correction is the whole
+finding.** The line above said *7 now work* inside a paragraph about a repair
+campaign, which reads as *the creature repaired seven tools*. **It repaired
+one.** Asked properly -- was there an edit between a tool's last failure and
+its first success -- the answer is:
+
+| tool | last fail | first ok | edited between | |
+|---|---|---|---|---|
+| `archive-synthesize` | 09-14 14:11 | 09-17 11:57 | **yes** | **REPAIRED** |
+| `archive` | 09-15 19:30 | 09-17 11:40 | no | came to work untouched |
+| `fetch` | 09-13 13:13 | 09-16 21:50 | no | came to work untouched |
+| `plan-export-subtasks-filter` | 09-14 10:42 | 09-16 21:55 | no | came to work untouched |
+| `plan-import-subtasks` | 09-14 10:09 | 09-16 23:00 | no | came to work untouched |
+| `subtask-log-filter-by-parent` | 09-14 18:45 | 09-18 01:56 | no | came to work untouched |
+| `subtask-log-viewer` | 09-14 14:53 | 09-18 03:36 | no | came to work untouched |
+
+**Six of the seven were never broken.** Look at the dates they started
+working: 09-16 21:50 onward, all of them clustered after the cousin got its
+own shell (item 9, live 2026-09-16) and could finally type arguments instead
+of being sent in with empty hands. **The flags cleared because the PROBE
+changed, not because the tools did.** That is the 2026-09-14 scar for the
+third time, committed by me in a paragraph citing it, and pushed before it was
+checked.
+
+**What survives the correction, and it is still worth having:** the parser fix
+held (two tools ever cut, none in six days, 62 of 62 parse); the creature did
+repair one tool after being shown its record; and the seven tools still
+flagged red today are all behaving correctly. **What does not survive is any
+claim that the catalogue drove a repair campaign.** One repair is one repair.
+
+**Two further cautions.** *"A lot of its tools were bug-filled"* was
+substantially OUR display: until `f52ac78` the catalogue counted a usage
+refusal as a failure, so the breakage looked far wider than the two files the
+fence actually cut. And **this is not the before/after those prompt changes
+still owe** -- the parser fix, the chooser fix, the display correction and the
+cousin's shell all landed inside the same window. Four causes, one window, and
+the confound §5's top entry exists to warn about.
 
 **Frozen, and the condition to unfreeze it.** `MANAGER-PROMPT.md` and
 `CREATURE-PROMPT.md` are NOT to be edited. Three prompt changes shipped on
