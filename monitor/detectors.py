@@ -869,6 +869,15 @@ def twin_pressure(ctx):
 # one evening, a parser change had a cost that a hand-run watch found within
 # the hour; without the watch each would have been another nine-hour silence.
 REGRESSION_WINDOW_S = 3600
+# PLAN 21.3. An hour could not see the 2026-09-17 cap change: the creature's
+# replies only grew once it started rewriting whole tools, so `truncated|lost`
+# went 1% -> 32% over a DAY and the hourly comparison reported nothing moved,
+# truthfully, twice. A second reading a day later uses the same floors and the
+# same table; what changes is only how long you wait before believing the
+# hour. **Both are kept** -- the hour catches a parser that breaks instantly,
+# the day catches a cost that arrives with the creature's next big edit, and
+# neither substitutes for the other.
+REGRESSION_DAY_S = 24 * 3600
 REGRESSION_MIN_WAKES = 5
 # Declared floors. Lost-command share: run 2's gemini baseline is 3.4%, so
 # 10% AND at least doubled. Failed commands: the creature's own errors run
@@ -950,50 +959,76 @@ def regression_table(before, after):
     return rows, worse, mb, ma
 
 
-def deploy_regression(ctx):
-    """The hour after the last start against the hour before it, on the
-    correctness indicators. Pending until the hour is up; CANNOT_TELL with
-    too few cycles on either side; ALARM when a declared floor is crossed;
-    INFO otherwise -- and the comparison is written to a file once either
-    way, because the table is worth having even when it says nothing moved."""
+def _regression(ctx, name, span, span_label, scar):
+    """`span` after the last start against `span` before it, on the
+    correctness indicators. Pending until the span is up; CANNOT_TELL with too
+    few cycles on either side; ALARM when a declared floor is crossed; INFO
+    otherwise -- and the comparison is written to a file once either way,
+    because the table is worth having even when it says nothing moved."""
     start = ctx.last_start
     if start is None:
-        return Finding("deploy_regression", CANNOT_TELL, "no start record in the tail",
+        return Finding(name, CANNOT_TELL, "no start record in the tail",
                        human=False)
     t0 = float(start["ts"])
     sha = (start.get("engine") or "unknown")[:7]
     prev = [s for s in derive.starts(ctx.rows) if float(s["ts"]) < t0]
     prev_sha = (prev[-1].get("engine") or "unknown")[:7] if prev else "unknown"
-    ev = {"start_ts": t0, "engine": sha, "before_engine": prev_sha}
-    if ctx.now - t0 < REGRESSION_WINDOW_S:
-        return Finding("deploy_regression", INFO,
-                       "engine %s started %s ago; its first hour is compared "
-                       "against the hour before at %s"
-                       % (sha, derive.fmt_age(ctx.now - t0),
-                          derive.ts_str(t0 + REGRESSION_WINDOW_S, "%H:%M")),
+    ev = {"start_ts": t0, "engine": sha, "before_engine": prev_sha, "span_s": span}
+    if ctx.now - t0 < span:
+        return Finding(name, INFO,
+                       "engine %s started %s ago; its first %s is compared "
+                       "against the %s before at %s"
+                       % (sha, derive.fmt_age(ctx.now - t0), span_label,
+                          span_label, derive.ts_str(t0 + span, "%H:%M")),
                        ev, human=False)
-    before = derive.window(ctx.rows, t0 - REGRESSION_WINDOW_S, t0)
-    after = derive.window(ctx.rows, t0, t0 + REGRESSION_WINDOW_S)
+    before = derive.window(ctx.rows, t0 - span, t0)
+    after = derive.window(ctx.rows, t0, t0 + span)
     wb = sum(1 for r in before if r.get("kind") == "wake")
     wa = sum(1 for r in after if r.get("kind") == "wake")
-    ev["hour_complete"] = True
+    ev["span_complete"] = True
     if wb < REGRESSION_MIN_WAKES or wa < REGRESSION_MIN_WAKES:
-        return Finding("deploy_regression", CANNOT_TELL,
+        return Finding(name, CANNOT_TELL,
                        "engine %s: too few cycles to compare -- %d wakes in the "
-                       "hour before, %d in the hour after (need %d each)"
-                       % (sha, wb, wa, REGRESSION_MIN_WAKES), ev, human=False)
+                       "%s before, %d in the %s after (need %d each)"
+                       % (sha, wb, span_label, wa, span_label, REGRESSION_MIN_WAKES),
+                       ev, human=False)
     table, worse, mb, ma = regression_table(before, after)
     ev.update({"table": table, "worse": worse, "wakes_before": wb, "wakes_after": wa})
     if worse:
-        return Finding("deploy_regression", ALARM,
-                       "engine %s vs %s, first hour against the hour before: WORSE "
-                       "on %s" % (sha, prev_sha, "; ".join(worse)), ev,
-                       scar="after changing a parser the creature speaks through, "
-                            "hunt for the cost within the hour")
-    return Finding("deploy_regression", INFO,
+        return Finding(name, ALARM,
+                       "engine %s vs %s, first %s against the %s before: WORSE "
+                       "on %s" % (sha, prev_sha, span_label, span_label,
+                                  "; ".join(worse)), ev, scar=scar)
+    return Finding(name, INFO,
                    "engine %s vs %s: no correctness indicator crossed its floor in "
-                   "the first hour (%d wakes before / %d after)" % (sha, prev_sha, wb, wa),
-                   ev, human=False)
+                   "the first %s (%d wakes before / %d after)"
+                   % (sha, prev_sha, span_label, wb, wa), ev, human=False)
+
+
+def deploy_regression(ctx):
+    """The hour after the last start against the hour before it."""
+    return _regression(ctx, "deploy_regression", REGRESSION_WINDOW_S, "hour",
+                       "after changing a parser the creature speaks through, "
+                       "hunt for the cost within the hour")
+
+
+def deploy_regression_day(ctx):
+    """The DAY after the last start against the day before it.
+
+    PLAN 21.3, and it exists because the hourly one was honest and blind. The
+    2026-09-17 cap change cost the creature half its commands, and the hour
+    after it reported *no correctness indicator crossed its floor* -- correctly,
+    because the effect needed the creature to start rewriting whole tools, and
+    that took a day. `truncated|lost` went 1% of thinks to 32% in the first
+    day and 53% by the third, and nobody looked for three days.
+
+    Same table, same floors, longer wait. The hour catches a parser that
+    breaks instantly; this catches a cost that arrives with the creature's
+    next big edit. Neither substitutes for the other.
+    """
+    return _regression(ctx, "deploy_regression_day", REGRESSION_DAY_S, "day",
+                       "a one-hour window cannot see a regression that arrives "
+                       "with the creature's next big edit")
 
 
 # The 2026-09-13 waste pattern, exactly: `plan` had grown to 4,022 bytes, the
@@ -1282,6 +1317,7 @@ ALL = (engine_silent, gave_up, unusable_verdicts, commands_lost,
        repeated_failure, want_retired_unacted, want_never_served,
        served_context_contract, tool_vanished, selfcheck_disproven,
        restart_owed, ladder_dry, journal_integrity, twin_pressure,
+       deploy_regression_day,
        deploy_regression, want_repeated, probe_stuck, complaint_fidelity,
        body_unrecoverable, window_reread, creature_said,
        shared_tier_contested, cousin_starved, testimony_repeated)

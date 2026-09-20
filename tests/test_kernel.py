@@ -5754,6 +5754,89 @@ def test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_regression_that_takes_a_day_to_arrive_is_still_caught():
+    """PLAN item 21.3. On 2026-09-17 the read caps were raised, the creature
+    began rewriting whole tools, and `truncated|lost` went from 1% of thinks
+    to 32% in a day and 53% by the third. `deploy_regression` compared the
+    hour after against the hour before and reported *no correctness indicator
+    crossed its floor* -- **truthfully**, because in that first hour nothing
+    had. The cost needed the creature's next big edit to arrive.
+
+    So the hour is not wrong, it is short. This is the same table and the same
+    floors with a longer wait, registered as its own finding so the page and
+    `alarms.jsonl` can carry both.
+    """
+    from monitor import detectors as det
+    HOUR, DAY = 3600.0, 86400.0
+    t0 = 1789000000.0
+
+    def rows_for(lost_share_after, span):
+        """A start at t0, `span` either side, clean before and `lost_share`
+        of thinks losing their command after."""
+        rows = [{"ts": t0 - span - 1, "kind": "engine_start", "engine": "old1234"}]
+        n = 40
+        for i in range(n):                      # the span BEFORE: all clean
+            ts = t0 - span + (i + 1) * (span / (n + 2))
+            rows += [{"ts": ts, "kind": "wake"},
+                     {"ts": ts + 1, "kind": "think", "finish": "stop",
+                      "rung": "r", "chars": 100},
+                     {"ts": ts + 2, "kind": "exec_start", "cmd": "echo hi"},
+                     {"ts": ts + 3, "kind": "exec_end", "exit_code": 0,
+                      "stdout": "hi", "stderr": ""}]
+        rows.append({"ts": t0, "kind": "engine_start", "engine": "new5678"})
+        for i in range(n):                      # the span AFTER
+            ts = t0 + (i + 1) * (span / (n + 2))
+            rows += [{"ts": ts, "kind": "wake"},
+                     {"ts": ts + 1, "kind": "think", "finish": "length",
+                      "rung": "r", "chars": 8400}]
+            if i < int(n * lost_share_after):
+                rows.append({"ts": ts + 2, "kind": "exec_skip",
+                             "why": "truncated", "lost": True})
+            else:
+                rows += [{"ts": ts + 2, "kind": "exec_start", "cmd": "echo hi"},
+                         {"ts": ts + 3, "kind": "exec_end", "exit_code": 0,
+                          "stdout": "hi", "stderr": ""}]
+        return rows
+
+    check("day: the detector exists and is registered, or the page never says it",
+          callable(getattr(det, "deploy_regression_day", None))
+          and getattr(det, "deploy_regression_day", None) in det.ALL)
+    if not callable(getattr(det, "deploy_regression_day", None)):
+        return
+
+    # THE REAL SHAPE: nothing wrong in the first hour, half the commands gone
+    # by the end of the day. The hour must stay quiet and the day must fire.
+    day_rows = rows_for(0.5, DAY)
+    quiet_hour = [r for r in day_rows
+                  if abs(r["ts"] - t0) <= HOUR or r.get("kind") == "engine_start"]
+    ctx_hour = det.Context(quiet_hour, now=t0 + HOUR + 60)
+    ctx_day = det.Context(day_rows, now=t0 + DAY + 60)
+    hour = det.deploy_regression(ctx_hour)
+    day = det.deploy_regression_day(ctx_day)
+    check("day: the DAY-long reading catches a regression that took a day to "
+          "arrive", day.state == det.ALARM, (day.state, day.msg[:140]))
+    check("day: and it names the lost-command share, which is what moved",
+          "lost-command" in day.msg, day.msg[:200])
+    check("day: it says which engine against which",
+          "new5678" in day.msg and "old1234" in day.msg, day.msg[:120])
+
+    # NOT A HAIR TRIGGER: a day that did not get worse says so.
+    calm = det.deploy_regression_day(det.Context(rows_for(0.0, DAY), now=t0 + DAY + 60))
+    check("day: a day where nothing crossed a floor is INFO, not an alarm",
+          calm.state == det.INFO, (calm.state, calm.msg[:120]))
+
+    # PENDING, not silent: before the day is up it says when it will answer.
+    early = det.deploy_regression_day(det.Context(rows_for(0.5, DAY), now=t0 + HOUR))
+    check("day: before the day has passed it is PENDING and says when",
+          early.state == det.INFO and "compared against" in early.msg,
+          (early.state, early.msg[:140]))
+
+    # AND THE HOUR IS UNTOUCHED -- both are kept, neither substitutes.
+    check("day: the hourly reading still exists and still answers",
+          hour.state in (det.INFO, det.ALARM, det.CANNOT_TELL),
+          (hour.state, hour.msg[:120]))
+
+
 def test_the_body_runs_the_bash_it_means_and_not_windows_wsl_launcher():
     """PLAN item 18.8. The Windows gate stopped meaning anything on
     2026-09-17: 92 failures, twice, identical by name, every one a cascade
@@ -7339,7 +7422,8 @@ def test_deploy_regression_compares_the_hour_after_a_start():
     check("regression: the comparison is written even when nothing moved",
           len(files) == 1 and files[0].startswith("bbbbbbb-"), files)
     check("regression: and names both engines in the page",
-          "## Deploy regression -- engine `bbbbbbb` against `unknown`" in md, md[:200])
+          "## Deploy regression (hour) -- engine `bbbbbbb` against `unknown`" in md,
+          md[:200])
     monstatus.run_once(root, repo=None, now=t0 + 3700)
     check("regression: a second run does not rewrite it",
           len(os.listdir(regdir)) == 1, os.listdir(regdir))
@@ -7769,6 +7853,7 @@ def main():
                test_the_cousin_has_the_instruments_the_architecture_specified,
                test_the_headline_metric_can_actually_be_computed,
                test_the_body_runs_the_bash_it_means_and_not_windows_wsl_launcher,
+               test_a_regression_that_takes_a_day_to_arrive_is_still_caught,
                test_an_unreadable_verdict_keeps_its_evidence,
                test_cousin_probe_is_recorded,
                test_census_catches_a_fabricated_verdict,

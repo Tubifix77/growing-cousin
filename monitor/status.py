@@ -149,6 +149,15 @@ RUNBOOK = {
                          "indicator that moved BEFORE reverting anything. A "
                          "correctness fault is fixed on sight; a tuning change "
                          "needs several windows, split by rung.",
+    "deploy_regression_day": "The same table a DAY after the start, because the "
+                             "hour is honest and short: on 2026-09-17 the read "
+                             "caps cost the creature half its commands and the "
+                             "hour after reported nothing moved, correctly, "
+                             "since the cost needed its next whole-tool rewrite "
+                             "to arrive. Read this one before believing the "
+                             "hour's silence. Same rule after it: a correctness "
+                             "fault is fixed on sight, a tuning change needs "
+                             "several windows split by rung.",
 }
 
 
@@ -488,15 +497,27 @@ def render_md(d):
             out.append("- %s -- %s" % (f["name"], f["msg"]))
         out.append("")
 
-    reg = [f for f in fs if f["name"] == "deploy_regression"]
-    if reg and reg[0].get("evidence", {}).get("table"):
-        ev = reg[0]["evidence"]
-        out.append("## Deploy regression -- engine `%s` against `%s`"
-                   % (ev.get("engine"), ev.get("before_engine")))
+    # EACH reading its own section, in a fixed order, and only the ones that
+    # actually have a table. Taking `reg[0]` broke the moment a second reading
+    # existed: whichever the registry listed first won, and a pending one with
+    # no table suppressed the other's section outright. A position in a list is
+    # never a reason.
+    by_name = {}
+    for f in fs:
+        if f["name"] in ("deploy_regression", "deploy_regression_day"):
+            by_name[f["name"]] = f
+    for nm, span in (("deploy_regression", "hour"),
+                     ("deploy_regression_day", "day")):
+        f = by_name.get(nm)
+        ev = (f or {}).get("evidence", {}) or {}
+        if not ev.get("table"):
+            continue
+        out.append("## Deploy regression (%s) -- engine `%s` against `%s`"
+                   % (span, ev.get("engine"), ev.get("before_engine")))
         out.append("")
-        out.append(reg[0]["msg"])
+        out.append(f["msg"])
         out.append("")
-        out.append("| indicator | hour before | hour after |")
+        out.append("| indicator | %s before | %s after |" % (span, span))
         out.append("|---|---|---|")
         for label, b, a in ev["table"]:
             out.append("| %s | %s | %s |" % (label, b, a))
@@ -678,9 +699,13 @@ REGRESSION_DIR = "regression"
 
 def regression_report_path(mon, finding):
     ev = finding.evidence
-    return os.path.join(mon, REGRESSION_DIR, "%s-%s.md"
+    # The DAY reading writes beside the hour's rather than over it: two
+    # readings of the same start are two pieces of evidence, and evidence that
+    # overwrites evidence is not evidence (PLAN 21.3).
+    suffix = "-day" if finding.name.endswith("_day") else ""
+    return os.path.join(mon, REGRESSION_DIR, "%s-%s%s.md"
                         % (ev.get("engine", "unknown"),
-                           derive.ts_str(ev["start_ts"], "%Y%m%d-%H%M")))
+                           derive.ts_str(ev["start_ts"], "%Y%m%d-%H%M"), suffix))
 
 
 def write_regression_report(mon, finding):
@@ -688,7 +713,11 @@ def write_regression_report(mon, finding):
     rewritten -- the comparison is evidence about that hour, and evidence
     that changes when re-read is not evidence. Returns whether it wrote."""
     ev = finding.evidence
-    if not ev.get("hour_complete") or not ev.get("table"):
+    # `span_complete` since 2026-09-21; `hour_complete` is still accepted
+    # because a monitor reading an older journal's finding must not silently
+    # stop writing reports. Two names, one meaning, and the old one is read
+    # rather than assumed absent.
+    if not (ev.get("span_complete") or ev.get("hour_complete")) or not ev.get("table"):
         return False
     path = regression_report_path(mon, finding)
     if os.path.exists(path):
@@ -751,7 +780,7 @@ def run_once(root, repo=None, now=None, write=True):
                      json.dumps(data, ensure_ascii=False, default=str, indent=1))
         write_atomic(os.path.join(mon, STATUS_MD), md)
         for f in findings:
-            if f.name == "deploy_regression":
+            if f.name in ("deploy_regression", "deploy_regression_day"):
                 write_regression_report(mon, f)
     return md, data, (EXIT_ALARM if human else EXIT_OK)
 

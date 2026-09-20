@@ -1286,8 +1286,34 @@ file costs output proportional to the CHANGE instead of to the tool. That is a
 change to the creature's world, so it lands the way item 14 lands: not while
 something is being measured.
 
-**21.3 `[ ]` Why nobody noticed for three days, which is the more expensive
-half.** `commands_lost[gemini]` fired on 09-18 and kept firing. The page was
+**21.3 `[x]` DONE 2026-09-21. `deploy_regression_day`: the same table, the
+same floors, a day's wait.** The hour was honest and short -- on 2026-09-17 it
+compared the hour after the cap change against the hour before and reported
+*no correctness indicator crossed its floor*, **correctly**, because the cost
+needed the creature's next whole-tool rewrite to arrive. `truncated|lost` went
+1% of thinks to 32% over the first day and 53% by the third. The floor that
+would have caught it (`REG_LOST_SHARE`, 10% and at least double) already
+existed; nothing was watching it a day out.
+
+Both readings are kept and neither substitutes: the hour catches a parser that
+breaks instantly, the day catches a cost that arrives with the next big edit.
+Each writes its own report beside the other, because two readings of one start
+are two pieces of evidence and evidence that overwrites evidence is not
+evidence. Proven on a synthetic day where the hour is clean and half the
+commands are gone by the end -- the hour stays quiet, the day alarms and names
+the lost-command share.
+
+> **Two faults of mine, both caught by the gate inside a minute.** Renaming
+> `hour_complete` to `span_complete` stopped the report being written, because
+> a consumer read it -- this project's own *when a field changes, every reader
+> changes in the same commit*. And the page took `reg[0]`, so once a second
+> reading existed, whichever the registry listed first won: the day's, still
+> pending with no table, which suppressed the hour's section entirely. **A
+> position in a list is never a reason** (§5, 2026-09-15), here in the
+> renderer. Both sections are now rendered by name and labelled.
+
+~~**21.3 (original) Why nobody noticed for three days, which is the more expensive
+half.**~~ `commands_lost[gemini]` fired on 09-18 and kept firing. The page was
 right, the detector was right, and the reader had moved on to other work.
 `deploy_regression` compared the hour after the cap change against the hour
 before and saw nothing, because the effect built over a day. *Trigger for a
