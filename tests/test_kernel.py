@@ -5629,6 +5629,63 @@ def test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_body_runs_the_bash_it_means_and_not_windows_wsl_launcher():
+    """PLAN item 18.8. The Windows gate stopped meaning anything on
+    2026-09-17: 92 failures, twice, identical by name, every one a cascade
+    from `LocalBody` spawning a bare `"bash"`. `subprocess` resolves that
+    through CreateProcess, which searches `System32` BEFORE `PATH`, and
+    `System32\\bash.exe` is the **WSL launcher** -- a different kernel with a
+    different filesystem, handed a Windows `cwd` and a relative script name.
+
+    This is the relative-root scar in a new costume: the body reports healthy
+    while nothing it runs can see the world it was pointed at. The invariant
+    is the same one -- **the body resolves the interpreter it promises, and
+    says which one answered rather than leaving it to a search order nobody
+    chose.**
+
+    The POLICY is tested against a synthetic list rather than this machine's
+    PATH, because a test that only passes on the box it was written on tells
+    the next box nothing.
+    """
+    check("bash: the body has a stated policy for choosing its interpreter",
+          callable(getattr(bodymod, "usable_bash", None))
+          and callable(getattr(bodymod, "find_bash", None)))
+    if not callable(getattr(bodymod, "usable_bash", None)):
+        return
+    win = "C:\\Windows\\System32\\bash.exe"
+    git = "C:\\Program Files\\Git\\bin\\bash.exe"
+    check("bash: the WSL launcher is refused even when it is first on PATH",
+          bodymod.usable_bash([win, git]) == git, bodymod.usable_bash([win, git]))
+    check("bash: and refused when it is the ONLY thing on PATH -- a body that "
+          "cannot keep its promise says so rather than running a different "
+          "kernel", bodymod.usable_bash([win]) is None, bodymod.usable_bash([win]))
+    check("bash: SysWOW64 is the same trap",
+          bodymod.usable_bash(["C:\\Windows\\SysWOW64\\bash.exe"]) is None)
+    check("bash: a normal posix path is taken as-is",
+          bodymod.usable_bash(["/bin/bash"]) == "/bin/bash")
+    check("bash: empty and missing entries do not crash the policy",
+          bodymod.usable_bash([None, "", git]) == git)
+
+    # AND IT IS WHAT ACTUALLY RUNS. Resolving it and then not using it is the
+    # `--body docker` scar: present in the code, absent from the running thing.
+    found = bodymod.find_bash()
+    check("bash: this machine has one the body will admit to", bool(found), found)
+    if found:
+        check("bash: and it is not the launcher", "system32" not in found.lower())
+        d = tmpdir()
+        b = bodymod.LocalBody(os.path.join(d, "body"))
+        r = b.run("echo alive && [[ 1 == 1 ]] && echo bashism-ok")
+        check("bash: the body runs a real bash -- `[[` is not POSIX sh, so this "
+              "fails on dash and on a launcher that cannot see the script",
+              r.code == 0 and "alive" in r.stdout and "bashism-ok" in r.stdout,
+              (r.code, r.stdout[:120], r.stderr[:160]))
+        check("bash: and the body will say which binary it used, so a wrong "
+              "one is findable rather than inferred",
+              getattr(b, "shell_path", None) == found,
+              (getattr(b, "shell_path", None), found))
+        b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_headline_metric_can_actually_be_computed():
     """PLAN item 20.2. `ARCHITECTURE.md` \u00a712 names what this project
     measures before anything else: *tools that start, are invoked by something
@@ -7586,6 +7643,7 @@ def main():
                test_the_cousin_gets_the_creatures_work_and_never_its_notes,
                test_the_cousin_has_the_instruments_the_architecture_specified,
                test_the_headline_metric_can_actually_be_computed,
+               test_the_body_runs_the_bash_it_means_and_not_windows_wsl_launcher,
                test_an_unreadable_verdict_keeps_its_evidence,
                test_cousin_probe_is_recorded,
                test_census_catches_a_fabricated_verdict,

@@ -17,6 +17,7 @@ Bounds that must hold whichever body is in use, each from a parent scar:
   itself is broken, that must never arrive looking like a command's output.
 """
 import os
+import re
 import shutil
 import time
 import subprocess
@@ -56,6 +57,77 @@ def exec_setup_failure(stdout, stderr, code):
 CHILD_ENV_KEEP = ("PATH", "LANG", "LC_ALL", "TZ", "TERM")
 
 
+# WINDOWS PUTS A TRAP AHEAD OF PATH, AND IT COST THIS PROJECT ITS SECOND
+# GATE. `subprocess.run(["bash", ...])` resolves the name through
+# CreateProcess, which searches `System32` BEFORE anything on PATH -- and
+# `System32\bash.exe` is the **WSL launcher**. It starts a different kernel
+# with a different filesystem, is handed a Windows `cwd` and a relative script
+# name, and fails on every command while looking like a shell that answered.
+#
+# Measured 2026-09-17 by an independent verifier: 92 failures, twice, identical
+# by name, `code=124` zero times -- every one a cascade from that single bare
+# name. Same shape as the relative-root scar of 2026-09-12: the body reports
+# healthy and nothing it runs can see the world it was pointed at.
+#
+# **Invariant: a body resolves the interpreter it promises, and RECORDS which
+# binary answered.** A search order nobody chose is a constant nobody chose.
+WSL_LAUNCHER_DIRS = ("system32", "syswow64")
+
+
+def usable_bash(candidates):
+    """The first candidate that is a real bash rather than Windows' launcher.
+
+    None when there is no such thing, because a body that cannot keep its
+    promise must say so rather than quietly run a different kernel.
+    """
+    for p in candidates:
+        if not p:
+            continue
+        # SPLIT ON BOTH SEPARATORS, never `os.path`. Caught by the laptop gate
+        # the minute this shipped: on Linux `os.path.dirname` does not treat a
+        # backslash as a separator, so a Windows path inspected on Linux has
+        # no parent at all and the trap check silently never fired. A policy
+        # that only holds on the platform it was written for is the constant
+        # nobody chose, one level up.
+        parts = [q for q in re.split(r"[\\/]+", p.strip()) if q]
+        parent = parts[-2].lower() if len(parts) >= 2 else ""
+        if parent in WSL_LAUNCHER_DIRS:
+            continue
+        return p
+    return None
+
+
+_BASH = []
+
+
+def find_bash():
+    """An absolute bash, chosen once and cached. `None` if none is usable."""
+    if _BASH:
+        return _BASH[0]
+    import shutil as _sh
+    seen, cands = set(), []
+
+    def add(p):
+        if p and p not in seen:
+            seen.add(p)
+            cands.append(p)
+
+    add(os.environ.get("COUSIN_BASH"))      # an operator's override, honoured first
+    add(_sh.which("bash"))
+    # Git for Windows ships the bash this project's scripts are written for.
+    for root in (os.environ.get("ProgramFiles"), os.environ.get("ProgramW6432"),
+                 os.environ.get("ProgramFiles(x86)")):
+        if not root:
+            continue
+        for rel in (("Git", "bin", "bash.exe"), ("Git", "usr", "bin", "bash.exe")):
+            add(os.path.join(root, *rel))
+    for p in ("/bin/bash", "/usr/bin/bash", "/usr/local/bin/bash"):
+        add(p)
+    cands = [p for p in cands if os.path.isfile(p)] or cands
+    _BASH.append(usable_bash(cands))
+    return _BASH[0]
+
+
 class LocalBody:
     """A temp tree and a subprocess. For tests and for a kernel that has no
     container available. Not a sandbox: it is for running OUR fixtures, never
@@ -90,6 +162,9 @@ class LocalBody:
         # which is the one outcome this project exists to prevent. Normalising
         # here rather than at the caller because there is no caller who benefits
         # from a relative root, and any caller can forget.
+        # RECORDED, not inferred. `--body docker` shipped once while the
+        # engine still ran `LocalBody`, and nothing could see which it was.
+        self.shell_path = find_bash()
         self.root = os.path.abspath(root or tempfile.mkdtemp(prefix="cousin-body-"))
         self.mind = os.path.join(self.root, "mind")
         os.makedirs(os.path.join(self.mind, "tools", "own"), exist_ok=True)
@@ -174,8 +249,18 @@ class LocalBody:
             # have to be spelled the way this particular shell spells host
             # paths, and getting that wrong is what produced 127 on every
             # command a moment ago. A relative name needs no translation at all.
+            shell = self.shell_path
+            if not shell:
+                # Honest infrastructure failure, never shaped like the
+                # creature's own output: stdout stays empty and the caller
+                # sees `setup_failed`.
+                return ExecResult(
+                    "", "no usable bash on this host: the only candidates are "
+                    "Windows' WSL launcher, which cannot see this working "
+                    "directory. Set COUSIN_BASH to a real bash.", 127,
+                    setup_failed=True)
             p = subprocess.run(
-                ["bash", name], cwd=self.mind, capture_output=True, text=True,
+                [shell, name], cwd=self.mind, capture_output=True, text=True,
                 timeout=timeout, env=self.child_env())
             out, err, code = p.stdout, p.stderr, p.returncode
         except subprocess.TimeoutExpired:

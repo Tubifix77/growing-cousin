@@ -1109,8 +1109,30 @@ remembers:
   tick fix and not a brief fix; a ladder economics question. *Trigger: item
   8's baseline across several reps, so a change to the verdict call's budget
   or the ladder's order can be read against something.*
-- **18.8 The Windows gate is dead, not flaky (2026-09-17, found by the
-  verifier of item 19).** `LocalBody` spawns bare `bash`; Windows'
+- **18.8 `[x]` FIXED 2026-09-21. The Windows gate is alive again.**
+  `LocalBody` now resolves the bash it promises instead of handing the name to
+  a search order nobody chose, and **records which binary answered**
+  (`shell_path`). `usable_bash` refuses anything whose parent directory is
+  `System32` or `SysWOW64` -- Windows' WSL launcher, a different kernel with a
+  different filesystem, handed a Windows `cwd` and a relative script name --
+  and returns None rather than silently running it, so a host with no real
+  bash gets an honest `setup_failed` naming `COUSIN_BASH` as the override.
+  On this Windows box it resolves to Git's `usr/bin/bash.EXE` and runs `[[ ]]`,
+  which is neither POSIX sh nor reachable by the launcher.
+
+  > **The gate caught a bug in this very fix, which is the part worth
+  > keeping.** The first version asked `os.path.dirname` for the parent
+  > directory. On Linux a backslash is not a separator, so a Windows path
+  > inspected on Linux has no parent at all, the trap check never fired, and
+  > the laptop went red on three assertions the moment it shipped. **A policy
+  > about paths must read a path the same way on every platform that inspects
+  > it**; it splits on both separators now. Then the repair itself was eaten
+  > twice by a shell heredoc collapsing backslashes, which is the habit this
+  > file already carries -- written from `chr(92)` in a scratchpad file in the
+  > end, which is what that habit prescribes.
+
+  ~~**18.8 (original) The Windows gate is dead, not flaky (2026-09-17, found by the
+  verifier of item 19).**~~ `LocalBody` spawns bare `bash`; Windows'
   CreateProcess searches `System32` before `PATH`, so it gets the WSL
   launcher, the body is unresponsive on every spawn, and ~92 checks fail by
   cascade -- two runs, identical by name, `code=124` never. The laptop is the
