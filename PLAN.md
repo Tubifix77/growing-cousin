@@ -1853,8 +1853,55 @@ true?*
   3. **A framework hand** that makes a rung call on the creature's behalf,
      keyless from inside — keeps `keys_unreadable` true and spends the
      shared free tier the cousin and the spine are already contending for.
-  *Trigger: this is the next real design decision, and (2) is Tue's because
-  it is the one that changes the security posture.*
+
+  > **RECOMMENDED 2026-09-21, asked for by Tue — *is the keyless hand right,
+  > or is it framework bloat?* NOT (3), and not because it is bloat.**
+  >
+  > **It is not bloat by this project's own line.** The deleted 99% was
+  > *scheduling, caches, edge-trigger state files, warning composition,
+  > surfacing rules -- all of which exists because nobody was there to
+  > decide.* A hand is a CAPABILITY, not apparatus; this framework already
+  > ships five, and the spine ships `ask` as exactly such a tool. The
+  > bloat objection does not survive contact with the definition.
+  >
+  > **The reason not to build it is that the user has never asked, and it is
+  > measured rather than assumed.** 117 wants across run 2, **99 distinct**,
+  > and **one** touches this area at all:
+  >
+  > > *"delegate to sub-agents or perform real work instead of just echoing
+  > > the task"*
+  >
+  > **That is not a request for the capability. It is the cousin reporting
+  > that the tool echoed the task and did nothing** -- which is precisely
+  > what `subagent-orchestrator` does with no credential. The single datum
+  > anyone would cite as demand is the symptom of the missing key. What the
+  > user actually asks for, over and over, is small deterministic plumbing:
+  > the twelve most recent distinct wants are JSON flatten/merge/filter and
+  > plan filtering.
+  >
+  > **And the cost of building it is worse than neutral. 28 of the 69 tools
+  > -- 41% of the library -- are already in or downstream of the
+  > subagent/subtask family**, administering the outputs of an orchestrator
+  > that has never once authenticated. A keyless hand would make that
+  > category WORK rather than make it QUESTIONED, and the 2026-09-18
+  > retraction is that the creature builds the list it is handed. Making the
+  > handed list executable does not test this project's thesis; retracting a
+  > promise the box cannot keep does.
+  >
+  > **So: (1), retract, as the first scored change at the brief's unfreeze**,
+  > under item 8's discipline -- a direction across several reps, split by
+  > rung, detection and correction together.
+  >
+  > **THE ONE THING THAT WOULD FLIP THIS, and it is Tue's because it is about
+  > what the project is FOR.** The spine's creature HAS `ask`; ours does not;
+  > both are handed the same starter map. That asymmetry is a confound in the
+  > comparison (§4), and it has been live for the whole of both runs with no
+  > document recording it. **If the comparison is meant to be clean, the
+  > argument for giving ours the same hand becomes the strong one** -- not
+  > because our creature needs it, but because the other one has it. That is
+  > a question about the experiment, not about the engine, which makes it
+  > his.
+
 - **23.4 `[ ]` `MANAGER-PROMPT.md`, the same pass.** Begun, not finished: the
   brief addresses the cousin as someone who *"genuinely could not do the
   thing you came to do"*, and it has no thing it came to do — which is item

@@ -808,6 +808,33 @@ guess with authority it has not earned.
   still being fixed every few minutes. It becomes meaningful again only when
   both run untouched, side by side, which requires restarting spine first.
 
+- **THE SPINE'S CREATURE HAS AN LLM HAND AND OURS DOES NOT, AND NEITHER
+  DOCUMENT RECORDED IT.** Found 2026-09-21 while deciding PLAN 23.3.
+  `growing-spine/framework-tools/ask` is a framework tool on that creature's
+  PATH: *"Ask a real LLM (openai/gpt-oss-120b via Groq) and print only its
+  answer"*, with a contract earned the hard way -- stdout is the answer or it
+  is EMPTY, every failure names itself on stderr and exits non-zero, because
+  a helper with no engine behind it once put 4,309 junk records into that
+  project's archive.
+
+  **Our creature has no such hand and no credential** (§5, 2026-09-21), while
+  **both projects hand their creature the same starter map**, which names
+  *subagent orchestration -- spawning helper LLM calls over the free-tier
+  APIs* as one of five categories. The prompts agree; the boxes do not.
+
+  **That is a confound in the comparison this project exists to run.** §4
+  says the two run on one laptop because *same hardware, same network, same
+  shared quota* is the only configuration in which the comparison means
+  anything. A capability one creature has and the other does not is a larger
+  difference than any of those, and it has been true for the life of both
+  runs without appearing in a single document.
+
+  **It also has to be controlled for in run 3.** Item 11 seeds both from one
+  library; if one creature can call a model and the other cannot, the
+  divergence being measured is partly that, and the run measures a mixture
+  and reports it as one number -- §6.2's standing requirement, arriving from
+  an angle nobody was watching.
+
 - **Growing Spine is on the SAME API accounts, so the free tier is SHARED**
   (Tue, 2026-09-12). **Suspended 2026-09-13 — see above.** This engine gets at most half of what it would with its own
   account, and the two projects can starve each other. Three consequences, all
