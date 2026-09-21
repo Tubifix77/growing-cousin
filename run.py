@@ -585,11 +585,19 @@ def main(argv=None):
         # two wasted requests against the sibling's account instead of one.
         qpath = os.path.join(args.root, "quota.json")
         qstate = backends.quotamod.load(qpath)
+        # THE CREATURE'S LADDER REJECTS EMPTINESS AND NOTHING ELSE. A think
+        # with no command is a real answer and must never be rejected -- that
+        # would wall a rung for thinking out loud. A reply with no TEXT is not
+        # a think, and banking one as the answer is this project's own
+        # 2026-09-10 scar left unapplied on this side: the classifier called it
+        # `budget_spent` and put it in LOST while the ladder called it success
+        # and never reached the rung below.
+        from kernel.think import unusable_think
         ask_creature = backends.from_spec(spec, journal=j, quota_state=qstate,
-                                          quota_path=qpath)
-        # The cousin's ladder REJECTS a reply with no verdict in it and tries
-        # the next rung. The creature's does not, and must not: a think with
-        # no command is a real answer.
+                                          quota_path=qpath,
+                                          reject=unusable_think)
+        # The cousin's ladder rejects a reply with no verdict in it. Its
+        # predicate is a different one, for a different question.
         from kernel import cousin as cousinmod
         ask_cousin = backends.from_spec(cousin_spec, journal=j,
                                         quota_state=qstate, quota_path=qpath,

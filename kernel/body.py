@@ -44,10 +44,31 @@ def exec_setup_failure(stdout, stderr, code):
     a checker that share a literal will drift and no test notices, so there is
     exactly one of these.
     """
+    # A COMMAND THAT SUCCEEDED DID NOT FAIL TO START, whatever it printed.
+    # The markers below are matched anywhere in the output, and "is not
+    # running" is ordinary English: a tool reporting `worker is not running`
+    # and exiting 0 would have had its output discarded and its exit relabelled
+    # as a broken body -- and, on the cousin's side, its verdict never asked
+    # for. Measured over the live journal 2026-09-21 before adding this: 0 hits
+    # in 2,929 records, so it was a latent hazard rather than a live defect.
+    # The spine's version of this function has asked the question first since
+    # 2026-08, and says why: 125-128 are also legitimate exit codes for a
+    # command that really did run.
+    if code == 0:
+        return False
     blob = ((stdout or "") + " " + (stderr or "")).lower()
     signs = ("oci runtime exec failed", "procready not received",
              "error executing setns", "container not found",
-             "is not running", "cannot exec in a stopped")
+             "is not running", "cannot exec in a stopped",
+             # The body runs with --pids-limit 256, so a fork storm inside it
+             # makes docker refuse to start the process at all. Without this
+             # the refusal reaches the cousin shaped exactly like the tool's
+             # own output, which is a fabricated experience (§2.5) with the
+             # framework as its author. Safe to add only because of the
+             # guard above: a healthy command may legitimately print it.
+             "resource temporarily unavailable",
+             "error response from daemon",
+             "no such container")
     return any(s in blob for s in signs)
 
 
@@ -420,6 +441,18 @@ class DockerBody:
         return False
 
     def run(self, cmd, timeout=EXEC_TIMEOUT_SECS):
+        # A COMMAND THE SHELL CANNOT BE GIVEN IS NOT A BROKEN BODY. A NUL byte
+        # makes `subprocess` raise before the process exists, and that left by
+        # the generic handler below as `setup_failed=True` -- so the framework
+        # would have declared the BODY broken over a byte in the creature's own
+        # text, respawned it, and on the cousin's side thrown the probe away as
+        # LOST. A fabricated infrastructure failure with us as its author
+        # (§2.5). Never seen live; fixed because the cost of being wrong is a
+        # respawn and a discarded visit, and the fix is one branch.
+        if "\x00" in (cmd or ""):
+            return ExecResult(
+                "", "the command contains a null byte, which no shell can be "
+                "given; nothing was run", 126)
         try:
             p = subprocess.run(self.argv(cmd),
                                capture_output=True, text=True, timeout=timeout)

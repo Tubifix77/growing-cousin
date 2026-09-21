@@ -79,7 +79,15 @@ import re
 # harmless by comparison -- the worst case is a literal that reads exactly
 # like an opener AND is followed by a newline, in a reply that contains no
 # real block.
-FENCE_RE = re.compile(r"```(?:bash|sh)[ \t]*\n(.*?)^```", re.S | re.M)
+# **CRLF IS A REPLY TOO.** `[ \t]*` does not match a carriage return, so a
+# provider that sends CRLF would have had EVERY command silently classified as
+# an unclosed fence -- visible as LOST, which is something, but unfixable from
+# the creature's side because it is not the creature's doing. Measured over the
+# live journal 2026-09-21: 0 of 1,926 replies contain CRLF, so this is
+# insurance rather than a repair. A reply's line endings are the provider's
+# business; the contract is about fences.
+FENCE_RE = re.compile(r"```(?:bash|sh)[ \t]*\r?\n(.*?)^```\r?$",
+                      re.S | re.M)
 
 # A tagged marker ANYWHERE in the reply. If one is present and yet no block
 # was parsed, the creature marked work as an action and the channel did not
@@ -103,7 +111,17 @@ def parse_blocks(text):
     actions and it does; text it merely quotes is not made executable by
     sitting between backticks.
     """
-    return [b.strip() for b in FENCE_RE.findall(text or "") if b.strip()]
+    # The carriage returns are stripped from the BODY as well. A block that
+    # keeps them reaches bash as `ls\\r`, which is `command not found` for a
+    # command the creature wrote correctly -- the framework manufacturing work
+    # and billing the creature for it, by the back door this file exists to
+    # keep shut.
+    out = []
+    for b in FENCE_RE.findall(text or ""):
+        b = b.replace("\\r\\n", "\\n").strip()
+        if b:
+            out.append(b)
+    return out
 
 
 def classify_no_blocks(text, finish_reason=None, completion_tokens=None):
@@ -149,6 +167,47 @@ def classify_no_blocks(text, finish_reason=None, completion_tokens=None):
             "the reply has fenced text but no ```bash block; nothing in it was "
             "marked as a command, so nothing was run")
     return "no_command", "a complete reply that contains no command"
+
+
+def unusable_think(text, meta):
+    """The creature ladder's predicate: WAS THERE A REPLY AT ALL.
+
+    Returns a reason to step to the next rung, or None to accept.
+
+    **The predicate belongs to the QUESTION, not to the agent** (the 2026-09-16
+    scar), and the creature's question is not the cousin's. A think with no
+    command is a REAL ANSWER -- the creature is allowed to look, to read, to
+    conclude there is nothing to do -- so this rejects emptiness and nothing
+    else. Anything with a character of text in it is accepted.
+
+    Why it exists at all: this project wrote the rule down on 2026-09-10, about
+    the cousin's rung, and then left the creature's ladder contradicting its
+    own classifier. `classify_no_blocks` calls a reply that spent its whole
+    budget and returned nothing `budget_spent` and puts it in LOST; the ladder
+    banked the same reply as the answer and never tried the rung underneath.
+
+    > An empty reply that consumed its whole budget is a FAILURE, never an
+    > answer... such a call registers as a SUCCESS, so nothing walls the rung
+    > and nothing below it is ever reached.
+
+    Measured over run 2 on 2026-09-21: 9 of 1,967 thinks came back with no text
+    at all -- seven gemini at finish=length, two groq at finish=stop. Nine
+    cycles thrown away with a working rung sitting below.
+
+    **Three emptinesses, three names**, because every distinction refused here
+    is one a reader has to guess later: the budget ate it, the reasoning ate
+    it, or nothing came back and we do not know why.
+    """
+    if (text or "").strip():
+        return None
+    meta = meta or {}
+    before = meta.get("chars_before_strip") or 0
+    stripped = meta.get("chars_stripped") or 0
+    if stripped and stripped >= before:
+        return "reasoning-only: the whole reply was deliberation, no answer"
+    if meta.get("done_reason") == "length":
+        return "budget spent: nothing came back and the ceiling was hit"
+    return "empty reply: the rung answered with no text at all"
 
 
 LOST = ("truncated", "unclosed_fence", "budget_spent")

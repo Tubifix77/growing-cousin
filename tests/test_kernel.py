@@ -216,6 +216,308 @@ def test_history_never_cuts_mid_line():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_history_does_not_shrink_a_marker_it_re_cuts():
+    """The second cut is real, and it is not the test's -- it is the history's.
+
+    `exec_end.stdout` is stored as `capped(stdout, EXEC_STDOUT_CHARS)`, so a
+    long output is stored at the cap PLUS a marker. `render_history` then calls
+    `capped` on that stored text again with the same limit, which is smaller
+    than what it was handed. Until 2026-09-21 the second cut reported only what
+    IT removed: measured over the live journal, **74 of 652 marked outputs,
+    worst case telling the creature 146 characters were withheld when the truth
+    was 6,114.**
+
+    `test_marker_invariant` was green throughout, because it passes
+    `already_cut` by hand and the one real caller never did. *A test suite
+    proves what it asserts and nothing more.*
+
+    Why this is not cosmetic: on 2026-09-12 this creature read a marker saying
+    3,332 characters were cut, concluded *"It's clearly truncated. The tool is
+    broken."*, and rewrote two working tools shorter. A marker understating the
+    loss by six thousand characters is the same instrument lying in the other
+    direction -- and a small number where a large one belongs reads as
+    reassurance.
+    """
+    e, j, b, d = build_engine([], [])
+    long_out = "\n".join("line %04d %s" % (i, "z" * 60) for i in range(900))
+    stored = capped(long_out, EXEC_STDOUT_CHARS)
+    truth = marker_total(stored)
+    check("history: the stored record already carries a real loss",
+          truth > 1000, truth)
+    check("history: and it is longer than the history's own window, so the "
+          "history MUST cut it again",
+          len(stored) > e.HISTORY_OUTPUT_CHARS,
+          (len(stored), e.HISTORY_OUTPUT_CHARS))
+
+    j.append("exec_start", cmd="cat big")
+    j.append("exec_end", exit_code=0, stdout=stored, stderr="")
+    h = e.recent_block(cycles=2)
+
+    shown = 0
+    for ln in h.split("\n"):
+        t = marker_total(ln.replace(e.HISTORY_QUOTE, "", 1).rstrip())
+        if t:
+            shown = max(shown, t)
+    check("history: a marker survives the second cut at all", shown > 0,
+          h[-400:])
+    check("history: and it reports the TOTAL withheld, never only its own "
+          "share", shown >= truth,
+          "history says %d, the truth is %d" % (shown, truth))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_cut_that_removes_nothing_removes_nothing():
+    """`capped` trimmed to a line boundary even when the text already fitted,
+    so long as some earlier loss was being carried: it reported that loss
+    honestly and then quietly dropped the last line of text that fitted.
+
+    Found 2026-09-21 by reading the function rather than by any failure --
+    `already_cut` was never passed by a real caller, which is exactly why the
+    branch could survive.
+    """
+    # The branch needs a text that FITS and whose last newline is past half
+    # the window -- otherwise the line-boundary trim is never reached and the
+    # test proves nothing. Sweep the shape rather than picking one case.
+    limit = 1000
+    bad = []
+    for tail in (1, 5, 40, 120):
+        text = ("x" * (limit - tail - 60)) + "\n" + ("y" * tail)
+        out = capped(text, limit, already_cut=7)
+        if not out.startswith(text):
+            bad.append((tail, len(text), len(out)))
+    check("caps: text that fits is returned WHOLE even while an earlier loss "
+          "is being carried -- a cut that removes nothing removes nothing",
+          not bad, bad)
+    check("caps: and the earlier loss is still reported rather than dropped",
+          marker_total(capped("short", limit, already_cut=7)) == 7,
+          marker_total(capped("short", limit, already_cut=7)))
+
+
+def test_a_reply_with_no_text_at_all_is_not_an_answer():
+    """The two ladders need DIFFERENT predicates and both need one.
+
+    The cousin's rejects a reply with no verdict block. The creature's passed
+    none, deliberately and correctly: *a think with no command is a real
+    answer*, and rejecting one would wall a rung for thinking out loud.
+
+    **But a reply with no text at all is not a think.** This project wrote that
+    down on 2026-09-10, about a different rung, and never applied it here:
+
+    > An empty reply that consumed its whole budget is a FAILURE, never an
+    > answer... such a call registers as a SUCCESS, so nothing walls the rung
+    > and nothing below it is ever reached -- the manager is silently absent
+    > rather than visibly broken.
+
+    So the engine contradicted itself across two files: `classify_no_blocks`
+    called the same reply `budget_spent` and put it in LOST, while the ladder
+    banked it as the answer and never tried the rung below. Measured over run
+    2 on 2026-09-21: **9 of 1,967 thinks came back with no text at all** --
+    seven gemini at `finish=length`, two groq at `finish=stop`, which is the
+    reasoning-only shape the spine's provider has handled since 2026-08. Nine
+    cycles, each thrown away with a working rung sitting underneath.
+
+    The predicate belongs to the QUESTION, not to the agent -- so this one
+    rejects EMPTINESS and nothing else. A reply with text and no command is
+    still an answer, and that is asserted here rather than left to be trusted.
+    """
+    from kernel.think import unusable_think
+
+    check("empty: a reply with text and NO COMMAND is still a real answer",
+          unusable_think("I looked and there is nothing to do today.", {})
+          is None)
+    check("empty: text that is only whitespace is not text",
+          unusable_think("   \n  ", {}) is not None)
+    check("empty: nothing at all, having spent the whole budget, is a failure",
+          unusable_think("", {"done_reason": "length"}) is not None)
+    check("empty: and it says WHICH emptiness, because the two have "
+          "different fixes",
+          unusable_think("", {"done_reason": "length"})
+          != unusable_think("", {"done_reason": "stop"}),
+          (unusable_think("", {"done_reason": "length"}),
+           unusable_think("", {"done_reason": "stop"})))
+    check("empty: a reply that was ALL reasoning and nothing else is named as "
+          "that, not as silence",
+          "reasoning" in (unusable_think("", {"chars_before_strip": 4000,
+                                              "chars_stripped": 4000}) or ""),
+          unusable_think("", {"chars_before_strip": 4000,
+                              "chars_stripped": 4000}))
+
+    # AND THE LADDER HOPS ON IT. The predicate existing is not the fix; the
+    # creature's ladder being given it is.
+    calls = []
+
+    def dead(prompt):
+        calls.append("dead")
+        return "", {"done_reason": "length"}
+
+    def alive(prompt):
+        calls.append("alive")
+        return "I will look at the plan.", {"done_reason": "stop"}
+
+    ask = backends.ladder([("dead", dead), ("alive", alive)],
+                          reject=unusable_think, sleep=lambda s: None)
+    text, meta = ask("go")
+    check("empty: the ladder steps past a rung that returned nothing",
+          calls == ["dead", "alive"] and meta.get("rung") == "alive",
+          (calls, meta.get("rung")))
+    check("empty: and returns the reply that actually said something",
+          "plan" in text, text)
+
+
+def test_a_tools_own_words_cannot_declare_the_body_dead():
+    """`exec_setup_failure` decides whether the creature RAN something or
+    whether the framework failed to start it, and it decides by looking for
+    phrases anywhere in stdout and stderr. **"is not running" is ordinary
+    English.** A tool reporting `worker is not running` and exiting 0 would
+    have had its output thrown away, its exit code relabelled as a broken
+    body, and -- for a cousin probe -- its verdict never asked for.
+
+    Read against the spine's version of the same function, which asks
+    `if code == 0: return False` first and says why: *125-128 are also
+    legitimate exit codes for a command that really did run*. Ours did not.
+    Measured over the live journal 2026-09-21 before changing anything: **0
+    hits in 2,929 records**, so this is a latent hazard and not a live
+    defect, and it is recorded as such.
+
+    The same guard is what makes it safe to add the marker this engine is
+    actually exposed to. It runs with `--pids-limit 256`, so a fork storm
+    gets `resource temporarily unavailable` from docker -- the command never
+    started, and without the marker that diagnostic reaches the cousin shaped
+    exactly like the tool's own output. That is §2.5 with the framework as
+    author, and the spine paid three and a half hours of silent outage for
+    the lesson.
+    """
+    check("body: a command that SUCCEEDED did not fail to start, whatever it "
+          "printed",
+          not bodymod.exec_setup_failure("the worker is not running", "", 0))
+    check("body: nor when the phrase is on stderr",
+          not bodymod.exec_setup_failure("", "container not found in registry", 0))
+    check("body: a real OCI failure is still a broken body",
+          bodymod.exec_setup_failure("", "OCI runtime exec failed: ...", 126))
+    check("body: and a fork storm hitting the pids limit is the body, not the "
+          "tool -- this engine runs with --pids-limit 256",
+          bodymod.exec_setup_failure(
+              "", "OCI runtime exec failed: fork/exec: resource temporarily "
+                  "unavailable", 126))
+    check("body: a tool that exits non-zero for its own reasons is NOT a "
+          "broken body",
+          not bodymod.exec_setup_failure("usage: plan <cmd>", "", 2))
+
+
+def test_the_parser_under_adversarial_replies():
+    """Synthetic edge cases through the real parser, 2026-09-21.
+
+    Read beside `executive/parser.py` in Growing Spine, which is 25 lines to
+    our 160. The difference is entirely scar tissue, and this asserts the
+    shape of each scar rather than trusting the comment above it.
+
+    Where an answer here is deliberately different from the spine's, the
+    reason is stated. Where it is a KNOWN GAP with no live occurrences, that
+    is stated too, with the measurement and the date, because a gap nobody
+    wrote down is one the next session rediscovers from scratch.
+    """
+    F = "```"
+    P = think.parse_blocks
+
+    check("edge: the ordinary case still works", P(F + "bash\nls\n" + F) == ["ls"])
+    check("edge: `sh` is accepted as well as `bash`",
+          P(F + "sh\nls\n" + F) == ["ls"])
+    check("edge: trailing spaces after the tag do not hide a command",
+          P(F + "bash   \nls\n" + F) == ["ls"])
+    check("edge: an opener mid-line still opens -- the 09-14 asymmetry, which "
+          "cost a real command forty minutes after the fix that caused it",
+          P("...</thought>" + F + "bash\nls\n" + F) == ["ls"])
+    check("edge: a closing fence that does NOT start its own line cannot "
+          "close a block", P(F + "bash\nls\n   " + F) == [])
+    check("edge: an empty block is not a command", P(F + "bash\n\n" + F) == [])
+    check("edge: nor a block of whitespace", P(F + "bash\n   \n" + F) == [])
+    check("edge: an untagged fence is never executed -- the creature is told "
+          "to mark its actions and quoted text is not made executable by "
+          "sitting between backticks",
+          P(F + "\nrm -rf /\n" + F) == [])
+    check("edge: neither is ```python, which is 1,256 of the column-0 fences "
+          "in this run", P(F + "python\nprint(1)\n" + F) == [])
+
+    # CRLF. The spine's parser accepts it; ours did not until today, because
+    # `[ \t]*` after the tag does not match a carriage return. Measured over
+    # the live journal 2026-09-21 before changing it: 0 replies of 1,926
+    # contained CRLF at all. Fixed anyway -- a reply's line endings are the
+    # provider's business, not the contract's, and the failure mode is silent
+    # loss of every command for as long as a provider chooses to send them.
+    check("edge: a CRLF reply is still a reply",
+          P(F + "bash\r\nls\r\n" + F) == ["ls"])
+    check("edge: and the carriage returns do not reach the shell, where they "
+          "would become `ls\\r: command not found`",
+          "\r" not in (P(F + "bash\r\nls\r\n" + F) or [""])[0])
+
+    # DUPLICATES. The spine de-duplicates identical blocks inside one reply and
+    # says why: running the same thing N times is pure waste. We deliberately
+    # do NOT, and the reason is this project's division of labour: deciding
+    # that a repeated command was not meant twice is a judgement about intent,
+    # and the framework holds bounds, not judgement. The creature sees both
+    # runs in its own transcript and can act on that; we would be silently
+    # dropping work it asked for. Measured 2026-09-21 before deciding: 26 of
+    # 1,927 replies repeat a block, almost all of them `cat`.
+    check("edge: a block written twice runs twice, on purpose",
+          P(F + "bash\na\n" + F + "\n" + F + "bash\na\n" + F)
+          == ["a", "a"])
+
+    # KNOWN GAP, recorded rather than patched at three in the morning. A fence
+    # at column 0 INSIDE a heredoc body still closes the block, so a tool whose
+    # source contains one would land cut -- the 2026-09-14 scar's remaining
+    # half. Measured the same day over every uncut reply in run 2: **0 real
+    # occurrences in 1,588.** The five the first pass found were all the
+    # creature quoting its own `| `-prefixed transcript, and the 192 the pass
+    # before that found were the journal's own 800-character cap on `cmd`.
+    # Trigger to act: the first real one, or any SyntaxError in a tool whose
+    # source contains a column-0 fence.
+    cut = P(F + "bash\ncat > t <<'EOF'\n" + F + "\nEOF\n" + F)
+    check("edge: the heredoc gap is where it is believed to be, so a fix can "
+          "be recognised as one", cut == ["cat > t <<'EOF'"], cut)
+
+    # CLASSIFICATION. Three emptinesses and three fixes, which is the whole
+    # reason this module is not five lines.
+    cl = lambda t, f=None: think.classify_no_blocks(t, f)[0]
+    check("edge: nothing at all, with the ceiling hit, is the budget",
+          cl("", "length") == "budget_spent")
+    check("edge: nothing at all, complete, is an empty reply",
+          cl("", "stop") == "empty_reply")
+    check("edge: text that hit the ceiling is TRUNCATED, never 'no command'",
+          cl("I was about to", "length") == "truncated")
+    check("edge: a tagged marker with no parsed block is work LOST",
+          cl("see " + F + "bash and then nothing") == "unclosed_fence")
+    check("edge: a fence with no tag is its own answer, not silence",
+          cl(F + "\nx\n" + F) == "untagged_fence")
+    check("edge: and only the three that LOST work count as lost",
+          [think.commands_were_lost(x) for x in
+           ("budget_spent", "truncated", "unclosed_fence", "untagged_fence",
+            "no_command", "empty_reply")]
+          == [True, True, True, False, False, False])
+
+
+def test_a_command_the_shell_cannot_be_given_is_not_a_broken_body():
+    """A NUL byte in a command makes `subprocess` raise ValueError before the
+    process exists. That left by the generic handler as `setup_failed=True`,
+    exit 128 -- so the framework would have declared the BODY broken, respawned
+    it, and (on the cousin's side) thrown the probe away as LOST, all because
+    of a byte in the creature's own text.
+
+    A fabricated infrastructure failure, authored by us, out of the creature's
+    words: §2.5 from the inside. Never observed live -- a model has to work to
+    emit a NUL through JSON -- and fixed because the cost of being wrong is a
+    body respawn and a discarded visit, while the fix is one branch.
+    """
+    d = tempfile.mkdtemp()
+    b = bodymod.DockerBody("growing-cousin-no-such", image="x", mind=d)
+    r = b.run("echo one\x00two")
+    check("nul: the body is not blamed", not r.setup_failed, r)
+    check("nul: it is reported as the command being unrunnable",
+          r.code != 0 and "null" in (r.stderr or "").lower(), (r.code, r.stderr))
+    check("nul: and stdout stays empty, so nothing reaches the creature "
+          "shaped like its own output", r.stdout == "", r.stdout)
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_marker_invariant():
     """A marker reports the TOTAL withheld. A later cut may only INCREASE that
     number, never replace it with its own -- the parent showed '+40 chars cut'
@@ -7960,6 +8262,12 @@ def main():
                test_journal, test_history_never_cuts_mid_line,
                test_a_marker_says_whose_cut_it_is,
                test_marker_invariant, test_body,
+               test_the_parser_under_adversarial_replies,
+               test_a_command_the_shell_cannot_be_given_is_not_a_broken_body,
+               test_a_tools_own_words_cannot_declare_the_body_dead,
+               test_a_reply_with_no_text_at_all_is_not_an_answer,
+               test_the_history_does_not_shrink_a_marker_it_re_cuts,
+               test_a_cut_that_removes_nothing_removes_nothing,
                test_command_reaches_disk_intact,
                test_observer_describes_every_kind_it_can_see,
                test_vitals_never_aggregates_across_rungs,

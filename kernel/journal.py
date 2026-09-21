@@ -15,6 +15,7 @@ returns coincidental hits and reads exactly like a quiet day.
 """
 import json
 import os
+import re
 import time
 
 # Caps are named constants shared by writer and reader, never literals at the
@@ -82,21 +83,57 @@ EXEC_CMD_CHARS = 800
 # concludes the content ended.
 _MARK = "…[%d chars withheld by the log, not missing from the output; window %d]"
 
+# One pattern, read by `marker_total` and by `capped` itself. Two regexes for
+# one marker is a producer and a checker sharing a literal, which is the shape
+# this file already carries a scar about.
+_MARK_RE = re.compile(
+    r"\u2026?\[(\d+) chars withheld by the log[^\]]*window (\d+)\]$")
+
 
 def capped(text, limit, already_cut=0):
     """Cut to `limit`, announcing the TOTAL withheld including earlier cuts,
-    and saying plainly that the cut is the LOG's and not the content's."""
+    and saying plainly that the cut is the LOG's and not the content's.
+
+    **IT READS ITS OWN MARKER, rather than relying on the caller to pass
+    `already_cut`.** Until 2026-09-21 the invariant held only when the caller
+    remembered, and the one caller that nests cuts for real -- `recent_block`,
+    re-cutting an `exec_end.stdout` that the journal had already capped --
+    never did. Measured over the live journal the same day: **74 of 652 marked
+    outputs came out understated, the worst telling the creature 146
+    characters were withheld when the truth was 6,114.**
+
+    That is the marker lying in the direction that reads as reassurance, and
+    this engine has already paid for the other direction: on 2026-09-12 the
+    creature read a marker, concluded its tool was broken, and rewrote two
+    working tools shorter. `test_marker_invariant` was green the whole time
+    because it passes `already_cut` by hand -- *a test suite proves what it
+    asserts and nothing more.*
+    """
     text = "" if text is None else str(text)
-    if len(text) <= limit and not already_cut:
-        return text
-    kept = text[:limit]
-    # Prefer a LINE BOUNDARY. A cut through the middle of `print(line.strip())`
-    # looks exactly like corruption -- the creature read one as a bug in its own
-    # tool and rewrote the tool. A cut between lines reads as an excerpt, which
-    # is what it is. Only when a line survives: never gut the text to find one.
-    nl = kept.rfind("\n")
-    if nl > limit // 2:
-        kept = kept[:nl]
+    # Absorb any marker this text already carries: strip it, and carry its
+    # total forward. The marker sits at the very end, so a second cut would
+    # otherwise remove the large number and replace it with a small one.
+    m = _MARK_RE.search(text)
+    if m:
+        already_cut += int(m.group(1))
+        text = text[:m.start()]
+    if len(text) <= limit:
+        # A CUT THAT REMOVES NOTHING REMOVES NOTHING. This used to fall through
+        # to the line-boundary trim whenever an earlier loss was being carried,
+        # and drop the last line of text that fitted -- unreachable in
+        # production only because nobody passed `already_cut`, which is exactly
+        # why it survived to be found by reading.
+        kept = text
+    else:
+        kept = text[:limit]
+        # Prefer a LINE BOUNDARY. A cut through the middle of
+        # `print(line.strip())` looks exactly like corruption -- the creature
+        # read one as a bug in its own tool and rewrote the tool. A cut between
+        # lines reads as an excerpt, which is what it is. Only when a line
+        # survives: never gut the text to find one.
+        nl = kept.rfind("\n")
+        if nl > limit // 2:
+            kept = kept[:nl]
     withheld = (len(text) - len(kept)) + already_cut
     if withheld <= 0:
         return kept
@@ -106,9 +143,7 @@ def capped(text, limit, already_cut=0):
 def marker_total(text):
     """Read back the withheld count a marker claims. Used to prove the
     invariant holds across nested cuts rather than trusting that it does."""
-    import re
-    m = re.search(r"\[(\d+) chars withheld by the log[^\]]*window (\d+)\]$",
-                  text or "")
+    m = _MARK_RE.search(text or "")
     return int(m.group(1)) if m else 0
 
 
