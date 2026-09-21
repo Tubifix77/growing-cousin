@@ -37,8 +37,9 @@ Status: `[ ]` not started · `[~]` in flight · `[x]` done and verified.
 ## WHERE THE BOARD STANDS — 2026-09-21
 
 Tue, 2026-09-21: *"then lets get the board cleared."* It is, as far as work
-can clear it. **Twenty of twenty-one items are `[x]`.** What is left is not
-work anybody can do tonight, and the distinction matters more than the count:
+can clear it. **Every heading that is not `[x]` is in the table below, and that is the whole list.** What is left is not work anybody can do tonight, and the distinction matters more than any count:
+
+> **No number here, deliberately.** The first version of this sentence said *twenty of twenty-one*; the true figure was fifteen of twenty-one, and the table underneath it listed six open lines, so the paragraph contradicted itself. Found by a verifier, not here. `CLAUDE.md` §0 already refuses to write the gate's assertion count down for exactly this reason -- *a count in prose is a constant nobody chose, obeyed forever* -- and the rule was not applied to the board. It is now: the table IS the claim, and it can be checked against the file.
 
 | still open | why, in one line | what would move it |
 |---|---|---|
@@ -48,6 +49,7 @@ work anybody can do tonight, and the distinction matters more than the count:
 | **17.3** the deciding half | moves with 16 by construction | 16 |
 | **20.4** the cousin does not use its continuity | mechanism works, 68 harvests, all empty; likely structural | a week of 20.2 to read a change against |
 | **21.2** the rewrite wall itself | the reprieve holds today; the wall is at ~25 KB | first tool over 15 KB, or `truncated|lost` over 10% again |
+| **22.1 / 22.2** | a fence inside a heredoc, and the cost of re-reading a journal that only grows | both named and dated in item 22 |
 
 **None of these is blocked on a decision that has not been taken, and none is
 waiting on "more information"** — each names a trigger and a date, which is
@@ -659,10 +661,11 @@ unprompted.
 > cycle in its own time.
 >
 > **Second: it is gated, not merely deferred.** The gate is every open item
-> on this board except 11 itself — as of 2026-09-21: 9.5, 14, 16, 17, 19.5,
-> 20 with 20.4, 21 with 21.2, and 18.1 through 18.8. Two are not ours to
-> close (19.5 is Tue's, 9.5 elapses), so the working reading is *nothing is
-> left that we are holding*. **Run 3 is not a way out of a hard item**: it
+> on this board except 11 itself, **and it is the table at the top of this
+> file rather than a list repeated here.** A list was repeated here, and
+> within a day it named 18.1-18.8 and 19.5 as open when all of them were
+> `[x]` -- a gate that drifts is not a gate. None of the lines in that
+> table can be closed by working tonight. **Run 3 is not a way out of a hard item**: it
 > spends unattended days on a shared free tier, which is the one resource
 > this project cannot make more of, and spending them on an engine still
 > being repaired produces a run whose numbers span its own repairs. Run 2
@@ -885,7 +888,8 @@ land while anything is being measured.
 >
 > **What holds it now is a measurement in flight.** On 2026-09-21 this
 > project's headline metric started answering for the first time in its life
-> (item 20.2: 1 survived, 4 have not, 58 cannot tell yet, run 7.5 days old).
+> (item 20.2: one tool has survived it, `plan`; the not-yet columns move
+> by the hour and belong on the page rather than in a document).
 > Its window is seven days. Adding a chat surface to the creature's context
 > now would land in the middle of the first one, and §0's rule is that a new
 > surface mid-measurement makes every number either side of it incomparable.
@@ -1555,12 +1559,16 @@ with the only test available to something that has no work to do: did it run.
   is 6.0 days.** The metric starts answering tomorrow, which is the first time
   this project can answer the question it says it asks first.
 
-  > **AND IT DID. 2026-09-21 01:42, run 7.5 days old: 1 survived, 4 have
-  > not, 58 cannot be judged yet.** The one is **`plan` -- named by 12 other
-  > tools, reached by its user 107 times over 7.4 days.** Four tools were
-  > reached by the cousin and not reached again inside the window. The other
-  > 58 were first reached less than seven days ago, so their own windows are
-  > still open; 57 have been reached more than once.
+  > **AND IT DID, 2026-09-21 01:42, on a run 7.5 days old: one tool has
+  > survived it.** That tool is **`plan` -- named by 12 others, reached by
+  > its user 107 times across 7.4 days.**
+  >
+  > **The other two columns are not quoted here, and that is a correction.**
+  > They read 4 and 58 at 01:42 and 7 and 56 at 02:37 the same night,
+  > because a tool's window closes on its own clock. A verifier caught this
+  > document quoting a 46-minute-old pair as though it were a result. Read
+  > them off `live/monitor/status.md`, which regenerates every five minutes
+  > and names the engine that produced them.
   >
   > **One is not a score and must not be quoted as one.** It is the first
   > non-empty answer to the question `ARCHITECTURE.md` §12 says this project
@@ -1680,3 +1688,75 @@ it is a real experiment with a real before and after -- but `CREATURE-PROMPT.md`
 is frozen (§0), it must be scored under item 8's discipline (a direction across
 several reps, split by rung, detection and correction together), and it must
 not move in the same window as 20.1 or neither is readable.
+
+---
+
+## Phase 8 — the line-by-line pass (added 2026-09-21)
+
+### 22. `[x]` Read this framework against the spine's counterpart, one file at a time
+
+**Tue, 2026-09-21, going to bed:** *"run a synthetic test on the code
+afterwards testing a few edgecases going through line by line of the code in
+the little framework we have compared to the growing-spine counterpart."*
+
+Read side by side, reading only (§2.6): `kernel/journal.py` against
+`executive/journal.py`; `kernel/think.py` against `executive/parser.py`, which
+is 25 lines to our 160 and the difference is entirely scar tissue;
+`kernel/backends.py` and `kernel/quota.py` against `keychain/`;
+`kernel/body.py` against `executive/sandbox.py`; `kernel/forever.py` against
+the loop's supervisor; then `monitor/derive.py` against nothing, because the
+spine has no equivalent.
+
+**FIVE DEFECTS, each red-proven before its fix existed.** Two were live, one
+was a false sentence waiting five days to be printed, two were latent:
+
+| | what | live? |
+|---|---|---|
+| `6bfd54d` | a marker understating a loss by 6,114 characters | **74 of 652** |
+| `6bfd54d` | the creature's ladder banking a reply with no text as an answer | **9 of 1,967** |
+| `6bfd54d` | a tool's own English able to declare the body dead | 0 of 2,929 |
+| `6bfd54d` | a NUL byte in a command blamed on the body | never |
+| `85a52fe` | the headline metric measured out of a window of BYTES | **due 09-26** |
+
+The last one is the one to read if only one is read: `derive.load` reads the
+last 24 MB of the journal, every other figure on the page is a count over a
+recent window so a tail costs them nothing, and the headline metric is a SPAN
+OF DAYS. Forced with a 4 MB tail against the real journal, the old code
+returned 0 survived / 0 have not / 64 cannot tell and explained it with *"the
+run is 2.1 days old"* about a run seven and a half days old.
+
+**WHAT THE PASS MEASURED AND LEFT ALONE.** Each is a hold with a named
+trigger, which is §4's test for a hold that is real:
+
+- **22.1 `[ ]` The heredoc half of the 2026-09-14 fence scar.** A column-0
+  fence inside a heredoc body still closes a block, so a tool whose source
+  contains one lands cut. **0 real occurrences in 1,588 uncut replies** -- the
+  five the first pass found were the creature quoting its own `| `-prefixed
+  transcript, and the 192 the pass before that found were the journal's own
+  800-character cap on `cmd`. *Trigger: the first real one, or any SyntaxError
+  in a tool whose source contains a column-0 fence.* Not patched at three in
+  the morning, because the 09-14 scar is specifically about what a midnight
+  change to this parser costs.
+- **22.2 `[ ]` A journal read costs 0.33 s at 14.6 MB and a wake does
+  several.** Every piece of the manager's state is derived from the journal by
+  design (§6.1) and the journal only grows: ~6-8% of a cycle today against a
+  25-33 s model call, rising. This is the spine's *28-second scan a human
+  found by hearing the laptop fan*, at one-hundredth of the size. *Trigger: a
+  full read crossing 5 seconds (~220 MB, months away) -- or run 3, where it
+  should be designed out rather than measured.*
+- **Deliberately NOT copied from the spine: block de-duplication.** It drops
+  a repeated identical block; we run both. Deciding a repeated command was not
+  meant twice is a judgement about intent, and this framework holds bounds.
+  26 of 1,927 replies repeat a block, nearly all `cat`.
+- **Confirmed by running, not by reading:** the fault-injection drills
+  (`rehearse.py`) pass end to end on the new code -- the container drill's 30
+  checks all true, including `keys_unreadable`, `spine_invisible` and
+  `tools_survived_respawn`; the give-up drill reaching exit 5 -> 2 bounded
+  restarts -> `failed`, with `loop_error` firing ten times in a path that has
+  **never once fired in production** (0 records in the whole of run 2, against
+  2,410 waits, longest run 260 of a 600 ceiling).
+
+**Acceptance, and it is checkable:** every fix above has a test that was seen
+RED against the code as it shipped; the gate is green on both boxes (972
+assertions on the laptop); and none of it was deployed into the window that
+settles item 21.1.

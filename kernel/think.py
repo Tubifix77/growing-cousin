@@ -79,15 +79,34 @@ import re
 # harmless by comparison -- the worst case is a literal that reads exactly
 # like an opener AND is followed by a newline, in a reply that contains no
 # real block.
-# **CRLF IS A REPLY TOO.** `[ \t]*` does not match a carriage return, so a
-# provider that sends CRLF would have had EVERY command silently classified as
-# an unclosed fence -- visible as LOST, which is something, but unfixable from
-# the creature's side because it is not the creature's doing. Measured over the
-# live journal 2026-09-21: 0 of 1,926 replies contain CRLF, so this is
-# insurance rather than a repair. A reply's line endings are the provider's
-# business; the contract is about fences.
-FENCE_RE = re.compile(r"```(?:bash|sh)[ \t]*\r?\n(.*?)^```\r?$",
-                      re.S | re.M)
+# **CRLF IS A KNOWN GAP AND STAYS ONE.** `[ \t]*` does not match a
+# carriage return, so a provider that sent CRLF would have every command
+# classified `unclosed_fence` -- LOST, which is at least visible, and
+# unfixable from the creature's side because it is not the creature's
+# doing. Measured 2026-09-21 over the live journal: **0 of 1,926 replies
+# contain CRLF at all.**
+#
+# **A FIX FOR IT WAS WRITTEN, SHIPPED AND REVERTED THE SAME NIGHT, and
+# the revert is the entry worth reading.** It added `\r?` at both ends.
+# The tag end was harmless. The CLOSING end became `^```\r?$`, and `$`
+# under `re.M` means the fence must now END its line -- so a closer with
+# a trailing space stopped closing, and a run of backticks that had been
+# a closer stopped being one. Replayed over every raw reply in run 2 by
+# an independent verifier: **9 replies parsed differently**, and the
+# direction was the block SWALLOWING MORE. In one, two valid
+# `remember current-phase done` commands became a single block
+# containing `</thought>` and a literal fence -- a guaranteed shell
+# error, attributed to the creature.
+#
+# That is the 2026-09-14 scar exactly: a midnight change to the parser
+# the creature speaks through, justified as insurance, costing real
+# commands. The measured risk was 0 and the measured cost was 9.
+# **Invariant: a parser change is scored by REPLAYING IT OVER THE REAL
+# REPLIES before it ships, not after.** `test_a_parser_change_is_replayed`
+# is that rule with teeth.
+#
+# *Trigger to revisit: the first reply that actually contains CRLF.*
+FENCE_RE = re.compile(r"```(?:bash|sh)[ \t]*\n(.*?)^```", re.S | re.M)
 
 # A tagged marker ANYWHERE in the reply. If one is present and yet no block
 # was parsed, the creature marked work as an action and the channel did not
@@ -111,17 +130,21 @@ def parse_blocks(text):
     actions and it does; text it merely quotes is not made executable by
     sitting between backticks.
     """
-    # The carriage returns are stripped from the BODY as well. A block that
-    # keeps them reaches bash as `ls\\r`, which is `command not found` for a
-    # command the creature wrote correctly -- the framework manufacturing work
-    # and billing the creature for it, by the back door this file exists to
-    # keep shut.
-    out = []
-    for b in FENCE_RE.findall(text or ""):
-        b = b.replace("\\r\\n", "\\n").strip()
-        if b:
-            out.append(b)
-    return out
+    # REVERTED 2026-09-21 with the CRLF change above. The line that stood
+    # here for one commit read `b.replace("\\r\\n", "\\n")` -- DOUBLE
+    # backslashes, so it matched the four literal characters and no
+    # carriage return was ever stripped. It did do one thing: it rewrote a
+    # command the creature really wrote. One live occurrence in run 2's
+    # 2,327 commands -- `tr -d '\\r\\n'` inside a tool being written to
+    # disk, which would have landed as `tr -d '\\n'`. The framework
+    # editing the creature's source, by a patch whose whole subject was
+    # the framework not doing that.
+    #
+    # Third time in one night that an escape did not survive crossing a
+    # tool boundary, and the first time it reached a commit. The habit in
+    # CLAUDE.md says to write the file and run it; it does not say what to
+    # do when the escape is INSIDE the thing being written, and now it does.
+    return [b.strip() for b in FENCE_RE.findall(text or "") if b.strip()]
 
 
 def classify_no_blocks(text, finish_reason=None, completion_tokens=None):

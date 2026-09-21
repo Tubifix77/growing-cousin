@@ -447,6 +447,17 @@ class Engine:
         # wake-cost failure class arriving by the back door. Oldest goes first:
         # the newest cycle is the one it needs to not repeat.
         if len(block) > self.HISTORY_TOTAL_CHARS:
+            # HOW MUCH, not just THAT. Found 2026-09-21 by an independent
+            # verifier, an hour after the commit that said the marker
+            # invariant now held without the caller remembering: it held for
+            # the per-output cut, and this one announced itself with no number
+            # at all. Demonstrated at that commit, two capped outputs in one
+            # cycle -- 4,727 characters gone, including a whole `$ cat big0`
+            # line and the first 65 lines of its output, while both surviving
+            # markers still claimed exactly 55,948. So every per-output marker
+            # understates by whatever this took, which is the same fault one
+            # level up, in the commit that fixed the level below.
+            dropped = len(block) - self.HISTORY_TOTAL_CHARS
             keep = block[-self.HISTORY_TOTAL_CHARS:]
             nl = keep.find("\n")
             # The HEADER IS KEPT, not replaced. It carries the warning that
@@ -455,8 +466,10 @@ class Engine:
             # which is exactly when the creature started re-running its own
             # output. A safety note that vanishes under load is not one.
             block = (out[0] + "\n\n" + out[2]
-                     + "\n\n(Older lines dropped; this is the most recent part "
-                       "of the transcript.)\n"
+                     + "\n\n(Older lines dropped: %d characters of earlier "
+                       "transcript are not shown here, on top of anything the "
+                       "log withheld from an individual output below. This is "
+                       "the most recent part.)\n" % dropped
                      + (keep[nl:] if nl > 0 else keep))
         return block
 

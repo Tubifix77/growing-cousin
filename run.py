@@ -501,6 +501,49 @@ def ensure_container(container, image, host_body, timeout=120):
     return body
 
 
+def build_ladders(spec, cousin_spec, journal=None, quota_state=None,
+                  quota_path=None):
+    """The three ladders the engine runs on, and the predicate each is given.
+
+    **One place, because a test has to be able to drive the REAL construction.**
+    Until 2026-09-21 this was three inline calls in `main`, so reverting that
+    file alone -- removing the creature's predicate entirely -- left all 966
+    assertions green: every test built its own ladder and asserted that the
+    predicate worked, which says nothing about whether the engine was given
+    it. Found by a verifier reverting the file to see what went red, and
+    nothing did.
+
+    **A predicate belongs to a QUESTION, not to an agent** (§5, 2026-09-16),
+    and there are three questions here:
+
+    - *what do you want to do* -- the creature. A think with no command is a
+      REAL ANSWER and must never be rejected, or a rung is walled for thinking
+      out loud. Only emptiness is rejected: see `think.unusable_think`.
+    - *what do you make of it* -- the cousin. No verdict block is a failure.
+    - *what would you like to run* -- the cousin again, and here no block is
+      an ANSWER, not a failure, which is why it cannot share the ladder above.
+
+    `quota_state` is SHARED across all three: what we know about a rung's
+    quota is a fact about the rung, while what counts as a usable reply is a
+    fact about what was asked.
+    """
+    from kernel import cousin as cousinmod
+    from kernel.think import unusable_think
+    ask_creature = backends.from_spec(spec, journal=journal,
+                                      quota_state=quota_state,
+                                      quota_path=quota_path,
+                                      reject=unusable_think)
+    ask_cousin = backends.from_spec(cousin_spec, journal=journal,
+                                    quota_state=quota_state,
+                                    quota_path=quota_path,
+                                    reject=cousinmod.unusable_reply)
+    ask_cousin_invoke = backends.from_spec(cousin_spec, journal=journal,
+                                           quota_state=quota_state,
+                                           quota_path=quota_path,
+                                           reject=cousinmod.unusable_invocation)
+    return ask_creature, ask_cousin, ask_cousin_invoke
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--cycles", type=int, default=10)
@@ -579,38 +622,21 @@ def main(argv=None):
     spec = backends.load_spec(args.rungs)
     cousin_spec = backends.load_spec(args.cousin_rungs) or spec
     if spec:
+        # BUILT IN ONE PLACE, so a test can drive the real construction. Until
+        # 2026-09-21 the predicates were wired inline here and every test used
+        # a ladder it had built itself, so reverting this file alone left the
+        # whole gate green with the creature's predicate gone. That is the
+        # 2026-09-16 shape -- a feature inert in production for fifteen hours
+        # under a green gate -- and it is the second time this exact wiring
+        # has been the thing nothing asserted.
         # ONE quota memory, shared by both ladders. The rungs are the same
         # accounts, so a rung the creature found spent is spent for the cousin
         # too -- two separate memories would each have to learn it, which is
         # two wasted requests against the sibling's account instead of one.
         qpath = os.path.join(args.root, "quota.json")
         qstate = backends.quotamod.load(qpath)
-        # THE CREATURE'S LADDER REJECTS EMPTINESS AND NOTHING ELSE. A think
-        # with no command is a real answer and must never be rejected -- that
-        # would wall a rung for thinking out loud. A reply with no TEXT is not
-        # a think, and banking one as the answer is this project's own
-        # 2026-09-10 scar left unapplied on this side: the classifier called it
-        # `budget_spent` and put it in LOST while the ladder called it success
-        # and never reached the rung below.
-        from kernel.think import unusable_think
-        ask_creature = backends.from_spec(spec, journal=j, quota_state=qstate,
-                                          quota_path=qpath,
-                                          reject=unusable_think)
-        # The cousin's ladder rejects a reply with no verdict in it. Its
-        # predicate is a different one, for a different question.
-        from kernel import cousin as cousinmod
-        ask_cousin = backends.from_spec(cousin_spec, journal=j,
-                                        quota_state=qstate, quota_path=qpath,
-                                        reject=cousinmod.unusable_reply)
-        # THE SAME RUNGS, A DIFFERENT TEST OF USABILITY. Choosing what to run
-        # returns a bash block, not a verdict, so it cannot be asked through
-        # the ladder above -- that one walls a rung for every correct answer.
-        # `quota_state` is SHARED: what we know about a rung's quota is a fact
-        # about the rung, while what counts as a usable reply is a fact about
-        # the question.
-        ask_cousin_invoke = backends.from_spec(
-            cousin_spec, journal=j, quota_state=qstate, quota_path=qpath,
-            reject=cousinmod.unusable_invocation)
+        ask_creature, ask_cousin, ask_cousin_invoke = build_ladders(
+            spec, cousin_spec, journal=j, quota_state=qstate, quota_path=qpath)
         spent = backends.quotamod.spent_rungs(qstate)
         if spent:
             print("resumed with rungs still spent: %s" % ", ".join(spent))

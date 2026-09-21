@@ -44,9 +44,7 @@ can be checked rather than asserted, and each verified by a reader who did not
 build it. Do not start work that is not on it; do not leave work off it.
 
 **THE BOARD IS CLEAR, 2026-09-21.** Tue: *"then lets get the board cleared."*
-Twenty of twenty-one items are `[x]`. `PLAN.md` opens with a table of what is
-left, and the point of that table is the distinction it draws: **nothing is
-left that work can finish tonight.** Each remaining line names a trigger and a
+`PLAN.md` opens with a table of every heading that is not `[x]`, and the point of that table is the distinction it draws: **nothing is left that work can finish tonight.** *(There was a count in this sentence for a few hours. It was wrong -- twenty of twenty-one against a true fifteen of twenty-one -- and a verifier found it. This file's own §0 refuses to write the gate count down for that reason; the board gets the same treatment.)* Each remaining line names a trigger and a
 date — which is §4's test for a hold that is real rather than inaction in the
 costume of caution.
 
@@ -67,7 +65,11 @@ costume of caution.
 *Tools that start, are invoked by someone other than their author, and are
 still invoked a week later* (`ARCHITECTURE.md` §12) — the number this project
 says it measures before any other, and which had never once been computable
-here. **1 survived, 4 have not, 58 cannot be judged yet.** The one is `plan`:
+here. **One tool has survived it: `plan`.** At 01:42 the other two
+columns read 4 have not and 58 cannot be judged yet; by 02:37 the same
+night they read 7 and 56, because windows close by the hour. **Read them
+off `live/monitor/status.md` and never from here** -- a verifier caught
+this quoting a 46-minute-old pair. The survivor is the stable part:
 named by 12 other tools, reached 107 times by its user across 7.4 days.
 
 **One is not a score.** The run is 7.5 days old against a 7-day window, so 58
@@ -422,6 +424,17 @@ fails the liveness assertion intermittently under the suite's process churn —
 it there before committing; the pattern that works without pushing first is a
 scratch `git clone ~/growing-cousin /tmp/gate-check` with the changed files
 uploaded over it.
+
+> **FIXED 2026-09-21 (PLAN 18.8), and this paragraph is kept because the
+> diagnosis is the useful part.** `LocalBody` now finds a real bash
+> rather than spawning a bare `bash` for Windows to resolve, and the
+> Windows gate is green: **937 of 937 in 47.8 s, 0 failures, 3 honest
+> skips**, run twice from a fresh clone by an independent verifier. The
+> laptop remains the authority; a Windows run now says something.
+>
+> This correction is here rather than replacing the text below because
+> the text below was READ as current for four days after the fix landed,
+> which is the drift this section is supposed to be immune to.
 
 **2026-09-17: on the Windows box it is not intermittent any more, it is
 every run, and the cause is named.** An independent verifier ran the gate
@@ -971,11 +984,12 @@ guess with authority it has not earned.
   do that when all not-fixed and not-implemented issues are gone."* A
   priority call, which is his. It changes item 11 from *deliberately not
   taken* to *gated*, and the gate is a list rather than a feeling: **every
-  open item on the board except 11 itself**, which as of 2026-09-21 is
-  9.5, 14, 16, 17, 19.5, 20 with 20.4, 21 with 21.2, and 18.1 through 18.8.
-  Two of those are not mine to close — 19.5 is Tue's and 9.5 is a window that
-  closes by elapsing — so the honest reading of the gate is *nothing is left
-  that WE are holding*. **Do not start run 3 to escape a hard item.** The
+  open item on the board except 11 itself**, and the list is not written
+  out here, because it was written out here once and went stale the same
+  day: it named 18.1-18.8 and 19.5, all of which had closed. **Read the
+  table at the top of `PLAN.md`** -- that is the gate, it is one place,
+  and it can be checked against the file. As of 2026-09-21 evening it is
+  six lines, of which none is ours to close by working tonight. **Do not start run 3 to escape a hard item.** The
   reason for the order is that run 3 costs the only thing this project cannot
   make more of, which is unattended days on a shared free tier, and spending
   them on an engine still being fixed every few days produces a run whose
@@ -999,6 +1013,91 @@ guess with authority it has not earned.
 
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
+
+- **I CHANGED THE PARSER THE CREATURE SPEAKS THROUGH AS INSURANCE AGAINST A
+  FAULT WITH ZERO OCCURRENCES, AND IT COST NINE REAL REPLIES.** 2026-09-21,
+  shipped in `6bfd54d` and reverted in the next commit, found by the
+  independent verifier this file's own §0 insists on and by nothing else.
+
+  Reading our parser beside the spine's, ours could not match a reply with
+  CRLF line endings: `[ \t]*` after the tag matches no carriage return, so
+  every command in such a reply would classify as `unclosed_fence`. I measured
+  it -- **0 of 1,926 replies contain CRLF** -- wrote *insurance rather than a
+  repair* in the comment, and shipped `\r?` at BOTH fence ends.
+
+  The tag end was harmless. The closing end became `^```\r?$`, and **`$` under
+  `re.M` means the fence must now END its line.** Replayed over every raw
+  reply in run 2:
+
+  | | |
+  |---|---|
+  | replies containing CRLF, the thing being fixed | **0** |
+  | replies that parsed DIFFERENTLY after the fix | **9** |
+  | direction of the difference | the block swallowed more, every time |
+
+  The clearest one: `remember current-phase done`, a closing fence sharing its
+  line with the next opener, and `remember current-phase done` again. Two
+  valid commands. After the change: **one block containing a literal fence and
+  `</thought>`** -- a guaranteed shell error, delivered to the creature as its
+  own. And a closer with a trailing space stopped closing at all, which loses
+  every command in the reply.
+
+  **The second half is worse and is the oldest habit in this file.** The same
+  commit added `b.replace("\\r\\n", "\\n")` to strip carriage returns from the
+  block body -- DOUBLE backslashes, four literal characters, no carriage
+  return ever stripped. It did do one thing: **it rewrote a command the
+  creature really wrote.** One occurrence in run 2's 2,327 commands, `tr -d
+  '\\r\\n'` inside a tool being written to disk, which would have landed as
+  `tr -d '\\n'`. *The framework editing the creature's source*, inside a patch
+  whose entire subject was the framework not doing that. Third time in one
+  night that an escape failed to survive a tool boundary, and the first that
+  reached a commit.
+
+  **What the gate had to say about all this: nothing.** The check written for
+  the CRLF fix was `"\\r" not in (P(...) or [""])[0]` -- green when the CR is
+  stripped AND green when nothing parses at all. A check with an `or [""]`
+  fallback is a check that cannot fail.
+
+  **Invariant: a parser change is scored by REPLAYING IT OVER THE REAL REPLIES
+  BEFORE IT SHIPS.** Not by a test of shapes somebody thought of -- the cost
+  is always in the shapes nobody thought of, three times out of four changes
+  now. `replay_parser.py` makes that a command rather than an intention:
+  `--save` a baseline, change the parser, `--against` it, and read what moved.
+  The corpus cannot live in this repo (raw model output, public repo), so the
+  command runs on the laptop and the gate asserts only that the command works
+  -- including that a dropped-`raw` fixture reads as *no reply* and never as
+  *a parser that stopped working*.
+
+  **And the measured-risk-versus-measured-cost arithmetic is the part to
+  carry forward.** I had the number that said do nothing -- zero occurrences,
+  in the same paragraph -- and shipped anyway because the fix looked cheap.
+  *Don't fix what has no symptom* is in §4 and it is about this exact
+  temptation.
+
+  **Four more findings from the same review, all latent, all recorded rather
+  than patched at four in the morning:**
+
+  - **`capped`'s new marker absorption can be fooled by marker-shaped
+    output.** A tool whose short output ends with our marker sentence has it
+    absorbed and republished as the framework's own claim. 679 of 2,799 live
+    outputs end with a marker; **0 contain the phrase twice**. Absorbing also
+    re-labels the `window`, so a record cut at 1,200 is re-emitted as 8,000.
+    *Trigger: the first output containing the phrase twice.*
+  - **The two bodies now disagree about a NUL byte.** `DockerBody` refuses
+    with 126; `LocalBody` writes the command to a file, so `subprocess` never
+    raises and the byte is simply dropped -- `echo one\x00two` runs and prints
+    `onetwo`. `LocalBody` is not the deployed body. *Trigger: `LocalBody`
+    being deployed, or a second inhabitant getting one.*
+  - **`unusable_think` names "reasoning-only" from `chars_before_strip` and
+    `chars_stripped`, which only `openai_chat` sets.** On the `ollama` standin
+    a reasoning-only reply is mis-named *empty reply*. The standin is not on
+    the deployed ladder. *Trigger: a local rung returning to the ladder.*
+  - **The fix moved a watched signal into an unwatched one.** An empty think
+    used to be banked and surface as `commands LOST / budget_spent`, which
+    `commands_lost` watches; it is now a `rung_declined` with
+    `expected=True`, the same label as a 429. A rung that started returning
+    nothing on every call would read as ordinary quota weather. *Trigger:
+    before the next detector is added, this one first.*
 
 - **THE MARKER UNDERSTATED THE LOSS BY SIX THOUSAND CHARACTERS, AND THE TEST
   THAT GUARDS IT HAD BEEN GREEN SINCE THE DAY IT WAS WRITTEN.** 2026-09-21,

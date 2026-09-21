@@ -438,17 +438,43 @@ def test_the_parser_under_adversarial_replies():
     check("edge: neither is ```python, which is 1,256 of the column-0 fences "
           "in this run", P(F + "python\nprint(1)\n" + F) == [])
 
-    # CRLF. The spine's parser accepts it; ours did not until today, because
-    # `[ \t]*` after the tag does not match a carriage return. Measured over
-    # the live journal 2026-09-21 before changing it: 0 replies of 1,926
-    # contained CRLF at all. Fixed anyway -- a reply's line endings are the
-    # provider's business, not the contract's, and the failure mode is silent
-    # loss of every command for as long as a provider chooses to send them.
-    check("edge: a CRLF reply is still a reply",
-          P(F + "bash\r\nls\r\n" + F) == ["ls"])
-    check("edge: and the carriage returns do not reach the shell, where they "
-          "would become `ls\\r: command not found`",
-          "\r" not in (P(F + "bash\r\nls\r\n" + F) or [""])[0])
+    # CRLF IS A KNOWN GAP AND STAYS ONE, and the story of why is the most
+    # expensive thing in this test. The spine's parser accepts CRLF; ours does
+    # not, because `[ \t]*` after the tag matches no carriage return. Measured
+    # over the live journal 2026-09-21: **0 replies of 1,926 contain CRLF.**
+    #
+    # A fix was written, shipped and REVERTED the same night. It added `\r?`
+    # at both ends; the closing end became `^```\r?$`, and `$` under re.M
+    # means the fence must now END its line. An independent verifier replayed
+    # it over every raw reply in run 2: **9 parsed differently**, the block
+    # swallowing more each time. The measured risk was 0 and the measured cost
+    # was 9.
+    #
+    # *Trigger to revisit: the first reply that actually contains CRLF.*
+    check("edge: a CRLF reply is NOT parsed, and that is the recorded state "
+          "rather than an oversight",
+          P(F + "bash\r\nls\r\n" + F) == [])
+    check("edge: and it is LOST rather than silently absent, which is the "
+          "only reason the gap is tolerable",
+          think.classify_no_blocks(F + "bash\r\nls\r\n" + F)[0]
+          == "unclosed_fence")
+
+    # THE THREE SHAPES THE REVERT PROTECTS. Each is what the `\r?$` version
+    # got wrong, asserted here so the next attempt cannot ship without meeting
+    # them. They are cheap, and none of them was in the suite before.
+    check("edge: a closing fence with trailing whitespace still closes -- the "
+          "opener tolerates it, so the closer must, and trailing whitespace "
+          "is ordinary model output",
+          P(F + "bash\nls\n" + F + "  ") == ["ls"])
+    check("edge: and with trailing whitespace before a newline",
+          P(F + "bash\nls\n" + F + "  \nmore prose") == ["ls"])
+    swallow = P("\n".join([
+        F + "bash", "remember current-phase done",
+        F + "</thought>" + F + "bash", "remember current-phase done", F]))
+    check("edge: two commands separated by a mid-line opener stay TWO -- this "
+          "exact shape is one of the nine the reverted change broke, where "
+          "they became one block carrying a literal fence",
+          swallow == ["remember current-phase done"] * 2, swallow)
 
     # DUPLICATES. The spine de-duplicates identical blocks inside one reply and
     # says why: running the same thing N times is pure waste. We deliberately
@@ -592,6 +618,188 @@ def test_the_headline_metric_does_not_shrink_when_the_page_reads_a_tail():
     check("tail: and the run's age is the RUN's, not the tail's",
           abs(full["run_days"] - 10.0) < 0.1, full["run_days"])
     shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_parser_change_can_be_replayed_before_it_ships():
+    """The gate asserts shapes somebody thought of. **A parser change's cost
+    is always in the shapes nobody thought of** -- three of the four changes
+    ever made to this parser had one, and every one was found afterwards.
+
+    The corpus that could catch it is the run's own replies, and those live
+    only on the laptop: `raw` is raw model output and this repository is
+    public. So the discipline is a command rather than an intention, and this
+    asserts the command works -- including on a fixture whose `raw` was
+    deliberately dropped, which must read as *no reply here* and never as *a
+    parser that stopped working*.
+    """
+    import replay_parser
+
+    d = tmpdir()
+    jp = os.path.join(d, "j.jsonl")
+    j = Journal(jp)
+    F = "```"
+    j.append("think", chars=10, finish="stop",
+             raw=F + "bash\nls\n" + F)
+    # The exact shape one of the nine live differences had: a closer
+    # sharing its line with the next opener. Any change that stops
+    # treating it as a closer swallows two commands into one.
+    j.append("think", chars=10, finish="stop",
+             raw="\n".join([F + "bash", "remember a",
+                             F + "</thought>" + F + "bash",
+                             "remember b", F]))
+    j.append("think", chars=10, finish="stop", raw="just thinking out loud")
+    j.append("think", chars=10, finish="stop", raw="[dropped from fixture]")
+    j.append("exec_start", cmd="ls")
+
+    seen = replay_parser.scan(jp)
+    check("replay: it reads the replies that have text and skips the ones "
+          "whose raw was dropped for the public repo", len(seen) == 3, seen)
+    check("replay: and they parsed to the blocks they contain",
+          sum(v["n"] for v in seen.values()) == 3, seen)
+
+    base = os.path.join(d, "before.json")
+    rc = replay_parser.main.__wrapped__ if hasattr(replay_parser.main,
+                                                   "__wrapped__") else None
+    sys.argv = ["replay_parser.py", jp, "--save", base]
+    check("replay: saving a baseline succeeds", replay_parser.main() == 0)
+    check("replay: and the baseline is on disk", os.path.exists(base))
+
+    sys.argv = ["replay_parser.py", jp, "--against", base]
+    check("replay: an unchanged parser compares clean",
+          replay_parser.main() == 0)
+
+    # Now change the parser under it, exactly as a real change would, and
+    # prove the replay NOTICES. Restored afterwards whatever happens.
+    before_re = think.FENCE_RE
+    try:
+        think.FENCE_RE = re.compile(r"```(?:bash|sh)[ \t]*\n(.*?)^```\r?$",
+                                    re.S | re.M)
+        sys.argv = ["replay_parser.py", jp, "--against", base]
+        check("replay: a parser change that alters a real reply is REPORTED, "
+              "which is the whole point -- the 2026-09-21 revert happened "
+              "because a verifier ran this by hand and nothing else would "
+              "have", replay_parser.main() == 1)
+    finally:
+        think.FENCE_RE = before_re
+    check("replay: and the parser is put back", think.FENCE_RE is before_re)
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_block_level_trim_says_how_much_it_dropped():
+    """The verifier's finding, 2026-09-21, an hour after the commit that said
+    the marker invariant now held without the caller remembering.
+
+    It held for the per-output cut. `recent_block` then bounds the WHOLE
+    transcript with `block[-HISTORY_TOTAL_CHARS:]` and announces it with
+    *(Older lines dropped; this is the most recent part.)* -- **no number at
+    all.** Demonstrated at that commit with two capped outputs in one cycle:
+    4,727 characters vanished, including a whole `$ cat big0` line and the
+    first 65 lines of its output, while both surviving markers still claimed
+    exactly 55,948.
+
+    So the per-output marker now understates by whatever the block trim took,
+    which is the identical fault one level up -- and the new test could not
+    see it, because it used a single output and the block trim never fired.
+    *A test suite proves what it asserts and nothing more*, for the sixth
+    time, inside the commit that said it for the fifth.
+    """
+    e, j, b, d = build_engine([], [])
+    for i in range(6):
+        j.append("exec_start", cmd="cat big%d" % i)
+        j.append("exec_end", exit_code=0, stderr="",
+                 stdout=capped("\n".join("out %d line %04d %s" % (i, k, "z" * 60)
+                                          for k in range(900)),
+                               EXEC_STDOUT_CHARS))
+    # The drop is COMPUTED, not eyeballed: render once with the bound lifted
+    # and once with it in force, and the difference is what the reader is owed.
+    # The first draft of this check asked `any(ch.isdigit())` over a transcript
+    # full of `big0` and `line 0001`, which is green whatever the notice says
+    # -- the tautology this suite has a scar about, written while fixing the
+    # fault it is about.
+    real = e.HISTORY_TOTAL_CHARS
+    try:
+        e.HISTORY_TOTAL_CHARS = 10 ** 9
+        whole = e.recent_block(cycles=6)
+    finally:
+        e.HISTORY_TOTAL_CHARS = real
+    h = e.recent_block(cycles=6)
+    check("trim: this transcript really is long enough to be trimmed",
+          len(whole) > real and len(h) <= real + 900, (len(whole), len(h), real))
+    check("trim: the reader is told a cut happened", "dropped" in h.lower(),
+          h[:200])
+    dropped = len(whole) - len(h)
+    # Tolerance, because the two ways of counting differ by the length of
+    # the header and the notice itself -- the code reports how much of the
+    # TRANSCRIPT was cut, which is the reader's question.
+    near = [str(n) for n in range(dropped - 900, dropped + 900)]
+    check("trim: AND HOW MUCH, to within the notice's own length -- a notice "
+          "with no number is the marker fault one level up, and the per-output "
+          "markers understate by exactly this much while it is missing",
+          any(n in h for n in near),
+          (dropped, h[:300]))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_creatures_ladder_really_is_given_the_emptiness_predicate():
+    """The verifier's finding: reverting `run.py` alone left the whole gate
+    green. `test_a_reply_with_no_text_at_all_is_not_an_answer` builds its own
+    ladder and asserts the predicate works -- which says nothing about whether
+    the engine's ladder was given it.
+
+    **That is the 2026-09-16 shape exactly**: a feature inert in production for
+    fifteen hours with a green gate, because every test used a scripted
+    backend and nothing drove the real construction.
+
+    So the construction moved into `run.build_ladders`, and this drives THAT,
+    through the real `backends.from_spec`, with a scripted rung kind
+    registered for the duration. No literal is matched and no source is read:
+    the ladders are built the way the engine builds them and then watched.
+    """
+    import run as runmod
+
+    calls = []
+
+    def scripted(replies=None, **kw):
+        seq = list(replies or [])
+
+        def ask(prompt):
+            calls.append(kw.get("tag"))
+            return seq.pop(0) if seq else ("", {"done_reason": "stop"})
+        return ask
+
+    backends.KINDS["scripted"] = scripted
+    try:
+        spec = [{"name": "silent", "kind": "scripted", "tag": "silent",
+                 "replies": [("", {"done_reason": "length"})]},
+                {"name": "speaks", "kind": "scripted", "tag": "speaks",
+                 "replies": [("I read the plan and there is nothing to do.",
+                              {"done_reason": "stop"})]}]
+        cspec = [{"name": "silent", "kind": "scripted", "tag": "c-silent",
+                  "replies": [("<<<COUSIN\nverdict: ACCEPTED\n"
+                               "to_creature: fine\nCOUSIN",
+                               {"done_reason": "stop"})]}]
+        ask_creature, ask_cousin, ask_invoke = runmod.build_ladders(spec, cspec)
+
+        calls[:] = []
+        text, meta = ask_creature("go")
+        check("wiring: the ENGINE's creature ladder steps past a rung that "
+              "returned nothing -- not a ladder a test built",
+              calls == ["silent", "speaks"] and meta.get("rung") == "speaks",
+              (calls, meta.get("rung")))
+        check("wiring: and it keeps a reply that has text and no command, "
+              "which must never be rejected", "nothing to do" in text, text)
+
+        # The other two ladders are different questions with different
+        # predicates, and that is asserted rather than assumed.
+        calls[:] = []
+        v, _m = ask_cousin("judge")
+        check("wiring: the cousin's ladder accepts a verdict block",
+              "ACCEPTED" in v, v)
+        check("wiring: three ladders were built and each got its own "
+              "predicate", ask_cousin is not ask_invoke
+              and ask_creature is not ask_cousin)
+    finally:
+        backends.KINDS.pop("scripted", None)
 
 
 def test_marker_invariant():
@@ -8338,6 +8546,9 @@ def main():
                test_journal, test_history_never_cuts_mid_line,
                test_a_marker_says_whose_cut_it_is,
                test_marker_invariant, test_body,
+               test_the_block_level_trim_says_how_much_it_dropped,
+               test_the_creatures_ladder_really_is_given_the_emptiness_predicate,
+               test_a_parser_change_can_be_replayed_before_it_ships,
                test_the_headline_metric_does_not_shrink_when_the_page_reads_a_tail,
                test_the_parser_under_adversarial_replies,
                test_a_command_the_shell_cannot_be_given_is_not_a_broken_body,
