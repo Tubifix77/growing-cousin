@@ -1161,7 +1161,13 @@ was measured, with what, and on what date.*
     absorbed and republished as the framework's own claim. 679 of 2,799 live
     outputs end with a marker; **0 contain the phrase twice**. Absorbing also
     re-labels the `window`, so a record cut at 1,200 is re-emitted as 8,000.
-    *Trigger: the first output containing the phrase twice.*
+    **This one has NO TRIGGER and saying so is the point**: nothing counts
+    outputs containing the phrase twice, so *"trigger: the first one"* named
+    an event no instrument would ever report. A hold whose trigger nobody
+    watches is a hold waiting on more information, which §4 calls inaction in
+    the costume of caution. It is a known latent fault with a one-line
+    query behind it and no watcher, and it stays that way deliberately
+    because the measured rate is 0 of 2,799.
   - **The two bodies now disagree about a NUL byte.** `DockerBody` refuses
     with 126; `LocalBody` writes the command to a file, so `subprocess` never
     raises and the byte is simply dropped -- `echo one\x00two` runs and prints
