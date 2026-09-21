@@ -1175,6 +1175,97 @@ was measured, with what, and on what date.*
   era's* -- §0's rule about naming a figure's run, arriving inside a single
   run because the harness changed under it.
 
+- **EVERY INSTRUCTION PRESUPPOSES SOMETHING ABOUT ITS RECIPIENT, AND WE HAVE
+  BEEN WRONG ABOUT THAT SEVEN TIMES.** 2026-09-21, from Tue's question: *"do
+  we need to go through all our prompts and verify they are fed to an agent
+  with a goal and doesn't fall flat in the process?"*
+
+  The answer is yes, and the first pass found two live ones in
+  `CREATURE-PROMPT.md` alone.
+
+  **1. THE CREATURE IS TOLD ITS COUSIN HAS "FREE-TIER LLM API ACCESS OVER THE
+  NETWORK". NEITHER BOX HAS A CREDENTIAL, AND OUR OWN SECURITY INVARIANT
+  FORBIDS ONE.** Checked inside both containers: no API key in either
+  environment; TCP 443 to a rung host is open, so the *network* is there and
+  the *credential* is not. And `selfcheck` proves `keys_unreadable` at every
+  engine start -- that is the 2026-09-13 scar's fix, and it is load-bearing.
+  **So the prompt promises a capability the deployment is designed to
+  prevent.**
+
+  One of the five starter-map categories is *subagent orchestration --
+  spawning helper LLM calls over the free-tier APIs*. The creature built
+  exactly that:
+
+  | | |
+  |---|---|
+  | `subagent-orchestrator run ...`, run by the CREATURE | **80 times** |
+  | what it does with no key | falls back to the literal `"default_key"` and posts to `api.openai.com` |
+  | what comes back | `Error solving subtask: 'choices'` |
+  | how many of those runs **exited 0** | **8** |
+
+  It is also the most-rewritten tool in the library -- eleven edits -- and the
+  one the 2026-09-14 fence scar burned nine hours on. **Every hour of that was
+  spent on a tool that cannot authenticate, in service of a category the
+  prompt invented for it.** Seventeenth appearance of *the framework
+  manufactures work and the creature is billed for it*, and the largest by
+  cost since item 20.
+
+  **Not fixed tonight, and the choice is a real one rather than a deferral.**
+  Providing the capability means putting a credential inside the creature's
+  box, which contradicts `keys_unreadable` and re-opens the oldest security
+  hole in the project. Retracting it means editing a frozen prompt. **PLAN
+  item 23**, and it needs Tue only if the answer is *give it a keyed proxy*,
+  which is money and outward-facing.
+
+  **2. THE CREATURE IS TOLD IT MAY "INSTALL PACKAGES". IT COULD NOT.**
+  `--user uid:gid` with no matching passwd entry leaves `HOME=/`, which is
+  root-owned, so `pip install --user` died on `[Errno 13] Permission denied:
+  '/.local'` -- every cycle, for the life of the container body. **Fixed by
+  PROVIDING the capability rather than retracting the promise**, which also
+  keeps the frozen prompt frozen: `HOME` now points at the mind, so a package
+  installs to `$MIND/.local` and survives the body, which is the prompt's own
+  durability rule applied to packages. Verified in a throwaway container
+  before it shipped, and the container drift check had to learn the
+  environment as a third field -- after mounts and image, the same fault a
+  third time.
+
+  **3. AND THE COUSIN IS TOLD ABOUT ITS MEMORY AT THE ONE MOMENT IT HAS
+  NOTHING TO REMEMBER.** `INVOKE_TEMPLATE` says `remember <key> <value>` keeps
+  a note for the next visit -- and that is the INVOCATION call, which happens
+  before it has seen any output. `MANAGER-PROMPT.md`, which is what it reads
+  when it forms the verdict, mentions `remember` twice and both are about the
+  parent's library, never about a store of its own. **So it is told at the
+  moment it knows nothing and not told at the moment it learns something.**
+  That is a sharper diagnosis than PLAN 20.4's, which had the hands half
+  right and missed this, and it fits the measurement exactly: one note,
+  written during an invocation, unchanged across 45 hours and a hundred
+  visits.
+
+  **THE CLASS, because this is the seventh time and it deserves a name.**
+  *Every instruction presupposes a property of its recipient. When the
+  property is false the instruction does not fail loudly -- it produces
+  confident behaviour built on a false premise, and the agent is billed for
+  the result.* Previously:
+
+  - the creature told its user *wakes with no idea what changed... cannot
+    plan across cycles*, when the cousin had no continuity at all (item 20,
+    the largest finding this project has made);
+  - *notice when a tool serves nothing*, asked of an agent with no mission
+    (item 16, stuck for days for exactly this reason);
+  - *a tool that refuses incomplete input has done its job*, written for a
+    harness that called everything bare and false the day the cousin could
+    type arguments (16.5);
+  - *is this genuinely new or the fifth variant*, asked of a judge shown one
+    tool and never the library (2026-09-12);
+  - `say` built and the creature never told it exists (14.5);
+  - *do not rebuild what you own* plus `ls tools/own/`, which cannot see
+    across time (the graveyard, today).
+
+  **The audit method is one question per instruction: what does this
+  presuppose, and is it true of the agent that receives it?** It is cheap,
+  it does not need the prompts unfrozen to RUN, and it has now paid for
+  itself twice in one evening.
+
 - **THE ONLY GUARD ON THE MANAGER COULD NOT MATCH "EXITED 0", AND IT HAD BEEN
   HIDING TWO REAL FABRICATIONS FOR EIGHT DAYS.** 2026-09-21, found because a
   test written in ordinary English failed against a fixture that should have

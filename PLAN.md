@@ -50,6 +50,8 @@ can clear it. **Every heading that is not `[x]` is in the table below, and that 
 | **20.4** the cousin carries ONE note and has not added a second | 59 harvests carry it, none empty since 09-19, and the last 40 all carried exactly one key — continuity proven, accumulation not | a week of 20.2, read beside the store's key count |
 | **21.2** the rewrite wall itself | the reprieve is PROVEN (53% lost -> 0% over 90 thinks); the wall is only moved, to ~25 KB | first tool over 15 KB, or `truncated|lost` over 10% again |
 | **22.1 / 22.2** | a fence inside a heredoc, and the cost of re-reading a journal that only grows | both named and dated in item 22 |
+| **23.3** the creature is promised an LLM API its box may not have | 80 runs against `api.openai.com` with the literal `"default_key"` | a design decision, not a patch — see item 23 |
+| **23.4 / 23.5** the same audit on the cousin's brief and the kernel's served text | begun; the brief addresses an agent with a job it does not have | work, not a trigger |
 
 **None of these is blocked on a decision that has not been taken, and none is
 waiting on "more information"** — each names a trigger and a date, which is
@@ -1816,3 +1818,49 @@ trigger, which is §4's test for a hold that is real:
 RED against the code as it shipped; the gate is green on both boxes (972
 assertions on the laptop); and none of it was deployed into the window that
 settles item 21.1.
+
+---
+
+## Phase 9 — what our own words presuppose (added 2026-09-21)
+
+### 23. `[~]` Audit every instruction against what its recipient actually has
+
+**Tue, 2026-09-21:** *"do we need to go through all our prompts and verify
+they are fed to an agent with a goal and doesn't fall flat in the process?"*
+
+Yes. **The class has now appeared seven times** (`CLAUDE.md` §5 lists them),
+including the largest finding this project has made. One question per
+instruction: *what does this presuppose about its recipient, and is that
+true?*
+
+- **23.1 `[x]` `CREATURE-PROMPT.md`, read line by line 2026-09-21.** Two live
+  falsehoods found, both verified inside the running containers rather than
+  argued.
+- **23.2 `[x]` "install packages" — FIXED by providing the capability.**
+  `HOME` now points at the mind, so `pip install --user` works and survives
+  the body. The drift check learned the environment as a third field.
+- **23.3 `[!]` "free-tier LLM API access over the network" — FALSE, and the
+  fix is a real choice rather than a patch.** Neither box holds a credential
+  and `selfcheck`'s `keys_unreadable` is designed to keep it that way. The
+  creature ran `subagent-orchestrator run` **80 times** against
+  `api.openai.com` with the literal string `"default_key"`, and **8 of those
+  runs exited 0** while doing nothing. Three ways out, and they are not
+  equivalent:
+  1. **Retract it** at the brief's unfreeze — cheapest, and it costs the
+     creature a whole category of tool it has spent eleven rewrites on.
+  2. **A keyed proxy in the box** — gives the category back, and puts a
+     credential where §5's oldest security scar says one must never be.
+  3. **A framework hand** that makes a rung call on the creature's behalf,
+     keyless from inside — keeps `keys_unreadable` true and spends the
+     shared free tier the cousin and the spine are already contending for.
+  *Trigger: this is the next real design decision, and (2) is Tue's because
+  it is the one that changes the security posture.*
+- **23.4 `[ ]` `MANAGER-PROMPT.md`, the same pass.** Begun, not finished: the
+  brief addresses the cousin as someone who *"genuinely could not do the
+  thing you came to do"*, and it has no thing it came to do — which is item
+  16's root in the brief's own words. And it never mentions the cousin's own
+  memory store, while the invocation template does, at the one moment it has
+  nothing to remember. *Trigger: none needed, this is work.*
+- **23.5 `[ ]` The kernel's own served text** — the history header, the
+  library legend, the want block, the invocation template. Not frozen, so
+  anything found here is fixable the same day.

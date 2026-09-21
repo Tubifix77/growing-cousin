@@ -1236,6 +1236,106 @@ def test_the_library_remembers_what_left_it():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_body_can_do_what_the_prompt_says_it_can():
+    """`CREATURE-PROMPT.md`: *"The container is yours and it is safe. Act in
+    it freely -- write files, **install packages**, build and break things."*
+
+    It could not. Measured 2026-09-21 inside the deployed image, as the uid
+    the body actually runs as:
+
+        Defaulting to user installation because normal site-packages is not writeable
+        ERROR: Could not install packages due to an OSError:
+               [Errno 13] Permission denied: '/.local'
+
+    `--user uid:gid` with no matching passwd entry leaves `HOME=/`, which is
+    root-owned, so `pip --user` has nowhere to write. **A capability the
+    creature is promised every single cycle and does not have.**
+
+    **The fix is to PROVIDE the capability rather than retract the promise**,
+    which also keeps a frozen prompt frozen: `HOME` points at the mind, the
+    one path that survives the body. `pip install --user` then lands in
+    `$MIND/.local` and is still there after a respawn -- which is the prompt's
+    own durability rule applied to packages, not an exception to it.
+
+    Verified in a throwaway container before this was written:
+    `import six -> /mind/.local/lib/python3.11/site-packages/six.py`, and the
+    files were still on the volume afterwards.
+
+    **And the drift check has to learn the new field**, or this ships into the
+    code and never into the running container -- §5's oldest shape, which this
+    same function has already been bitten by twice (mounts, then image).
+    """
+    lacks = host_missing("posix")
+    if lacks:
+        cannot_run("the body's HOME", " and ".join(lacks))
+        return
+    import json as _json
+    import subprocess as _sp
+    import run as runmod
+
+    class Host(object):
+        mind, bin = os.path.abspath("x-mind"), os.path.abspath("x-bin")
+
+    mounts = _json.dumps([
+        {"Source": Host.mind, "Destination": bodymod.DockerBody.MIND, "RW": True},
+        {"Source": Host.bin, "Destination": bodymod.DockerBody.HANDS, "RW": False}])
+
+    def drive(env_json):
+        calls = []
+
+        class R(object):
+            def __init__(self, rc=0, out=""):
+                self.returncode, self.stdout, self.stderr = rc, out, ""
+
+        def fake_run(argv, **_k):
+            calls.append(argv)
+            if argv[:2] == ["docker", "inspect"] and "{{.State.Running}}" in argv:
+                return R(0, "true\n")
+            if argv[:2] == ["docker", "inspect"] and "{{json .Mounts}}" in argv:
+                return R(0, mounts)
+            if argv[:2] == ["docker", "inspect"] and "{{json .Config.Env}}" in argv:
+                return R(0, env_json)
+            if argv[:2] == ["docker", "inspect"] and "{{.Image}}" in argv:
+                return R(0, "sha256:same\n")
+            if argv[:2] == ["docker", "image"]:
+                return R(0, "sha256:same\n")
+            return R(0, "true")
+        keep = _sp.run
+        try:
+            _sp.run = fake_run
+            runmod.ensure_container("c", "img", Host())
+        finally:
+            _sp.run = keep
+        return calls
+
+    # A container created before this existed: HOME is whatever the image said.
+    stale = drive(_json.dumps(["PATH=/usr/bin", "HOME=/"]))
+    check("home: a container whose HOME is not the mind is recreated -- a "
+          "setting present in the code and absent from the running thing is "
+          "this function's oldest fault, twice over",
+          any(a[:3] == ["docker", "rm", "-f"] for a in stale), stale)
+    runs = [a for a in stale if a[:2] == ["docker", "run"]]
+    check("home: and the new one is told where HOME is",
+          runs and "HOME=%s" % bodymod.DockerBody.MIND in runs[0], runs)
+    check("home: which is the ONE path that survives the body, so a package "
+          "installed there is still there after a respawn",
+          bodymod.DockerBody.MIND in ("/mind",), bodymod.DockerBody.MIND)
+
+    current = drive(_json.dumps(["PATH=/usr/bin",
+                                 "HOME=%s" % bodymod.DockerBody.MIND]))
+    check("home: a container that already has it is left alone",
+          not any(a[:3] == ["docker", "rm", "-f"] for a in current)
+          and not any(a[:2] == ["docker", "run"] for a in current), current)
+
+    # CANNOT TELL is not a reason to act, the rule this function already
+    # follows for mounts and for the image.
+    unreadable = drive("not json at all")
+    check("home: an unreadable answer recreates nothing -- a daemon talking "
+          "nonsense must not have containers destroyed on the strength of it",
+          not any(a[:3] == ["docker", "rm", "-f"] for a in unreadable),
+          unreadable)
+
+
 def test_marker_invariant():
     """A marker reports the TOTAL withheld. A later cut may only INCREASE that
     number, never replace it with its own -- the parent showed '+40 chars cut'
@@ -8977,6 +9077,7 @@ def main():
                test_journal, test_history_never_cuts_mid_line,
                test_a_marker_says_whose_cut_it_is,
                test_marker_invariant, test_body,
+               test_the_body_can_do_what_the_prompt_says_it_can,
                test_the_library_remembers_what_left_it,
                test_the_has_not_survived_column_cannot_be_read_as_a_cull_list,
                test_a_rung_that_answers_and_says_nothing_is_not_a_quota_refusal,

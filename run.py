@@ -436,6 +436,41 @@ def ensure_container(container, image, host_body, timeout=120):
         return {(os.path.realpath(m.get("Source", "")), m.get("Destination"),
                  bool(m.get("RW", True))) for m in data if isinstance(m, dict)}
 
+    # WHAT THE BODY'S ENVIRONMENT MUST SAY. `--user uid:gid` with no matching
+    # passwd entry leaves `HOME=/`, which is root-owned -- so `pip install
+    # --user` dies on `[Errno 13] Permission denied: '/.local'` and the
+    # creature cannot do the thing `CREATURE-PROMPT.md` tells it every cycle
+    # it can: *act in it freely -- write files, install packages*.
+    #
+    # Pointing HOME at the mind PROVIDES the capability instead of retracting
+    # the promise, and keeps a frozen prompt frozen. It is also the only
+    # honest place for it: the mind is the one path that survives the body, so
+    # a package installed there is still there after a respawn -- the prompt's
+    # own durability rule applied to packages rather than an exception to it.
+    # Verified in a throwaway container first: `import six ->
+    # /mind/.local/lib/python3.11/site-packages/six.py`, still on the volume
+    # afterwards.
+    want_env = {"HOME": bodymod.DockerBody.MIND}
+
+    def env_of(name):
+        """The container's environment as a dict, or None if it cannot be read."""
+        r = d("inspect", "-f", "{{json .Config.Env}}", name)
+        if r.returncode != 0:
+            return None
+        try:
+            import json
+            data = json.loads(r.stdout or "[]")
+        except ValueError:
+            return None
+        if not isinstance(data, list):
+            return None
+        out = {}
+        for item in data:
+            if isinstance(item, str) and "=" in item:
+                k, _s, v = item.partition("=")
+                out[k] = v
+        return out
+
     def image_of(name):
         """The image id this container was CREATED from, or None."""
         r = d("inspect", "-f", "{{.Image}}", name)
@@ -449,6 +484,20 @@ def ensure_container(container, image, host_body, timeout=120):
         return out if r.returncode == 0 and out else None
 
     st = d("inspect", "-f", "{{.State.Running}}", container)
+    # THE SAME DRIFT QUESTION, one field over. A container keeps the
+    # environment it was created with, so this would otherwise be present in
+    # the code and absent from the running thing -- which this function has
+    # already been bitten by for mounts and again for the image. BOTH
+    # readable or nothing: an unreadable answer is CANNOT TELL and must never
+    # destroy a container on the strength of it.
+    if st.returncode == 0:
+        env = env_of(container)
+        if env is not None and any(env.get(k) != v for k, v in want_env.items()):
+            print("container %s: environment changed since it was created -- "
+                  "recreating (HOME=%r, want %r)"
+                  % (container, env.get("HOME"), want_env["HOME"]))
+            d("rm", "-f", container)
+            st.returncode = 1
     have = mounts_of(container) if st.returncode == 0 else None
     if st.returncode == 0 and have is not None and have != want:
         print("container %s: mounts changed since it was created -- recreating "
@@ -479,6 +528,7 @@ def ensure_container(container, image, host_body, timeout=120):
                 # the container runs as root.
                 "--user", "%d:%d" % (os.getuid(), os.getgid()),
                 "--memory", "1g", "--pids-limit", "256",
+                "-e", "HOME=%s" % bodymod.DockerBody.MIND,
                 "-v", "%s:%s" % (host_body.mind, bodymod.DockerBody.MIND)]
         # The hands only when this body HAS them. The cousin's body does not:
         # it is the second user, never a second builder (§2.3), so it gets the
