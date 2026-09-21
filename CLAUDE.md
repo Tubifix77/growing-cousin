@@ -90,6 +90,20 @@ from where it would be quoted.
    deployed; that is how a monitor learns to agree with whoever last touched
    the machine.
 
+4. **A RESTART IS OWED AND IS BEING HELD ON PURPOSE UNTIL 09-22 01:41.**
+   `6bfd54d` fixes four faults found by a line-by-line pass against the spine
+   (§5, top) and is pushed, gate green on both boxes, **and not deployed**.
+   The laptop runs `c942d88`, whose `deploy_regression_day` closes at 09-22
+   01:41 and is the reading that settles item 21.1. Restarting before then
+   replaces a clean single-cause window with one confounded by four changes --
+   *the measurement is hard, so change the environment* is a scar in §5 and
+   this is the same move. **After that reading lands, deploy normally**: stop,
+   confirm, start, confirm, four separate commands, and let
+   `deploy_regression` have its hour.
+
+   The page's `restart_owed` line will say a restart is owed for as long as
+   this holds. That is the page being right.
+
 
 **TUE IS THE CUSTOMER, NOT THE ARCHITECT — he said so on 2026-09-16 and it
 changes how this file should be used.** *"i have no idea about what you ask
@@ -301,6 +315,7 @@ not a midnight patch.**
 | "the cousin ran it with arguments and it exited non-zero, so the tool failed" | **Not knowable by the framework.** Since the cousin chooses the arguments (item 9) it may have invented an ID and the tool may have correctly said so. The library reports exit codes AND the cousin's own verdicts per tool; the word FAILED was retired 2026-09-16 after `view-subtask-logs task-123` rendered as *NEVER WORKED (1 real failures)*. Read the verdict, not the exit. |
 | "the cousin keeps asking for X and the creature keeps not building it" | Since the shell (item 9), check BOTH sides before blaming either: `grep` the probes' `cmd` for X. On 2026-09-17 `plan set-deadline` existed and the cousin asking for deadlines had never run it — it ran `plan` bare, accepted the menu with the same sentence four times, and asked again. `testimony_repeated` says so; the rule behind it is item 16.5. |
 | "the cousin's container is running, so the deploy took" | A running container may predate the configuration: on 2026-09-16 the cousin's came back after a deploy with no `/hands` mount and no `recall`, reused as it stood. `ensure_container` now compares MOUNTS and recreates on drift. Check `docker inspect -f '{{json .Mounts}}' growing-cousin-body-user`, not `is-active`. |
+| "N commands have an unterminated heredoc" | **Read the CAP before the count.** `cmd` is stored at `EXEC_CMD_CHARS` (800), so on any command longer than that the terminator is past the cut and every heredoc looks open. 2026-09-21: the first pass said 192, the second said 5 (all of them the creature quoting its own `| ` transcript), the answer is 0. Ask `raw`, and only where `raw` itself was not cut. |
 | "the creature is losing commands, so the parser broke again" | Read the CLASSIFICATION before the count. `untagged_fence` and `unclosed_fence` are ours; **`truncated` is the budget**, and the two have opposite fixes. 2026-09-20: 244 lost commands were all `truncated|lost`, with `finish=length` on half of gemini's thinks, because the creature was rewriting a 9 KB tool inside a 3072-token budget (§5). The page splits them; do not read `commands LOST` as a parser fault. |
 | "the cousin accepted it, so the handover worked" | Before 2026-09-18 the cousin's world held the creature's `state/memory.json`, so `recall` showed it the builder's own `...-verified true` and `current-phase done`. **Every verdict before that date was taken with the answer key on the table**, and two probes printed all 25 keys. Fixed (§5, item 20.1); verdicts from before it are not comparable to verdicts after. |
 | "`git show add6782` says unknown revision" / "the page names an engine commit that is not in `git log`" | History was rewritten 2026-09-17 (the habits list, above). The journal, the evidence manifests, the regression files and pre-rewrite commit messages carry the OLD names and are never edited; these documents carry the NEW ones. `evidence/history-rewrite-20260917.md` translates: `221b978` is `fb3d18a`, `add6782` is `dd53e91`, `ef812dc` is `ee5992d`. |
@@ -325,6 +340,11 @@ not a midnight patch.**
 - **Never put a backtick in a shell string.** A monitor died on
   *unexpected EOF while looking for matching* — the same fault class being
   fixed in the creature's channel that hour.
+- **`$(...)` in a double-quoted shell string is executed, not quoted.** The
+  backtick rule one line up is the same fault with a different spelling: a
+  commit message written with `git commit -m "... $(obtain-parent-task-id) ..."`
+  reached GitHub with the tool name replaced by the empty output of running it.
+  Cosmetic that time. Single-quote, or use a heredoc.
 - **Python with escapes never goes through a bash heredoc.** Write a file in
   the scratchpad and run it; `\b` became a literal backspace byte otherwise.
 - **After changing a parser the creature speaks through, hunt for the cost in
@@ -979,6 +999,84 @@ guess with authority it has not earned.
 
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
+
+- **THE MARKER UNDERSTATED THE LOSS BY SIX THOUSAND CHARACTERS, AND THE TEST
+  THAT GUARDS IT HAD BEEN GREEN SINCE THE DAY IT WAS WRITTEN.** 2026-09-21,
+  found by reading `kernel/journal.py` beside the spine's `executive/journal.py`
+  because Tue asked for a line-by-line pass before bed.
+
+  `exec_end.stdout` is stored as `capped(stdout, EXEC_STDOUT_CHARS)`, so a long
+  output is stored at the cap PLUS a marker. `recent_block` then calls `capped`
+  on that stored text AGAIN with `HISTORY_OUTPUT_CHARS` -- the same number, so
+  smaller than what it was handed -- and the marker sits at the very end, which
+  is exactly the part a second cut removes. The new marker reported only what
+  the second cut took.
+
+  | | |
+  |---|---|
+  | marked `exec_end` outputs in run 2 | 652 |
+  | whose marker CHANGES when the history re-cuts it | **74** |
+  | worst case, as shown to the creature | **"146 chars withheld"** |
+  | worst case, true | **6,114** |
+
+  **This is the instrument lying in the direction that reads as reassurance**,
+  and this engine has already paid full price for the other direction: on
+  2026-09-12 the creature read a marker, concluded *"It's clearly truncated.
+  The tool is broken."* and REWROTE TWO WORKING TOOLS SHORTER. The docstring
+  five lines above the bug says a small number where a large one belongs is
+  *worse than no marker*.
+
+  **`test_marker_invariant` proved the invariant against itself.** It nests two
+  cuts and passes `already_cut` by hand -- and the only caller that nests cuts
+  for real never did, because nothing made it. **Invariant: a function that
+  carries an invariant carries it ITSELF; a parameter the caller must remember
+  is a convention, and conventions are what the one real caller forgets.**
+  `capped` now reads its own marker off the text and carries the total forward.
+  Fifth time *a test suite proves what it asserts and nothing more* has been
+  paid for here, and the first time the assertion was correct and aimed at the
+  wrong caller.
+
+  **Three more came out of the same pass, all fixed in `6bfd54d`:** the
+  creature's ladder banked a reply with no text at all as an answer, so
+  `classify_no_blocks` called it `budget_spent` and put it in LOST while the
+  ladder called it success and never reached the rung below (9 of 1,967
+  thinks); `exec_setup_failure` matched *"is not running"* anywhere in output
+  without first asking whether the command had SUCCEEDED, so a tool's own
+  English could have declared the body dead (0 live hits -- a latent hazard,
+  recorded as one); and a NUL byte in a command would have been blamed on the
+  body and cost a respawn plus a discarded visit.
+
+  **What the same pass measured and deliberately did NOT change**, because a
+  gap nobody writes down is one the next session rediscovers from scratch:
+
+  - The spine **de-duplicates** identical blocks inside one reply; we do not,
+    on purpose. Deciding that a repeated command was not meant twice is a
+    judgement about intent, and this framework holds bounds. 26 of 1,927
+    replies repeat a block, nearly all of them `cat`.
+  - **The heredoc half of the 2026-09-14 fence scar is real and has never
+    fired.** A column-0 fence inside a heredoc body still closes a block, so a
+    tool whose source contains one would land cut. 0 real occurrences in 1,588
+    uncut replies. *Trigger: the first real one, or any SyntaxError in a tool
+    whose source contains a column-0 fence.*
+  - The supervisor's **failure path has never run**: 0 `loop_error` records in
+    the whole of run 2, against 2,410 waits, the longest run 260 of a
+    600 ceiling.
+  - **Journal reads cost 0.33 s each at 14.6 MB / 31,665 records**, and every
+    piece of the manager's state is derived from the journal by design, so a
+    wake performs several. That is ~6-8% of a cycle today against a 25-33 s
+    model call, and it grows with the file. This is the spine's *28-second scan
+    a human found by hearing the laptop fan*, at one-hundredth of the size.
+    *Trigger: a full read crossing 5 seconds, which is ~220 MB and months
+    away -- or run 3, where it should be designed out rather than measured.*
+
+  **AND THE TOP SCAR CAUGHT ME TWICE IN THE SAME HOUR, both times before
+  anything was written down.** Hunting the heredoc gap, the first pass reported
+  **192 commands with an unterminated heredoc** -- it was the journal's own
+  800-character cap on `cmd`, with the terminator past the cut. The second pass
+  reported **5**, and all five were the creature quoting its own `| `-prefixed
+  transcript. The real answer is 0. *Prove the harness was not producing the
+  finding before believing it* -- and the harness here was my own probe, three
+  versions of it.
 
 - **I RAISED THE WINDOW SO IT COULD READ ITS TOOL, AND IT SPENT THREE DAYS
   UNABLE TO FINISH WRITING ONE.** 2026-09-20, found by Tue asking *"how has
