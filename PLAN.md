@@ -47,7 +47,7 @@ can clear it. **Every heading that is not `[x]` is in the table below, and that 
 | **14.5** tell the creature `say` exists | adds a surface to its context while 20.2's metric is in its first week | the metric's first full week, 2026-09-25 |
 | **16** the cousin notices a tool serves nothing | the rule can be drafted; scoring it spends the same tier the live run is on | 20.4, then score under item 8's discipline |
 | **17.3** the deciding half | moves with 16 by construction | 16 |
-| **20.4** the cousin does not use its continuity | mechanism works, 68 harvests, all empty; likely structural | a week of 20.2 to read a change against |
+| **20.4** the cousin carries ONE note and has not added a second | it DOES use the store — 53 harvests, none empty since 09-19; accumulation is the open half | a week of 20.2, read beside the store's key count |
 | **21.2** the rewrite wall itself | the reprieve holds today; the wall is at ~25 KB | first tool over 15 KB, or `truncated|lost` over 10% again |
 | **22.1 / 22.2** | a fence inside a heredoc, and the cost of re-reading a journal that only grows | both named and dated in item 22 |
 
@@ -1663,19 +1663,38 @@ with the only test available to something that has no work to do: did it run.
   > so neither reached a verdict. The instrument works; the economics around
   > it do not.
 
-- **20.4 `[ ]` The cousin has continuity now and does not use it.** Confirmed
+- **20.4 `[~]` THE COUSIN USES ITS CONTINUITY. Measured 2026-09-21, and it
+  refutes what this item said for two days.** A verifier read the journal
+  instead of this file:
+
+  | | |
+  |---|---|
+  | `cousin_memory` harvests since the fix | 127 |
+  | empty (`kept=0`) | 74, all of them **before 09-19 20:35** |
+  | carrying a note (`kept=1`) | **53, and not one empty since** |
+  | what it carries | `baseline-parent-id: 100` |
+
+  **Its first note has survived 31 hours and 53 visits.** It is exactly what
+  continuity is for -- an ID it needs between visits and would otherwise have
+  to re-derive -- and it is the cousin, unprompted, using a store nothing
+  tells it to use beyond one line in the template.
+
+  ~~**20.4 (original) The cousin has continuity now and does not use it.** Confirmed
   in production 2026-09-19: **68 harvests since the fix, every one empty.**
-  The leak is closed (its `state/memory.json` differs from the creature's,
-  checked byte-for-byte) and the store is being written and re-installed every
-  visit, so the mechanism works. The cousin simply never writes a note.
-  **The likely cause is structural rather than a wording problem**: its only
+  The likely cause is structural rather than a wording problem: its only
   shell is the INVOCATION call, which happens *before* it sees the output and
   before it forms a judgement. At the moment it learns something worth keeping
-  -- writing the verdict -- it has no hands. So *remember this for next time*
-  is close to impossible by construction. *Trigger: when 20.2's metric has a
-  week of data, so a change here can be read against something.* Do not fix it
-  by telling the cousin harder in the template; that is the mechanism-not-
-  invariant fault, and the template already says the store exists.
+  -- writing the verdict -- it has no hands.~~ **That reasoning was good and
+  the conclusion was wrong**, and the way it went wrong is this file's oldest
+  habit: it was written on 09-19 from a window that ended at 09-19 20:32,
+  three minutes before the first note was kept, and then quoted for two days
+  as a standing fact. *Where a number can be generated, generate it.*
+
+  **What is still open is a smaller and better question: it writes ONE note
+  and has not added a second in 31 hours.** One key is continuity; it is not
+  yet accumulation. *Trigger: when 20.2's metric has a full week, read the
+  store's key count beside it -- a second key is the signal that the cousin
+  has something to accumulate ABOUT, which is what 20.2 was always for.*
 
 **Do not start 16, 17, 18.6 or 18.7 before this** -- each tunes a loop that is
 not carrying anything. Recorded as a dependency and not a deletion, because

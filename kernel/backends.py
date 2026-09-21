@@ -297,7 +297,7 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
     # the spine. See kernel/quota.py.
     qstate = {} if quota_state is None else quota_state
 
-    def announce(name, reason, verdict=NEXT):
+    def announce(name, reason, verdict=NEXT, unusable=False):
         """Every failure is counted; the full text is written once.
 
         Announcing once was right for NOISE and wrong for MEASUREMENT: it made
@@ -326,8 +326,20 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
             # REJECTED us -- a credential the provider will not accept -- is a
             # real fault a human has to clear, so it keeps a name that says so.
             kind = "rung_broken" if verdict == WALL else "rung_declined"
+            # **A RUNG THAT ANSWERED AND WAS UNUSABLE IS NOT A 429.** Both are
+            # `rung_declined` with `expected=True` -- ordinary weather on a
+            # free tier -- and until 2026-09-21 that was all a reader got. A
+            # rung returning nothing on every call would have read as quota.
+            #
+            # It matters because of a change made the same night: the
+            # creature's ladder now REJECTS an empty reply, which used to be
+            # banked and surface as `commands LOST / budget_spent`, a thing
+            # `commands_lost` watches. The fix moved a watched signal into an
+            # unwatched one, so the distinction is recorded here and
+            # `replies_unusable` reads it. Found by a verifier before the
+            # change was ever deployed.
             journal.append(kind, rung=name, reason=reason, first=first,
-                           expected=(verdict != WALL))
+                           expected=(verdict != WALL), unusable=bool(unusable))
 
     def ask(prompt):
         tried = []
@@ -384,7 +396,8 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
                     # answer.
                     why = reject(text, meta) if reject else None
                     if why:
-                        announce(name, "answered but unusable: %s" % why, NEXT)
+                        announce(name, "answered but unusable: %s" % why, NEXT,
+                                 unusable=True)
                         tried.append("%s(unusable)" % name)
                         break
                     if qstate.get(name, {}).get("since") is not None:

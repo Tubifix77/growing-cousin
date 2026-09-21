@@ -202,6 +202,69 @@ def unusable_verdicts(ctx):
     return out
 
 
+#: A rung answering and being unusable is a different animal from a 429, and
+#: needs a bigger sample than a verdict does, because one unusable reply on a
+#: busy rung is nothing.
+UNUSABLE_REPLY_MIN_N = 8
+UNUSABLE_REPLY_SHARE = 0.5
+
+
+def replies_unusable(ctx):
+    """Per rung: how much of what it ANSWERED was unusable.
+
+    A 429 and a rung that replies with nothing are both `rung_declined` with
+    `expected=True`, so on the page they are one number: *rungs declined
+    (expected)*. That is right for quota and wrong for a rung that is
+    answering and saying nothing -- the 2026-09-10 scar, *such a call
+    registers as a SUCCESS, so nothing walls the rung and nothing below it is
+    ever reached*, arriving through the door opened to close it.
+
+    Added 2026-09-21 with the change that made it necessary: the creature's
+    ladder began rejecting an empty reply, and an empty reply used to surface
+    as `commands LOST / budget_spent`, which `commands_lost` watches. Without
+    this the fix would have been a visibility regression.
+    """
+    out = []
+    recent = ctx.recent(UNUSABLE_LOOKBACK_H)
+    by_rung = collections.defaultdict(lambda: [0, 0, collections.Counter()])
+    for r in recent:
+        if r.get("kind") != "rung_declined":
+            continue
+        rung = r.get("rung") or "(none)"
+        if r.get("unusable"):
+            by_rung[rung][0] += 1
+            by_rung[rung][2][str(r.get("reason") or "?")[:60]] += 1
+        by_rung[rung][1] += 1
+    for rung, (bad, total, why) in sorted(by_rung.items()):
+        name = "replies_unusable[%s]" % rung
+        if not bad:
+            continue
+        if bad < UNUSABLE_REPLY_MIN_N:
+            out.append(Finding(name, CANNOT_TELL,
+                               "%d unusable repl%s in %dh; need %d to say "
+                               "anything" % (bad, "y" if bad == 1 else "ies",
+                                             UNUSABLE_LOOKBACK_H,
+                                             UNUSABLE_REPLY_MIN_N),
+                               human=False))
+            continue
+        if bad >= UNUSABLE_REPLY_SHARE * total:
+            out.append(Finding(name, ALARM,
+                               "%d of %s's %d declines were ANSWERS we could "
+                               "not use, not quota: %s"
+                               % (bad, rung, total, dict(why)),
+                               {"unusable": bad, "declines": total},
+                               scar="a reply is not automatically an answer"))
+        else:
+            out.append(Finding(name, INFO,
+                               "%d of %d declines were unusable answers"
+                               % (bad, total), human=False))
+    if not out:
+        out.append(Finding("replies_unusable", OK,
+                           "no rung answered unusably in %dh"
+                           % UNUSABLE_LOOKBACK_H))
+    return out
+
+
 def commands_lost(ctx):
     """Two findings. `commands_lost_parser`: any `unclosed_fence` in the last
     hour -- a tagged marker present and no block parsed means the framework
@@ -1313,7 +1376,8 @@ def complaint_fidelity(ctx):
                       if unchecked else ""))
 
 
-ALL = (engine_silent, gave_up, unusable_verdicts, commands_lost,
+ALL = (engine_silent, gave_up, unusable_verdicts, replies_unusable,
+       commands_lost,
        repeated_failure, want_retired_unacted, want_never_served,
        served_context_contract, tool_vanished, selfcheck_disproven,
        restart_owed, ladder_dry, journal_integrity, twin_pressure,

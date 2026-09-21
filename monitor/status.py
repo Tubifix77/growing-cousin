@@ -70,6 +70,12 @@ RUNBOOK = {
                          "UNKNOWN verdicts BEFORE touching a budget. The cousin "
                          "ladder rejects and falls through since 2026-09-13; if "
                          "one rung reasons past its budget the fix is per-rung.",
+    "replies_unusable": "A rung that ANSWERED and said nothing usable is not "
+        "a 429. Read the reason: `budget spent` and `reasoning-only` mean the "
+        "rung is generating and never reaching the contract's block, which no "
+        "amount of waiting fixes -- check that rung's `num_predict` and where "
+        "it sits in the ladder. `empty reply` with finish=stop means the "
+        "provider returned nothing at all, which is theirs, not ours.",
     "commands_lost": "Compare the creature's raw think against what ran. A tagged "
                      "marker with no parsed block is OUR parser losing work. After "
                      "any parser change, hunt for its cost within the hour.",

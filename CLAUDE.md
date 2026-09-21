@@ -56,9 +56,12 @@ costume of caution.
 - **16 / 17.3** the cousin noticing a tool serves nothing. Half delivered —
   20.3's instruments are the architecture's own answer and the cousin has used
   one unprompted. The RULE waits on 20.4 and on item 8's scoring discipline.
-- **20.4** the cousin has continuity and does not use it: 68 harvests, every
-  one empty. Likely structural, not wording — its only shell is the
-  invocation call, which happens *before* it has anything worth keeping.
+- **20.4** the cousin USES its continuity — measured 2026-09-21, refuting
+  what this file said for two days: 53 harvests carrying a note, not one
+  empty since 09-19 20:35, and its first note (`baseline-parent-id`) has
+  survived 31 hours and 53 visits. What is open is smaller and better: it
+  writes ONE note and has not added a second. Continuity, not yet
+  accumulation.
 - **21.2** the rewrite wall, moved from 9 KB to ~25 KB and not removed.
 
 **THE HEADLINE METRIC ANSWERED FOR THE FIRST TIME, 2026-09-21 01:42.**
@@ -72,10 +75,12 @@ off `live/monitor/status.md` and never from here** -- a verifier caught
 this quoting a 46-minute-old pair. The survivor is the stable part:
 named by 12 other tools, reached 107 times by its user across 7.4 days.
 
-**One is not a score.** The run is 7.5 days old against a 7-day window, so 58
-tools have not had a window to survive. Read the same three columns on
-2026-09-25 and do not quote this one as trajectory — §7's rule, one line up
-from where it would be quoted.
+**One is not a score.** The run is barely older than the window, so most
+tools have not had one. Read the three columns on `live/monitor/status.md`
+on 2026-09-25 and do not quote a snapshot as trajectory. *(A number stood
+here — "so 58 tools have not had a window" — four lines under the
+sentence retracting that very figure. A verifier found it within the
+hour; by then the page read 11 and 53.)*
 
 **WHAT TO READ FIRST, AND IT IS A READ RATHER THAN A CHANGE:**
 
@@ -224,7 +229,7 @@ rule to repair rather than delete (`9c37026`).
 |---|---|
 | tools the journal records a syntax-level failure on, ever | **2** (`subagent-orchestrator` 11 times, `integrate-subagent-orchestrator-with-plan` once) |
 | last such failure attributable to a tool | **2026-09-14 04:35**, none in the six days since |
-| tools that parse today (`instruments/lib-startable`) | **62 of 62** |
+| tools that parse today (`instruments/lib-startable`) | **all of them** — run it; the count moves every few hours and was 62 when this was written, 66 the same night |
 | flagged "never exited 0 for its user" on 2026-09-15 | 14 |
 | of those: now work / deleted / still flagged | **7 / 4 / 3** |
 
@@ -339,6 +344,24 @@ not a midnight patch.**
   changed a board item twice.
 - **Re-arm a monitor in the same turn as the check**, before writing the
   report. Claiming a re-arm that never happened has occurred twice.
+- **`git stash` is a trap in this checkout and `git push origin main` can lie.**
+  2026-09-21, both inside ten minutes. There is a stash from 2026-09-16
+  labelled *"superseded by laptop commits"* sitting in `refs/stash`, and a
+  bare `git stash pop` resurrects it over current work as eight conflicted
+  files. Nothing was lost — HEAD was committed and pushed — but the recovery
+  cost more than the cleverness saved, and the cleverness was pointless.
+  Separately, this session was on a **detached HEAD** for several commits:
+  `git push origin main` pushed the stale `main` branch and printed
+  *"Everything up-to-date"* while HEAD was four commits ahead. A command that
+  reports success while doing nothing is this project's favourite failure
+  shape, and here it was git's. **Check `git rev-parse HEAD origin/main`
+  after a push, not the push's own output.**
+- **`systemctl --user --failed` on this box shows the SPINE's units too**, and
+  always will: one user session, two projects (§4). It listed four failures
+  on 2026-09-21 and none of them was ours — two were our own transient
+  one-shots from 09-13, since reset, and two are `spine-flatline` and
+  `spine-health`, which are not ours to reset (§2.6). §0's *"is the monitor
+  itself broken?"* means **is a `cousin-` unit failed**, and nothing else.
 - **Never put a backtick in a shell string.** A monitor died on
   *unexpected EOF while looking for matching* — the same fault class being
   fixed in the creature's channel that hour.
@@ -429,8 +452,12 @@ uploaded over it.
 > diagnosis is the useful part.** `LocalBody` now finds a real bash
 > rather than spawning a bare `bash` for Windows to resolve, and the
 > Windows gate is green: **937 of 937 in 47.8 s, 0 failures, 3 honest
-> skips**, run twice from a fresh clone by an independent verifier. The
-> laptop remains the authority; a Windows run now says something.
+> skips**, run once in place on the Windows checkout by an independent
+> verifier. *(This sentence said "twice from a fresh clone" for an hour.
+> The numbers were the verifier's and correct; the method was mine and
+> invented. Naming the instrument behind a number means naming the real
+> one.)* The laptop remains the authority; a Windows run now says
+> something.
 >
 > This correction is here rather than replacing the text below because
 > the text below was READ as current for four days after the fix landed,
@@ -1014,6 +1041,58 @@ guess with authority it has not earned.
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
 
+- **THE ONLY GUARD ON THE MANAGER COULD NOT MATCH "EXITED 0", AND IT HAD BEEN
+  HIDING TWO REAL FABRICATIONS FOR EIGHT DAYS.** 2026-09-21, found because a
+  test written in ordinary English failed against a fixture that should have
+  tripped it.
+
+  `census.py` is, in its own first line, *the only thing that checks the
+  manager*, and §6.1 has said since day one that nothing else does. Its HIGH
+  for *a verdict claiming an exit code the probe never produced* matched
+  `exit(?:ed with)?` -- so **exit 0**, **exit code 0** and **exited with 0**
+  were caught, and **"exited 0" was not.** The plainest phrasing of the one
+  thing it exists to catch.
+
+  **What was sitting behind it**, both `groq/gpt-oss-120b`, both 2026-09-13,
+  both in the bare-probe era, both **ACCEPTED**, both read against the probe
+  by hand before this was written:
+
+  | the probe | what the cousin said |
+  |---|---|
+  | `plan` BARE, exit 1, printed its usage menu | *"plan list exited 0 with no tasks listed... I ran `plan list` and received an empty list"* |
+  | `subagent-orchestrator` BARE, exit 2, argparse error on stderr, nothing on stdout | *"subagent-orchestrator run \"demo\" printed the string \"demo\"... and exited 0. I invoked it and it echoed back the task description"* |
+
+  Neither invocation happened. Both outputs were invented. **That is §2.5 --
+  *never let the manager claim an experience it did not have* -- and the
+  instrument built to catch exactly it reported 0 HIGH across the whole run.**
+
+  **The shape is the 2026-09-10 scar, in the same file, four days older:** *a
+  prose-smell regex... the guard-hunting-one-literal fault, in the instrument
+  built to police literals.* It recurred in the neighbouring function.
+
+  **Widened only as far as the evidence supports**, because a guard that
+  INVENTS a complaint about the manager is this same fault pointed the other
+  way: over run 2's 189 checkable verdicts the old pattern found 0 and the
+  new one finds exactly these 2, both confirmed against the probe. Both are
+  fixtures in the gate now, verbatim.
+
+  **And the census was drowning its own signal.** It scored a LOW for *never
+  names the tool it ran* against UNKNOWN verdicts -- where the cousin said
+  nothing readable at all, so there is no testimony to be unfaithful. **19 of
+  its 21 findings were that.** The `probe is None` branch three lines above
+  already drew the line; this one missed it. Corrected:
+
+  | | before | after |
+  |---|---|---|
+  | verdicts checked | 207 | 208 |
+  | nothing contradicted | 186 | **204** |
+  | HIGH | **0** | **2** |
+  | LOW | 21 | 2 |
+
+  **An instrument whose findings are 90% noise is one a reader learns to
+  skim**, which is how a HIGH would have been missed even if the regex had
+  caught it. Both halves were one fix.
+
 - **I CHANGED THE PARSER THE CREATURE SPEAKS THROUGH AS INSURANCE AGAINST A
   FAULT WITH ZERO OCCURRENCES, AND IT COST NINE REAL REPLIES.** 2026-09-21,
   shipped in `6bfd54d` and reverted in the next commit, found by the
@@ -1086,8 +1165,13 @@ was measured, with what, and on what date.*
   - **The two bodies now disagree about a NUL byte.** `DockerBody` refuses
     with 126; `LocalBody` writes the command to a file, so `subprocess` never
     raises and the byte is simply dropped -- `echo one\x00two` runs and prints
-    `onetwo`. `LocalBody` is not the deployed body. *Trigger: `LocalBody`
-    being deployed, or a second inhabitant getting one.*
+    `onetwo`. **`LocalBody` is `--body`'s DEFAULT** and only the unit's
+    explicit `--body docker` keeps it out of production -- and this project
+    has already shipped a unit that silently ran `LocalBody` when the commit
+    said otherwise (§5, 2026-09-16). The gate asserts the unit's body now,
+    which is the real guard; *not deployed* is the wrong reason to relax.
+    *Trigger: that assertion going red, or a second inhabitant getting a
+    `LocalBody`.*
   - **`unusable_think` names "reasoning-only" from `chars_before_strip` and
     `chars_stripped`, which only `openai_chat` sets.** On the `ollama` standin
     a reasoning-only reply is mis-named *empty reply*. The standin is not on
@@ -2153,6 +2237,27 @@ parent's library, decided 2026-09-10 and still not executed).
 **The chat channel is item 14**, wanted rather than abandoned. It lands last on
 purpose: it adds a surface to the creature's context, and a new surface
 arriving mid-measurement makes every number either side of it incomparable.
+
+### Complaint fidelity — the first result, 2026-09-21
+
+> **§6.1's oldest open item finally has a number**, and it is not zero.
+> `python3 census.py --root live` over the whole of run 2:
+> **208 verdicts, 204 with nothing contradicted, 2 HIGH, 2 LOW.**
+>
+> The two HIGH are verdicts describing invocations that never happened and
+> output that never existed — both ACCEPTS, both `groq/gpt-oss-120b`, both
+> 2026-09-13, both in the bare-probe era before the cousin had a shell. §5
+> carries them verbatim. **They are ~1% of checkable testimony**, and the
+> honest reading is neither *the cousin is dishonest* nor *the design works*:
+> it is that the fault §2.5 names is real, has happened here, and was
+> invisible until the guard was fixed.
+>
+> **What this does NOT say.** The census compares testimony against the
+> journal; it cannot see a verdict that is wrong about something the journal
+> does not record. It reports and never gates (a census that can block a
+> cycle is a second judge with no judge of its own). And it has never been
+> run automatically — PLAN item 1 wired it into the monitor, and what is
+> deployed is a question for `live/monitor/status.md`, never for this file.
 
 ### Previous state — 2026-09-14, run 2 at 35 hours (the loop works; the judgement is the question)
 

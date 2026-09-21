@@ -28,10 +28,30 @@ So the discipline is a command rather than an intention:
     # ... change kernel/think.py ...
     python3 replay_parser.py live/journal.jsonl --against /tmp/parse-before.json
 
-It exits 1 if any reply parses differently, prints how many and shows the
-first few, with the old and new blocks side by side. **A non-zero exit is not
-a veto** -- a parser fix is supposed to change something. It is the list of
-what the change actually does, which is the thing nobody had before.
+Exit codes, and they are the whole contract:
+
+  0  every shared reply parses identically
+  1  at least one parses differently -- **not a veto**, a parser fix is
+     supposed to change something. It is the list of what the change does.
+  2  **nothing could be compared** -- no baseline, or no reply in common.
+
+**2 exists because of a verifier, 2026-09-21.** The first version printed
+*SAME: every shared reply parses identically* and exited 0 when the overlap
+was ZERO: a baseline saved before the journal was rotated, or `--against`
+pointed at the wrong path, and the instrument built to stop "green whether
+the code works or not" certified a comparison it never made.
+
+What it scans: every reply carrying raw model text, which is **not only the
+creature's**. `parse_blocks` also drives the cousin's shell
+(`cousin.choose_invocation`, `cousin.unusable_invocation`), so
+`cousin_probe.proposal` and `cousin_verdict.raw` are read too. They are ~10%
+of the corpus today and the 2026-09-16 fifteen-hour outage was on that side.
+
+What the baseline stores is a COUNT, a CHARACTER TOTAL and a DIGEST per
+reply, never the blocks -- a baseline that carried block text would be a
+copy of the run's raw output, which is the thing that may not leave the
+laptop. So a difference prints the NEW blocks and the old/new shape; the old
+text is in the old journal, not here.
 
 Reads only. Writes only where `--save` says.
 """
@@ -55,35 +75,54 @@ def digest(blocks):
     return h.hexdigest()[:16]
 
 
-def scan(path, keep_text=False):
-    """{reply key -> {n, digest, blocks?}} for every reply carrying raw text.
+#: Every journal field that carries raw model text `parse_blocks` will meet.
+#: The creature's think is the bulk of it; the cousin's shell is the rest, and
+#: the fifteen-hour outage of 2026-09-16 was on the cousin's side.
+RAW_FIELDS = (("think", "raw"),
+              ("cousin_probe", "proposal"),
+              ("cousin_verdict", "raw"))
 
-    Keyed on the timestamp, which is what the journal keys everything on. A
-    reply with no `raw` is skipped rather than counted as empty: the fixtures
-    drop `raw` on purpose, and counting those as "no blocks" would make a
-    corpus of them look like a parser that stopped working.
+DROPPED = "[dropped from fixture]"
+
+
+def scan(path, keep_text=False):
+    """{reply key -> {n, chars, digest, blocks?}} for every raw reply.
+
+    Keyed on kind and timestamp, which is what the journal keys everything on.
+    A record whose text is absent is SKIPPED rather than counted as empty: the
+    committed fixtures drop `raw` on purpose (raw model output, public repo),
+    and counting those as "no blocks" would make a corpus of them look like a
+    parser that stopped working.
     """
     out = {}
+    wanted = {k for k, _f in RAW_FIELDS}
     with io.open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.strip()
-            if not line or '"think"' not in line:
+            if not line:
+                continue
+            # Cheap pre-filter: it may only SKIP lines that certainly carry
+            # none of these kinds. `json.dumps` writes `"kind": "think"`
+            # verbatim, so a real record always contains its own kind string.
+            if not any(('"%s"' % k) in line for k in wanted):
                 continue
             try:
                 r = json.loads(line)
             except ValueError:
                 continue
-            if r.get("kind") != "think":
+            kind = r.get("kind")
+            field = dict(RAW_FIELDS).get(kind)
+            if not field:
                 continue
-            raw = r.get("raw")
-            if not raw or raw == "[dropped from fixture]":
+            raw = r.get(field)
+            if not raw or raw == DROPPED:
                 continue
             blocks = think.parse_blocks(raw)
             rec = {"n": len(blocks), "digest": digest(blocks),
-                   "chars": sum(len(b) for b in blocks)}
+                   "chars": sum(len(b) for b in blocks), "kind": kind}
             if keep_text:
                 rec["blocks"] = blocks
-            out[repr(r.get("ts"))] = rec
+            out["%s@%r" % (kind, r.get("ts"))] = rec
     return out
 
 
@@ -97,8 +136,13 @@ def main():
     a = ap.parse_args()
 
     now = scan(a.journal, keep_text=bool(a.against))
-    print("%d reply/replies carry raw text; %d parse to at least one block"
-          % (len(now), sum(1 for v in now.values() if v["n"])))
+    per = {}
+    for v in now.values():
+        per[v["kind"]] = per.get(v["kind"], 0) + 1
+    print("%d reply/replies carry raw text (%s); %d parse to at least one block"
+          % (len(now),
+             ", ".join("%s %d" % (k, per[k]) for k in sorted(per)) or "none",
+             sum(1 for v in now.values() if v["n"])))
 
     if a.save:
         with io.open(a.save, "w", encoding="utf-8", newline="\n") as f:
@@ -110,27 +154,40 @@ def main():
     if not a.against:
         return 0
 
-    with io.open(a.against, encoding="utf-8") as f:
-        before = json.load(f)
+    try:
+        with io.open(a.against, encoding="utf-8") as f:
+            before = json.load(f)
+    except (OSError, ValueError) as e:
+        print("CANNOT COMPARE: %s could not be read (%s)" % (a.against, e))
+        return 2
 
     gone = [k for k in before if k not in now]
     new = [k for k in now if k not in before]
     diff = [k for k in now if k in before
             and (now[k]["digest"] != before[k]["digest"])]
 
+    shared = len(now) - len(new)
     if gone or new:
         print("NOTE: %d reply/replies only in the baseline and %d only now -- "
               "the journal grew or was cut; only the %d shared replies are "
-              "compared" % (len(gone), len(new), len(now) - len(new)))
+              "compared" % (len(gone), len(new), shared))
+    if shared <= 0:
+        # NOT "SAME". A comparison of nothing is not a clean comparison, and
+        # saying so was this tool certifying work it never did -- the exact
+        # fault it exists to prevent, in itself, found by a verifier on the
+        # night it was written.
+        print("CANNOT COMPARE: no reply is in both the baseline and the "
+              "journal. Nothing was checked -- this is NOT a clean result.")
+        return 2
     if not diff:
         print("SAME: every shared reply parses identically.")
         return 0
 
     print("DIFFERENT: %d of %d shared replies parse differently."
-          % (diff and len(diff) or 0, len(now) - len(new)))
+          % (len(diff), shared))
     for k in diff[:a.show]:
         b, n = before[k], now[k]
-        print("-- ts %s: %d block(s)/%d chars -> %d block(s)/%d chars"
+        print("-- %s: %d block(s)/%d chars -> %d block(s)/%d chars"
               % (k, b["n"], b["chars"], n["n"], n["chars"]))
         for i, blk in enumerate(n.get("blocks") or []):
             print("     now[%d]: %r" % (i, blk[:160]))

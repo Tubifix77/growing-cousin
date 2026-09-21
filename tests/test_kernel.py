@@ -651,37 +651,73 @@ def test_a_parser_change_can_be_replayed_before_it_ships():
     j.append("think", chars=10, finish="stop", raw="[dropped from fixture]")
     j.append("exec_start", cmd="ls")
 
+    # THE COUSIN'S SHELL IS PART OF THE CORPUS. `parse_blocks` also drives
+    # `cousin.choose_invocation`, so a parser change meets those replies too
+    # -- and the fifteen-hour outage of 2026-09-16 was on that side.
+    j.append("cousin_probe", tool="plan", exit_code=0, bare=False,
+             cmd="plan list", stdout="ok", stderr="",
+             proposal="I would run ```bash\nplan list\n```")
+    j.append("cousin_verdict", verdict="ACCEPTED", tool="plan",
+             raw="<<<COUSIN\nverdict: ACCEPTED\nCOUSIN")
+
     seen = replay_parser.scan(jp)
     check("replay: it reads the replies that have text and skips the ones "
-          "whose raw was dropped for the public repo", len(seen) == 3, seen)
-    check("replay: and they parsed to the blocks they contain",
-          sum(v["n"] for v in seen.values()) == 3, seen)
+          "whose raw was dropped for the public repo", len(seen) == 5, seen)
+    kinds = sorted({v["kind"] for v in seen.values()})
+    check("replay: and it reads the COUSIN's replies, not only the "
+          "creature's -- the parser serves both",
+          kinds == ["cousin_probe", "cousin_verdict", "think"], kinds)
 
     base = os.path.join(d, "before.json")
-    rc = replay_parser.main.__wrapped__ if hasattr(replay_parser.main,
-                                                   "__wrapped__") else None
-    sys.argv = ["replay_parser.py", jp, "--save", base]
-    check("replay: saving a baseline succeeds", replay_parser.main() == 0)
-    check("replay: and the baseline is on disk", os.path.exists(base))
-
-    sys.argv = ["replay_parser.py", jp, "--against", base]
-    check("replay: an unchanged parser compares clean",
-          replay_parser.main() == 0)
-
-    # Now change the parser under it, exactly as a real change would, and
-    # prove the replay NOTICES. Restored afterwards whatever happens.
-    before_re = think.FENCE_RE
+    argv0 = list(sys.argv)
     try:
-        think.FENCE_RE = re.compile(r"```(?:bash|sh)[ \t]*\n(.*?)^```\r?$",
-                                    re.S | re.M)
+        sys.argv = ["replay_parser.py", jp, "--save", base]
+        check("replay: saving a baseline succeeds", replay_parser.main() == 0)
+        check("replay: and the baseline is on disk", os.path.exists(base))
+
         sys.argv = ["replay_parser.py", jp, "--against", base]
-        check("replay: a parser change that alters a real reply is REPORTED, "
-              "which is the whole point -- the 2026-09-21 revert happened "
-              "because a verifier ran this by hand and nothing else would "
-              "have", replay_parser.main() == 1)
+        check("replay: an unchanged parser compares clean",
+              replay_parser.main() == 0)
+
+        # NOTHING IN COMMON IS NOT "SAME". A baseline from a rotated journal,
+        # or a wrong --against path, used to print "every shared reply parses
+        # identically" and exit 0 having compared nothing -- this instrument
+        # committing the fault it exists to prevent. Found by a verifier the
+        # night it was written.
+        empty = os.path.join(d, "stale.json")
+        with io.open(empty, "w", encoding="utf-8") as f:
+            f.write('{"think@1.0": {"n": 1, "digest": "x", "chars": 1}}')
+        sys.argv = ["replay_parser.py", jp, "--against", empty]
+        check("replay: a baseline with no reply in common CANNOT COMPARE, "
+              "and says so instead of certifying a comparison it never made",
+              replay_parser.main() == 2)
+        missing = os.path.join(d, "nope.json")
+        sys.argv = ["replay_parser.py", jp, "--against", missing]
+        check("replay: and an unreadable baseline is the same answer",
+              replay_parser.main() == 2)
+
+        # Now change the parser under it, exactly as a real change would, and
+        # prove the replay NOTICES.
+        before_re = think.FENCE_RE
+        try:
+            think.FENCE_RE = re.compile(
+                r"```(?:bash|sh)[ \t]*\n(.*?)^```\r?$", re.S | re.M)
+            sys.argv = ["replay_parser.py", jp, "--against", base]
+            check("replay: a parser change that alters a real reply is "
+                  "REPORTED, which is the whole point -- the 2026-09-21 "
+                  "revert happened because a verifier ran this by hand and "
+                  "nothing else would have", replay_parser.main() == 1)
+        finally:
+            think.FENCE_RE = before_re
     finally:
-        think.FENCE_RE = before_re
-    check("replay: and the parser is put back", think.FENCE_RE is before_re)
+        # RESTORED, because `observer.main` reads `sys.argv[1]` as its root
+        # when none is passed. The first version of this test left a path to
+        # a deleted temp directory there, and only the order of the
+        # registration list kept it from mattering -- which is a position in
+        # a list being a reason, the 2026-09-15 scar.
+        sys.argv = argv0
+    check("replay: and the module-level parser is the one the rest of the "
+          "suite will use", think.FENCE_RE.pattern == before_re.pattern)
     shutil.rmtree(d, ignore_errors=True)
 
 
@@ -728,15 +764,21 @@ def test_the_block_level_trim_says_how_much_it_dropped():
     check("trim: the reader is told a cut happened", "dropped" in h.lower(),
           h[:200])
     dropped = len(whole) - len(h)
-    # Tolerance, because the two ways of counting differ by the length of
-    # the header and the notice itself -- the code reports how much of the
-    # TRANSCRIPT was cut, which is the reader's question.
-    near = [str(n) for n in range(dropped - 900, dropped + 900)]
-    check("trim: AND HOW MUCH, to within the notice's own length -- a notice "
-          "with no number is the marker fault one level up, and the per-output "
-          "markers understate by exactly this much while it is missing",
-          any(n in h for n in near),
-          (dropped, h[:300]))
+    # READ THE NOTICE, not the transcript. The first version of this built
+    # 1,800 numeric strings around the expected drop and asked whether ANY of
+    # them appeared anywhere in `h` -- and `h` is full of numbers, including
+    # the per-output markers this check is about. A verifier swept the fixture
+    # size and found a value where a notice carrying NO NUMBER AT ALL passed,
+    # satisfied by a marker's own figure. One constant away from a tautology,
+    # in the check written to replace a tautology.
+    m = re.search(r"Older lines dropped: (\d+) characters", h)
+    check("trim: the notice carries a number at all -- a notice with none is "
+          "the marker fault one level up, and the per-output markers "
+          "understate by exactly this much while it is missing",
+          m is not None, h[:300])
+    said = int(m.group(1)) if m else -1
+    check("trim: and it is the real drop, to within the header and the "
+          "notice itself", abs(said - dropped) < 900, (said, dropped))
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
@@ -789,17 +831,246 @@ def test_the_creatures_ladder_really_is_given_the_emptiness_predicate():
         check("wiring: and it keeps a reply that has text and no command, "
               "which must never be rejected", "nothing to do" in text, text)
 
-        # The other two ladders are different questions with different
-        # predicates, and that is asserted rather than assumed.
+        # THE OTHER TWO LADDERS, BY WHAT THEY DO. The first version of this
+        # asserted `ask_cousin is not ask_invoke`, which is True under every
+        # possible implementation -- `from_spec` returns a fresh closure every
+        # call -- and a source grep for two literals in `run.py`. A verifier
+        # then CROSSED the two predicates inside `build_ladders` and the whole
+        # gate stayed green. That crossing is byte-for-byte the 2026-09-16
+        # outage: the invocation asked through the verdict's predicate, every
+        # correct answer judged unusable, every rung walled, 112 probes lost
+        # in fifteen hours.
         calls[:] = []
         v, _m = ask_cousin("judge")
-        check("wiring: the cousin's ladder accepts a verdict block",
+        check("wiring: the cousin's VERDICT ladder accepts a verdict block",
               "ACCEPTED" in v, v)
-        check("wiring: three ladders were built and each got its own "
-              "predicate", ask_cousin is not ask_invoke
-              and ask_creature is not ask_cousin)
+
+        # An INVOCATION reply: a bash block and no verdict. For the verdict
+        # ladder that is a failure; for the invocation ladder it is the
+        # answer. Each must be asked through its own contract.
+        inv = [{"name": "proposes", "kind": "scripted", "tag": "inv",
+                "replies": [("I would run it like this:\n```bash\n"
+                             "plan list\n```", {"done_reason": "stop"})]}]
+        _c, ladder_v, ladder_i = runmod.build_ladders(spec, inv)
+        got = None
+        try:
+            ladder_v("judge")
+        except backends.LadderExhausted as e:
+            got = e
+        check("wiring: through the VERDICT ladder an invocation reply is "
+              "unusable -- that is the contract, and it is what makes "
+              "crossing the two fatal",
+              got is not None, "the verdict ladder accepted a bash block")
+        text2, _m2 = ladder_i("what would you run")
+        check("wiring: through the INVOCATION ladder the same reply is the "
+              "ANSWER, and the two cannot be swapped without this going red",
+              "plan list" in text2, text2)
     finally:
         backends.KINDS.pop("scripted", None)
+
+
+def test_the_census_has_no_opinion_about_testimony_that_does_not_exist():
+    """`census.check` scored an UNKNOWN verdict for *never naming the tool it
+    ran*. An UNKNOWN is the cousin saying nothing readable -- the ladder went
+    dry, or the reply was cut before the block -- so there is no testimony to
+    be unfaithful.
+
+    Measured over run 2 on 2026-09-21: **207 verdicts, 0 HIGH, 21 LOW -- and
+    19 of the 21 were UNKNOWNs.** The census was inflating its own finding
+    count tenfold with the one thing it cannot have an opinion about. The
+    `probe is None` branch three lines above already drew this line.
+
+    That matters more than its size, because this is the ONLY thing that
+    checks the manager (§6.1), and an instrument whose findings are 90% noise
+    is one a reader learns to skim.
+    """
+    import census
+
+    probe = {"tool": "plan", "exit_code": 2, "stdout": "usage: plan", "stderr": ""}
+    quiet = census.check(probe, {"verdict": "UNKNOWN", "tried": "",
+                                 "outcome": "", "to_creature": ""})
+    check("census: an UNKNOWN names no tool because it says NOTHING, and that "
+          "is not a fidelity finding", quiet == [], quiet)
+
+    spoke = census.check(probe, {"verdict": "RETURNED", "tried": "I ran it",
+                                 "outcome": "it asked for an argument",
+                                 "to_creature": "say what you need"})
+    check("census: a verdict that DOES speak and never names its tool is "
+          "still flagged", any(s == "LOW" for s, _t in spoke), spoke)
+
+    named = census.check(probe, {"verdict": "RETURNED", "tried": "plan list",
+                                 "outcome": "usage", "to_creature": "needs args"})
+    check("census: and naming it clears the finding", named == [], named)
+
+    # The HIGH cases are what this file exists for, and none of them moved.
+    fab = census.check(probe, {"verdict": "RETURNED", "tried": "plan",
+                               "outcome": "it exited 0 and worked",
+                               "to_creature": "fine"})
+    check("census: a claimed exit code the probe never produced is still HIGH",
+          any(s == "HIGH" for s, _t in fab), fab)
+    mute = census.check(probe, {"verdict": "RETURNED", "tried": "plan",
+                                "outcome": "x", "to_creature": "  "})
+    check("census: a refusal with no reason is still HIGH",
+          any(s == "HIGH" for s, _t in mute), mute)
+    none_probe = census.check(None, {"verdict": "ACCEPTED", "tried": "",
+                                     "outcome": "", "to_creature": "ok"})
+    check("census: a verdict with no recorded probe at all is still HIGH",
+          any(s == "HIGH" for s, _t in none_probe), none_probe)
+    unknown_none = census.check(None, {"verdict": "UNKNOWN", "tried": "",
+                                       "outcome": "", "to_creature": ""})
+    check("census: but an UNKNOWN with no probe is nothing happening twice",
+          unknown_none == [], unknown_none)
+
+
+def test_the_census_catches_the_plainest_way_to_claim_an_exit_code():
+    """**The only guard on the manager could not match "exited 0".**
+
+    `census.check`'s pattern was `exit(?:ed with)?` -- so *exit 0*, *exit code
+    0* and *exited with 0* were caught, and **"exited 0" was not.** That is
+    the plainest phrasing of the one thing this file exists to catch, and
+    §6.1 says this file is the only thing that checks the manager at all.
+
+    **It had been blind for eight days, and it was hiding two real
+    fabrications.** Both are reproduced below from the live journal, verbatim,
+    because a scar with a fixture cannot recur quietly:
+
+    - the probe ran `plan` BARE, exit 1, printing its usage menu. The cousin
+      said *"plan list exited 0 with no tasks listed... I ran `plan list` and
+      received an empty list"*. It never ran `plan list`.
+    - the probe ran `subagent-orchestrator` BARE, exit 2, an argparse usage
+      error on stderr and nothing on stdout. The cousin said
+      *"subagent-orchestrator run \"demo\" printed the string \"demo\"...
+      and exited 0"*. That invocation never happened and that output never
+      existed.
+
+    Both were ACCEPTED. §2.5: *never let the manager claim an experience it
+    did not have -- a fabricated complaint is the exact fault this design
+    exists to prevent, committed by the agent meant to catch it.*
+
+    And the shape is the 2026-09-10 scar returning: *a guard hunting one
+    literal, in the instrument built to police literals.* Widened only as far
+    as the evidence supports -- over run 2's 189 checkable verdicts the old
+    pattern finds 0 and the new one finds exactly these 2, both confirmed by
+    reading the probe, because a guard that INVENTS a complaint about the
+    manager is the same fault pointed the other way.
+    """
+    import census
+
+    plan_bare = {"tool": "plan", "exit_code": 1, "stderr": "",
+                 "stdout": "Usage: plan <command> [args]\nCommands:\n"
+                           "  goal <text>  Set the overall goal"}
+    fabricated = {"verdict": "ACCEPTED",
+                  "tried": "plan list exited 0 with no tasks listed "
+                           "(empty output)",
+                  "outcome": "I ran `plan list` and received an empty list, "
+                             "which is the correct behavior when the task "
+                             "store is empty.",
+                  "to_creature": "next I want to be able to add a task"}
+    got = census.check(plan_bare, fabricated)
+    check("census: 'exited 0' against a probe that exited 1 is a HIGH",
+          any(s == "HIGH" and "exit" in t for s, t in got), got)
+
+    orch = {"tool": "subagent-orchestrator", "exit_code": 2, "stdout": "",
+            "stderr": "usage: subagent-orchestrator [-h] {run} ...\n"
+                      "subagent-orchestrator: error: the following arguments "
+                      "are required: command"}
+    invented = {"verdict": "ACCEPTED",
+                "tried": 'subagent-orchestrator run "demo" printed the string '
+                         '"demo" (echoed the task description) and exited 0',
+                "outcome": "I invoked it and it echoed back the task "
+                           "description, as the stub promises.",
+                "to_creature": "the tool runs and returns the expected output"}
+    got2 = census.check(orch, invented)
+    check("census: and so is the second one, which invented both the "
+          "invocation and its output",
+          any(s == "HIGH" and "exit" in t for s, t in got2), got2)
+
+    # THE OTHER PHRASINGS STILL WORK, and an honest verdict is still clean --
+    # widening a guard that can accuse the manager needs both halves.
+    for phrase in ("it exited 0", "exit 0", "exit code 0", "exited with 0",
+                   "exited with code 0"):
+        v = {"verdict": "RETURNED", "tried": "plan", "outcome": phrase,
+             "to_creature": "not what I needed"}
+        check("census: '%s' is read as a claim about the exit code" % phrase,
+              any(s == "HIGH" for s, _t in census.check(plan_bare, v)), phrase)
+    honest = {"verdict": "RETURNED", "tried": "plan",
+              "outcome": "plan exited 1 and printed its usage menu",
+              "to_creature": "it needs a subcommand"}
+    check("census: a verdict that reports the exit code correctly is clean",
+          census.check(plan_bare, honest) == [],
+          census.check(plan_bare, honest))
+    nonum = {"verdict": "RETURNED", "tried": "plan",
+             "outcome": "it printed a usage menu and did not do what I asked",
+             "to_creature": "needs a subcommand"}
+    check("census: and one that names no number at all is not accused of "
+          "naming the wrong one", census.check(plan_bare, nonum) == [],
+          census.check(plan_bare, nonum))
+
+
+def test_a_rung_that_answers_and_says_nothing_is_not_a_quota_refusal():
+    """The change that made this necessary is in the same commit as this.
+
+    The creature's ladder now rejects a reply with no text. Before that, such
+    a reply was banked and surfaced as `commands LOST / budget_spent`, which
+    `commands_lost` watches. After it, the reply never reaches `run_cycle` at
+    all -- it becomes a `rung_declined` with `expected=True`, which is what a
+    429 looks like, and the page shows both as one number: *rungs declined
+    (expected)*. **A rung returning nothing on every call would have read as
+    ordinary weather.**
+
+    A verifier found that before it was ever deployed. So the record carries
+    the distinction (`unusable`) and this detector reads it -- a field nothing
+    reads is the dead-channel scar, and this project has paid for that one
+    too.
+    """
+    from monitor import detectors as det
+
+    def ctx(rows):
+        return det.Context(rows, now=2000.0)
+
+    def decline(rung, unusable, ts):
+        return {"kind": "rung_declined", "ts": ts, "rung": rung,
+                "expected": True, "unusable": unusable,
+                "reason": ("answered but unusable: budget spent"
+                           if unusable else "quota or rate limit (HTTP 429)")}
+
+    quiet = [decline("a", False, 1000.0 + i) for i in range(40)]
+    f = [x for x in det.replies_unusable(ctx(quiet))]
+    check("unusable: a ladder that only ever met quota is OK",
+          all(x.state == det.OK for x in f), [(x.name, x.state) for x in f])
+
+    few = quiet + [decline("a", True, 1500.0 + i) for i in range(2)]
+    f2 = [x for x in det.replies_unusable(ctx(few)) if "[" in x.name]
+    check("unusable: two of them is not enough to say anything, and it says "
+          "CANNOT TELL rather than OK",
+          f2 and all(x.state == det.CANNOT_TELL for x in f2),
+          [(x.name, x.state) for x in f2])
+
+    many = ([decline("a", True, 1500.0 + i) for i in range(12)]
+            + [decline("a", False, 1400.0 + i) for i in range(4)])
+    f3 = [x for x in det.replies_unusable(ctx(many)) if "[" in x.name]
+    check("unusable: a rung whose declines are mostly ANSWERS we could not "
+          "use is an ALARM, not weather",
+          f3 and any(x.state == det.ALARM for x in f3),
+          [(x.name, x.state, x.msg) for x in f3])
+    check("unusable: and the alarm says which rung and why",
+          any("a" in x.msg and "budget" in x.msg for x in f3),
+          [x.msg for x in f3])
+
+    mixed = ([decline("a", True, 1500.0 + i) for i in range(10)]
+             + [decline("a", False, 1400.0 + i) for i in range(90)])
+    f4 = [x for x in det.replies_unusable(ctx(mixed)) if "[" in x.name]
+    check("unusable: a handful against a wall of real quota is informational, "
+          "because on a free tier quota IS the weather",
+          f4 and all(x.state == det.INFO for x in f4),
+          [(x.name, x.state) for x in f4])
+
+    # AND THE PAGE CARRIES A RUNBOOK LINE, because a finding without one is a
+    # puzzle handed to whoever is awake at three in the morning.
+    from monitor import status as monstatus
+    check("unusable: the finding has a runbook line",
+          "replies_unusable" in monstatus.RUNBOOK,
+          sorted(monstatus.RUNBOOK)[:5])
 
 
 def test_marker_invariant():
@@ -7229,15 +7500,12 @@ def test_choosing_what_to_run_is_not_judged_by_the_verdict_contract():
           "still unusable -- silence we never heard is not an answer",
           died is not None, "a truncated rung was accepted")
 
-    # AND THE DEPLOYMENT WIRES A REAL ONE. Engine falls back to `ask_cousin`
-    # so any caller works; production must not rely on that fallback, which
-    # is the whole bug in one line.
-    src = io.open(os.path.join(os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__))), "run.py"), encoding="utf-8").read()
-    check("invoke: run.py builds a separate invocation ladder and hands it "
-          "to the Engine",
-          "unusable_invocation" in src and "ask_cousin_invoke=ask_cousin_invoke" in src,
-          "run.py does not wire one")
+    # THE DEPLOYMENT'S OWN WIRING is asserted by DRIVING it, in
+    # `test_the_creatures_ladder_really_is_given_the_emptiness_predicate`.
+    # What stood here was a grep of `run.py` for two literals -- a guard
+    # hunting one literal, in the suite that carries that scar twice -- and a
+    # verifier proved it worthless by crossing the two cousin predicates
+    # inside `build_ladders` and watching the whole gate stay green.
 
 
 def test_the_framework_never_invents_the_cousins_command():
@@ -8546,6 +8814,9 @@ def main():
                test_journal, test_history_never_cuts_mid_line,
                test_a_marker_says_whose_cut_it_is,
                test_marker_invariant, test_body,
+               test_a_rung_that_answers_and_says_nothing_is_not_a_quota_refusal,
+               test_the_census_catches_the_plainest_way_to_claim_an_exit_code,
+               test_the_census_has_no_opinion_about_testimony_that_does_not_exist,
                test_the_block_level_trim_says_how_much_it_dropped,
                test_the_creatures_ladder_really_is_given_the_emptiness_predicate,
                test_a_parser_change_can_be_replayed_before_it_ships,

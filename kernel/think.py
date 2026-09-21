@@ -102,8 +102,9 @@ import re
 # the creature speaks through, justified as insurance, costing real
 # commands. The measured risk was 0 and the measured cost was 9.
 # **Invariant: a parser change is scored by REPLAYING IT OVER THE REAL
-# REPLIES before it ships, not after.** `test_a_parser_change_is_replayed`
-# is that rule with teeth.
+# REPLIES before it ships, not after.** `replay_parser.py` is that rule
+# with teeth, and the gate asserts the tool itself works in
+# `test_a_parser_change_can_be_replayed_before_it_ships`.
 #
 # *Trigger to revisit: the first reply that actually contains CRLF.*
 FENCE_RE = re.compile(r"```(?:bash|sh)[ \t]*\n(.*?)^```", re.S | re.M)
