@@ -47,8 +47,8 @@ can clear it. **Every heading that is not `[x]` is in the table below, and that 
 | **14.5** tell the creature `say` exists | adds a surface to its context while 20.2's metric is in its first week | the metric's first full week, 2026-09-25 |
 | **16** the cousin notices a tool serves nothing | the rule can be drafted; scoring it spends the same tier the live run is on | 20.4, then score under item 8's discipline |
 | **17.3** the deciding half | moves with 16 by construction | 16 |
-| **20.4** the cousin carries ONE note and has not added a second | it DOES use the store — 53 harvests, none empty since 09-19; accumulation is the open half | a week of 20.2, read beside the store's key count |
-| **21.2** the rewrite wall itself | the reprieve holds today; the wall is at ~25 KB | first tool over 15 KB, or `truncated|lost` over 10% again |
+| **20.4** the cousin carries ONE note and has not added a second | 59 harvests carry it, none empty since 09-19, and the last 40 all carried exactly one key — continuity proven, accumulation not | a week of 20.2, read beside the store's key count |
+| **21.2** the rewrite wall itself | the reprieve is PROVEN (53% lost -> 0% over 90 thinks); the wall is only moved, to ~25 KB | first tool over 15 KB, or `truncated|lost` over 10% again |
 | **22.1 / 22.2** | a fence inside a heredoc, and the cost of re-reading a journal that only grows | both named and dated in item 22 |
 
 **None of these is blocked on a decision that has not been taken, and none is
@@ -1382,7 +1382,7 @@ prints 0; the map has one row per rehashed commit; and the page's
 
 ## Phase 7 — the creature's own wall (added 2026-09-20)
 
-### 21. `[~]` A tool the creature cannot rewrite in one reply is a tool it can no longer change
+### 21. `[~]` A tool the creature cannot rewrite in one reply is a tool it can no longer change — 21.1 ANSWERED 2026-09-21 (53% lost -> 0%); 21.2 open with its trigger
 
 **Measured 2026-09-20**, after Tue asked how the creature had fared and the
 answer turned out to be *badly, for three days, because of me*. Full numbers
@@ -1403,6 +1403,27 @@ and the process failure are in `CLAUDE.md` §5; the short form:
 not a commit; the backup is `~/rungs.local.json.bak-20260920`. **Acceptance,
 and it is a measurement rather than an assertion:** `truncated|lost` as a
 share of thinks returns toward the 1% it sat at before 2026-09-17.
+
+> **ANSWERED 2026-09-21 17:52, and 21.1 is `[x]` on its own acceptance
+> criterion.** Eighteen hours after the config loaded:
+>
+> | | thinks | `finish=length` | truncated **and lost** |
+> |---|---|---|---|
+> | the 24 hours BEFORE it | 175 | 102 | **93 (53%)** |
+> | everything since | **90** | **0** | **0 (0%)** |
+>
+> Not *toward* the 1% it sat at before 2026-09-17 -- **below it.** The
+> creature's replies still routinely rewrite whole tools; they now fit.
+>
+> **The automated reading was given up for this one, deliberately, and that
+> is recorded rather than glossed.** `deploy_regression_day` for `c942d88`
+> would have said the same thing at 09-22 01:41 with nobody having to
+> remember to look, which is its whole virtue. It was traded for deploying
+> the marker fix eight hours earlier, because that fault was measured biting
+> **22 of 22** marked outputs. `CLAUDE.md` §0 carries the trade.
+>
+> **The earlier reading, kept because it was honest about being an
+> anecdote:**
 
 > **FIRST READING 2026-09-21 01:50, and it is an anecdote by this file's own
 > rule.** The config was edited 09-20 23:36 and the first engine to load it

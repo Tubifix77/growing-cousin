@@ -57,11 +57,11 @@ costume of caution.
   20.3's instruments are the architecture's own answer and the cousin has used
   one unprompted. The RULE waits on 20.4 and on item 8's scoring discipline.
 - **20.4** the cousin USES its continuity — measured 2026-09-21, refuting
-  what this file said for two days: 53 harvests carrying a note, not one
-  empty since 09-19 20:35, and its first note (`baseline-parent-id`) has
-  survived 31 hours and 53 visits. What is open is smaller and better: it
-  writes ONE note and has not added a second. Continuity, not yet
-  accumulation.
+  what this file said for two days. Re-read at 17:52: **133 harvests, 59
+  carrying a note, none empty since 09-19 20:35**, and the last 40 all
+  carried exactly one key. The note is still `baseline-parent-id: 100`,
+  now 45 hours old. **Continuity is proven and accumulation is not**: two
+  days and a hundred visits have not produced a second key.
 - **21.2** the rewrite wall, moved from 9 KB to ~25 KB and not removed.
 
 **THE HEADLINE METRIC ANSWERED FOR THE FIRST TIME, 2026-09-21 01:42.**
@@ -82,6 +82,25 @@ here — "so 58 tools have not had a window" — four lines under the
 sentence retracting that very figure. A verifier found it within the
 hour; by then the page read 11 and 53.)*
 
+**AND READ THE PROBE RATE BESIDE IT, or the metric reads as a verdict on the
+library when it is partly a verdict on us.** Measured 2026-09-21 17:52:
+
+| | probes that reached a tool |
+|---|---|
+| whole run | 53.6 a day |
+| last 48 hours | **25.5 a day** |
+| since the 01:41 start | **13.3 a day** |
+
+A tool "survives" only if its user reaches for it AGAIN inside seven days.
+The library is 69 tools, so at the last-48-hour rate the expected revisits
+per tool per week is **2.6**, and at today's rate **1.3**. In the last 48
+hours the cousin reached **20 distinct tools of 69**, and 23 of its 51 probes
+were `plan`. **So "28 have not survived" is substantially a statement about a
+contended free tier and two model calls per visit, not only about whether the
+creature builds things worth returning to.** The whole-run average of 53.6
+would have hidden that completely -- it is dominated by the bare-probe era,
+when the harness probed cheaply and constantly.
+
 **WHAT TO READ FIRST, AND IT IS A READ RATHER THAN A CHANGE:**
 
 1. `cat live/monitor/status.md` — first line is when it was written, alarms
@@ -97,19 +116,31 @@ hour; by then the page read 11 and 53.)*
    deployed; that is how a monitor learns to agree with whoever last touched
    the machine.
 
-4. **A RESTART IS OWED AND IS BEING HELD ON PURPOSE UNTIL 09-22 01:41.**
-   `6bfd54d` fixes four faults found by a line-by-line pass against the spine
-   (§5, top) and is pushed, gate green on both boxes, **and not deployed**.
-   The laptop runs `c942d88`, whose `deploy_regression_day` closes at 09-22
-   01:41 and is the reading that settles item 21.1. Restarting before then
-   replaces a clean single-cause window with one confounded by four changes --
-   *the measurement is hard, so change the environment* is a scar in §5 and
-   this is the same move. **After that reading lands, deploy normally**: stop,
-   confirm, start, confirm, four separate commands, and let
-   `deploy_regression` have its hour.
+4. **THE HOLD IS DISCHARGED AND `b33c27d` IS DEPLOYED, 2026-09-21 17:58.**
+   The restart was held for one stated reason: `c942d88`'s
+   `deploy_regression_day`, due 09-22 01:41, was the reading that settles item
+   21.1. **The window answered sixteen hours early and unambiguously** -- 90
+   thinks since the budget config loaded, **0 finished on `length` and 0
+   commands lost**, against 175 thinks / 102 / 93 (53%) in the 24 hours before
+   it. There is no reading at 01:41 that could say more than that.
 
-   The page's `restart_owed` line will say a restart is owed for as long as
-   this holds. That is the page being right.
+   **What decided it was the other side of the ledger.** The undeployed batch
+   includes the marker fix, and the marker fault is not occasional: measured
+   with the code the engine was actually running, **22 of the 22 marked
+   outputs since 01:41 were understated**, the worst showing *106 chars
+   withheld* where the truth was 2,452. Eight more hours of that to confirm
+   something already settled is the wrong trade, and this engine has a scar
+   about a creature rewriting two working tools after misreading one of these.
+
+   **A manual reading replaced an automated one, and that is a cost, not a
+   nothing.** §0's own rule is that the day-reading *needs nobody to remember
+   to look*. It is recorded here instead, with its numbers, because the thing
+   it would have confirmed is better measured than it would have been.
+
+   Deploy was four separate commands (STOP, stop, remove STOP, start), the
+   container was recreated on image drift -- PLAN 18.4's fix exercised in
+   production for the first time -- `selfcheck` came back all-true with
+   `unproven: []`, and `deploy_regression` is armed for its hour.
 
 
 **TUE IS THE CUSTOMER, NOT THE ARCHITECT — he said so on 2026-09-16 and it
@@ -1040,6 +1071,41 @@ guess with authority it has not earned.
 
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
+
+- **I MEASURED THE FIX WITH THE FIXED CODE AND GOT "IT ISN'T HAPPENING".**
+  2026-09-21 17:52, caught in the same minute because the number contradicted
+  one taken sixteen hours earlier.
+
+  Checking whether the undeployed marker fix was worth deploying early, the
+  probe imported `kernel.journal.capped` from the checkout -- **which has the
+  fix** -- and reported `understated 0, worst 0 chars` over all 673 marked
+  outputs. The engine is running `c942d88`, whose `capped` is the old one. The
+  measurement said *the fix works on this data*; I had asked *is the fault
+  biting production*. Re-run with the old function re-implemented from that
+  commit: **95 of 673 over the run, and 22 of 22 since the current start**,
+  worst showing 106 where the truth was 2,452.
+
+  **Invariant: when the repository is ahead of the deployment, a probe that
+  imports from the repository is measuring the future.** Name the commit the
+  engine is running and re-implement against it, or measure nothing.
+
+  It was caught only because last night's figure (74 of 652) was in front of
+  me and 0 could not be reconciled with it. **A checker that cannot
+  distinguish the thing it measures**, for the fourth time in two days, and
+  the first time the confusion was between the deployed code and the code on
+  disk -- which is the same shape as §5's oldest systemd scar, pointed at the
+  instrument instead of at the unit.
+
+  **The second half of the same checkup made the opposite error and it was
+  caught the same way.** Asking whether "28 tools have not survived" was about
+  the library or about our probe budget, the first pass used the whole-run
+  average -- 53.6 probes a day -- and concluded the budget was ample. That
+  average is dominated by the bare-probe era. Split: **25.5 a day over the
+  last 48 hours, 13.3 since the current start**, which turns the expected
+  revisits per tool per week from 5.4 into 1.3. The answer reverses. *An
+  average across an era boundary is the era boundary's number, not either
+  era's* -- §0's rule about naming a figure's run, arriving inside a single
+  run because the harness changed under it.
 
 - **THE ONLY GUARD ON THE MANAGER COULD NOT MATCH "EXITED 0", AND IT HAD BEEN
   HIDING TWO REAL FABRICATIONS FOR EIGHT DAYS.** 2026-09-21, found because a
