@@ -328,10 +328,18 @@ def build_data(ctx, findings, since, changes):
     # The headline metric reads the library on disk for its edges, so it is
     # given the creature's real tools directory rather than the journal's
     # idea of one.
+    # The probes are read from the WHOLE file rather than from `ctx.rows`,
+    # which is a tail: this metric is a span of days and a byte bound silently
+    # shortens it. `complete` is passed too, so that if the file cannot be read
+    # at all the answer degrades to CANNOT TELL instead of to a smaller number.
+    jpath = os.path.join(ctx.root, "journal.jsonl")
+    probes = derive.probe_history(jpath)
     surviving = derive.surviving_capability(
         ctx.rows,
         os.path.join(ctx.root, "body", "mind", "tools", "own"),
-        now=getattr(ctx, "now", None))
+        now=getattr(ctx, "now", None),
+        complete=ctx.complete, probes=probes,
+        run_start=derive.first_ts(jpath) if probes is not None else None)
     last = ctx.rows[-1] if ctx.rows else None
     return {
         "generated": ctx.now,

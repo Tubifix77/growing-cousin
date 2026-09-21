@@ -317,8 +317,61 @@ def tool_edges(own_dir, names=None):
     return named_by
 
 
+def probe_history(path):
+    """Every `cousin_probe` in the WHOLE journal, however long it has grown.
+
+    The page reads a TAIL of the journal (`load`, `TAIL_BYTES`) because every
+    other figure on it is a count over a recent window, and a tail costs those
+    nothing. **The headline metric is not one of those.** It is a span of days
+    -- first use to last use against a seven-day bar -- so the day the journal
+    outgrows the tail, the early half of every span disappears and tools that
+    HAD survived begin reporting that they had not. The number would fall and
+    the reason would be ours.
+
+    A single-kind scan of the whole file is cheap: the substring test rejects
+    ~97% of lines before any JSON is parsed. Returns None if the file cannot
+    be read, which the caller must treat as CANNOT TELL.
+    """
+    out = []
+    try:
+        with open(path, "rb") as f:
+            for raw in f:
+                # Cheap pre-filter. It can only SKIP lines that certainly do
+                # not carry this kind; anything it lets through is checked
+                # properly below, so a false positive costs a parse and a
+                # false negative is impossible.
+                if b'"cousin_probe"' not in raw:
+                    continue
+                try:
+                    r = json.loads(raw.decode("utf-8", "replace"))
+                except Exception:
+                    continue
+                if isinstance(r, dict) and r.get("kind") == "cousin_probe":
+                    out.append(r)
+    except OSError:
+        return None
+    return out
+
+
+def first_ts(path):
+    """When the run began, from the file's first parseable line."""
+    try:
+        with open(path, "rb") as f:
+            for raw in f:
+                try:
+                    r = json.loads(raw.decode("utf-8", "replace"))
+                except Exception:
+                    continue
+                if isinstance(r, dict) and r.get("ts"):
+                    return float(r["ts"])
+    except OSError:
+        pass
+    return None
+
+
 def surviving_capability(rows, own_dir=None, now=None,
-                         window_days=SURVIVES_AFTER_DAYS):
+                         window_days=SURVIVES_AFTER_DAYS,
+                         complete=True, probes=None, run_start=None):
     """Three bars per tool, each able to say CANNOT TELL.
 
     **starts** -- the journal records the body running it. Exit 127 is the
@@ -347,9 +400,20 @@ def surviving_capability(rows, own_dir=None, now=None,
     ts = [float(r.get("ts", 0)) for r in rows if r.get("ts")]
     run_days = ((max(ts) - min(ts)) / 86400.0) if len(ts) > 1 else 0.0
 
+    # WHERE THE PROBES COME FROM, and it is not always `rows`. See
+    # `probe_history`: `rows` may be a tail, and this metric's whole subject is
+    # a span of days.
+    if probes is None:
+        probes = [r for r in rows if r.get("kind") == "cousin_probe"]
+        saw_whole_history = bool(complete)
+    else:
+        saw_whole_history = True
+    if run_start:
+        run_days = max(0.0, (now - float(run_start)) / 86400.0)
+
     used = collections.defaultdict(list)
     ran = collections.defaultdict(list)
-    for r in rows:
+    for r in probes:
         if r.get("kind") != "cousin_probe":
             continue
         name, code = r.get("tool"), r.get("exit_code")
@@ -377,7 +441,14 @@ def surviving_capability(rows, own_dir=None, now=None,
         last = runs[-1] if runs else None
         span = ((last - first) / 86400.0) if runs else None
 
-        if started is None:
+        if not saw_whole_history:
+            # THE EVIDENCE FOR SURVIVAL MAY BE IN THE PART THAT WAS CUT. A
+            # tail cannot produce a NOT-SURVIVING, because the first use it
+            # would be measuring from is exactly what is missing. Cannot tell
+            # is the only honest answer, and it is better than a smaller
+            # number with a clean face.
+            surviving = None
+        elif started is None:
             # Never reached by its user: the second bar is unanswered, and an
             # unanswered bar is CANNOT TELL. Counting it as a failure is the
             # harness's empty hands read as the tool's fault.
@@ -405,6 +476,11 @@ def surviving_capability(rows, own_dir=None, now=None,
         widest = max(widest, span or 0.0)
 
     why = []
+    if not saw_whole_history:
+        why.append("the page read only the TAIL of the journal, so the first "
+                   "use of any tool may be in the part that was cut -- a span "
+                   "measured from a tail is shorter than the truth, and this "
+                   "metric is a span")
     if edges is None:
         why.append("the library could not be read -- either the directory is "
                    "unreadable or it is past the %d-tool ceiling this scan "

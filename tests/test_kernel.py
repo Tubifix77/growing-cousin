@@ -518,6 +518,82 @@ def test_a_command_the_shell_cannot_be_given_is_not_a_broken_body():
     shutil.rmtree(d, ignore_errors=True)
 
 
+def test_the_headline_metric_does_not_shrink_when_the_page_reads_a_tail():
+    """`derive.load` reads the last `TAIL_BYTES` of the journal, not the whole
+    file, and says so with `complete=False`. Every other figure on the page is
+    a count over a recent window, so a tail costs them nothing.
+
+    **The headline metric is not a count over a window. It is a SPAN OF DAYS**
+    -- first use to last use, against a seven-day bar -- so the moment the
+    journal outgrows the tail, the early half of every span silently
+    disappears and tools that HAD survived start reporting that they had not.
+    The number would go down, and the reason would be ours.
+
+    Measured 2026-09-21: the journal is 14.6 MB and grows about 1.8 MB a day
+    against a 24 MB tail, so **the crossing is around 2026-09-26** -- days
+    after the metric's first real week closes on the 25th. Found by reading
+    `load` and `surviving_capability` next to each other rather than by any
+    failure, which is the only way this class is ever found: the answer stays
+    clean-looking and only the meaning changes.
+
+    Two things are asserted, in this order, because the second is the one that
+    matters: the metric must be ABLE to see the whole history, and when it
+    cannot it must say CANNOT TELL rather than report a loss.
+    """
+    from monitor import derive
+    d = tmpdir()
+    own = os.path.join(d, "tools", "own")
+    os.makedirs(own)
+    _write_tool(own, "old-faithful", does="the one that survived",
+                call="old-faithful")
+    jp = os.path.join(d, "journal.jsonl")
+    j = Journal(jp)
+    DAY = 86400.0
+    T0 = 1_700_000_000.0
+    # Its user reached for it on day 0 and again on day 9: a survivor by any
+    # reading of the bar.
+    for t in (T0, T0 + 9 * DAY):
+        j.append("cousin_probe", tool="old-faithful", exit_code=0, bare=False,
+                 cmd="old-faithful")
+    rows = j.read()
+    for i, r in enumerate(rows):
+        r["ts"] = T0 if i == 0 else T0 + 9 * DAY
+    now = T0 + 10 * DAY
+
+    whole = derive.surviving_capability(rows, own, now=now)
+    check("tail: with the whole journal the tool has survived",
+          whole["surviving"] == 1, whole["surviving"])
+
+    # Now the tail: the early probe is simply not in `rows` any more, and the
+    # reader is told only that the file's start was not reached.
+    tail = [r for r in rows if r["ts"] > T0 + DAY]
+    cut = derive.surviving_capability(tail, own, now=now, complete=False)
+    check("tail: a tail must NEVER report a tool as not-surviving on evidence "
+          "that was cut away -- it is CANNOT TELL or it is nothing",
+          cut["not_surviving"] == 0, cut)
+    check("tail: and the page is told why, in words, rather than being handed "
+          "a smaller number",
+          "tail" in (cut.get("why_cannot_tell") or "").lower(),
+          cut.get("why_cannot_tell"))
+
+    # And the way out of cannot-tell: the metric may read the probes itself,
+    # since a single-kind scan of the whole file is cheap and the span is the
+    # whole subject.
+    probes = derive.probe_history(jp)
+    check("tail: the probes can be read from the file whatever its size",
+          probes is not None and len(probes) == 2,
+          None if probes is None else len(probes))
+    for i, r in enumerate(probes or []):
+        r["ts"] = T0 if i == 0 else T0 + 9 * DAY
+    full = derive.surviving_capability(tail, own, now=now, complete=False,
+                                       probes=probes, run_start=T0)
+    check("tail: given them, the answer is the same as with the whole journal",
+          full["surviving"] == 1 and full["not_surviving"] == 0, full)
+    check("tail: and the run's age is the RUN's, not the tail's",
+          abs(full["run_days"] - 10.0) < 0.1, full["run_days"])
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_marker_invariant():
     """A marker reports the TOTAL withheld. A later cut may only INCREASE that
     number, never replace it with its own -- the parent showed '+40 chars cut'
@@ -8262,6 +8338,7 @@ def main():
                test_journal, test_history_never_cuts_mid_line,
                test_a_marker_says_whose_cut_it_is,
                test_marker_invariant, test_body,
+               test_the_headline_metric_does_not_shrink_when_the_page_reads_a_tail,
                test_the_parser_under_adversarial_replies,
                test_a_command_the_shell_cannot_be_given_is_not_a_broken_body,
                test_a_tools_own_words_cannot_declare_the_body_dead,
