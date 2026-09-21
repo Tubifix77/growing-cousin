@@ -1707,8 +1707,9 @@ is 25 lines to our 160 and the difference is entirely scar tissue;
 the loop's supervisor; then `monitor/derive.py` against nothing, because the
 spine has no equivalent.
 
-**FIVE DEFECTS, each red-proven before its fix existed.** Two were live, one
-was a false sentence waiting five days to be printed, two were latent:
+**EIGHT DEFECTS, each red-proven before its fix existed -- and the sixth was
+mine, shipped in the middle of the pass, and found by the verifier rather
+than by me:**
 
 | | what | live? |
 |---|---|---|
@@ -1717,6 +1718,21 @@ was a false sentence waiting five days to be printed, two were latent:
 | `6bfd54d` | a tool's own English able to declare the body dead | 0 of 2,929 |
 | `6bfd54d` | a NUL byte in a command blamed on the body | never |
 | `85a52fe` | the headline metric measured out of a window of BYTES | **due 09-26** |
+| **`6bfd54d`, reverted in `1b04e82`** | **my own CRLF "insurance" changing how nine real replies parse** | **9 of 1,931** |
+| `1b04e82` | the block-level trim dropping 4,727 characters with no number | live |
+| `1b04e82` | the creature's predicate unasserted -- reverting `run.py` alone left the gate green | n/a |
+
+**The sixth is the one to learn from and it is in §5 in full.** I measured
+that 0 of 1,926 replies contained CRLF, wrote *insurance rather than a
+repair* in the comment, and shipped `\r?` at both fence ends. `$` under
+`re.M` makes a fence have to END its line, so a closer sharing its line with
+the next opener stopped closing: two valid commands became one block carrying
+a literal fence. **Measured risk 0, measured cost 9.** Reverted the same
+night and proven identical to `5516eaf` across all 1,931 raw replies.
+
+`replay_parser.py` is what replaces *be more careful*: save a baseline,
+change the parser, compare, read what moved. It reports the nine against
+`6bfd54d` and SAME against the revert.
 
 The last one is the one to read if only one is read: `derive.load` reads the
 last 24 MB of the journal, every other figure on the page is a count over a
