@@ -1024,6 +1024,74 @@ guess with authority it has not earned.
   Until that fires, the brief is not to be touched: two changes at once and
   neither is measurable.
 
+- **A DELETION WITH NO RECORD IS AN INVITATION TO REBUILD — Tue, 2026-09-21,
+  and the evidence says the mechanism is real, unguarded, and has never
+  fired.** *"If we delete unused tools completely with no memory they existed
+  and were never used, they would just be made again."*
+
+  Measured the same evening against `tools_changed`, which is the framework's
+  own record of what entered and left the library:
+
+  | | |
+  |---|---|
+  | tools added / removed in run 2 | 80 / **11** |
+  | removals REBUILT under the same name | **0** |
+  | probes of a removed tool AFTER its removal | **0** |
+  | commands naming a removed tool afterwards | 3, and all three are the `rm` itself or a comment |
+
+  **So it has not happened — and the reason is better than luck. Every one of
+  the eleven was a CONSOLIDATION, not a cull.** `taskprio` and `prioritize`
+  merged into `plan` (09-13); the two `view-multi*` twins merged (09-15);
+  `plan-import-from-archive`, `plan-clear-goal`, `plan-list-goals`,
+  `plan-set-goal`, `plan-link-archive` and `plan-list-priority` all folded
+  into `plan` across 09-18 to 09-20. Checked rather than assumed: every one of
+  those six has its own verbs present in `plan`'s source, which is now 10,436
+  bytes and is the one tool that has survived §12's metric. **The memory
+  survived inside the surviving tool**, which is why nothing was rebuilt: the
+  capability did not vanish, it moved.
+
+  **The guard Tue is describing genuinely does not exist.** The library block
+  served to both inhabitants every wake is 11,617 characters and contains
+  **zero removed names and no `removed` / `retired` / `no longer` language at
+  all**. If the creature ever deleted a tool for disuse rather than folding
+  it in, nothing in what either inhabitant is shown would carry that it had
+  existed, and the want that produced it once would produce it again. The
+  data to prevent that is already kept — `tools_changed` has every removal
+  with its date, and `library.use_history` already computes per-tool run
+  counts — so the tombstone is a rendering job, not a new channel.
+
+  **NOT BUILT TODAY, and the reason is §0's own rule rather than doubt.** A
+  line added to the library block is a new surface in the creature's context,
+  and §12's metric is in the first week it has ever been computable. *A new
+  surface arriving mid-measurement makes every number either side of it
+  incomparable.* There is also no symptom: 0 rebuilds in eleven removals.
+  **Trigger: the first removal that is NOT a consolidation** — a name leaving
+  `tools_changed` whose verbs do not turn up in a surviving tool. That is
+  checkable from the journal and is the moment the tombstone stops being
+  speculative.
+
+  **AND THE THING THAT WOULD TEMPT THE FIRST SUCH CULL IS A NUMBER I
+  PUBLISHED AN HOUR EARLIER.** §12's page says *29 have not survived*, which
+  reads as dead weight. It is not:
+
+  | | |
+  |---|---|
+  | of the 29, run **at least twice** by their user | **29** |
+  | never reached at all | 0 |
+  | the top of the list | `view-subtask-logs` — **64 runs** over 2.2 days |
+  | next | `subagent-orchestrator` — **44 runs** over 4.8 days |
+  | and `archive`, named by 29 other tools | 5 runs over **6.76 days**, against a 7-day bar |
+
+  **The bar is about WHEN ITS USER LAST CAME BACK, not about how much a tool
+  is used.** A tool run sixty times inside two days fails it; a tool touched
+  once today and once next week passes it. The page printed the count and
+  nothing else, so the column was one careless reading away from being a cull
+  list — and culling on it would delete heavily-used capability with no
+  record, which is precisely the case Tue's point is about. The page now
+  prints every one of them with its run count and says in as many words that
+  it is not a cull list. **That is the fix that was earned today**; the
+  tombstone waits for its trigger.
+
 - **Who may propose a cull** (2026-09-16, PLAN item 10). **The creature owns
   it; the framework owns only the visibility; the cousin gets nothing.** §4's
   table already settles the principle — *ordering of the creature's own work*

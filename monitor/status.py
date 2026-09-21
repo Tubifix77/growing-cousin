@@ -424,6 +424,36 @@ def render_surviving(s):
             % (t["tool"], t["named_by"], t["runs"], t["span_days"])
             for t in sorted(yes, key=lambda t: -(t["span_days"] or 0))[:10]))
         out.append("")
+    # THE "HAS NOT" COLUMN, SHOWN RATHER THAN COUNTED. Until 2026-09-21 the
+    # page printed the number and nothing else, so the column read as a list
+    # of dead weight -- and it is not one. Measured that day: **all 29 had
+    # been run at least twice**, the list included `view-subtask-logs` at 64
+    # runs and `subagent-orchestrator` at 44, and `archive` was on it because
+    # its first-to-last span was 6.76 days against a 7-day bar.
+    #
+    # Tue put the danger plainly the same evening: *if we delete unused tools
+    # completely, with no memory they existed and were never used, they would
+    # just be made again.* The first step away from that is not deleting
+    # something on the strength of a number whose meaning the page never
+    # printed.
+    no = [t for t in s["tools"] if t["surviving"] is False]
+    if no:
+        out.append("Has not survived, WITH ITS RUN COUNT, because this column "
+                   "is not a list of unused tools: "
+                   + ", ".join(
+                       "`%s` (%d run%s over %.1f days)"
+                       % (t["tool"], t["runs"], "" if t["runs"] == 1 else "s",
+                          t["span_days"] or 0.0)
+                       for t in sorted(no, key=lambda t: -(t["runs"] or 0))[:8])
+                   + ("" if len(no) <= 8 else ", and %d more" % (len(no) - 8)))
+        out.append("")
+        out.append("_This bar is about the LAST time its user came back, not "
+                   "about how much the tool is used: a tool run sixty times "
+                   "inside two days fails it, and a tool touched once today "
+                   "and once next week passes it. Read the run count beside "
+                   "the verdict before concluding anything about a tool, and "
+                   "never treat this column as a cull list._")
+        out.append("")
     dead = [t for t in s["tools"] if t["started"] is False]
     if dead:
         out.append("Did not start when its user ran it: "

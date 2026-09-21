@@ -1073,6 +1073,48 @@ def test_a_rung_that_answers_and_says_nothing_is_not_a_quota_refusal():
           sorted(monstatus.RUNBOOK)[:5])
 
 
+def test_the_has_not_survived_column_cannot_be_read_as_a_cull_list():
+    """The page printed the COUNT of tools that had not survived and nothing
+    else about them, so the column read as dead weight. Measured on the live
+    library 2026-09-21: **all 29 of them had been run at least twice**, the
+    list included `view-subtask-logs` at 64 runs and `subagent-orchestrator`
+    at 44, and `archive` -- named by 29 other tools -- was on it because its
+    first-to-last span was 6.76 days against a 7-day bar.
+
+    So the bar is about WHEN ITS USER LAST CAME BACK, not about how much a
+    tool is used, and the page never said so. Tue, the same evening: *if we
+    delete unused tools completely, with no memory they existed and were
+    never used, they would just be made again.* The first step away from that
+    is not deleting something on the strength of a number whose meaning was
+    never printed.
+    """
+    from monitor import status as monstatus
+
+    DAY = 86400.0
+    T0 = 1_700_000_000.0
+    s = {"window_days": 7, "run_days": 9.0, "surviving": 0,
+         "not_surviving": 2, "cannot_tell": 0, "reused": 2,
+         "widest_span_days": 2.2, "why_cannot_tell": "",
+         "edges": {}, "tools": [
+             {"tool": "worked-hard", "started": True, "named_by": 3,
+              "first_use": T0, "last_use": T0 + 2 * DAY, "span_days": 2.0,
+              "surviving": False, "runs": 64},
+             {"tool": "touched-once", "started": True, "named_by": 0,
+              "first_use": T0, "last_use": T0, "span_days": 0.0,
+              "surviving": False, "runs": 2}]}
+    page = "\n".join(monstatus.render_surviving(s))
+
+    check("cull: the tools that did not survive are NAMED, not just counted",
+          "worked-hard" in page and "touched-once" in page, page[:300])
+    check("cull: and each carries its RUN COUNT, so a tool run 64 times "
+          "cannot be mistaken for one nobody used",
+          "64 run" in page, page[:400])
+    check("cull: the page says what the bar actually tests",
+          "last time its user came back" in page.lower(), page[:400])
+    check("cull: and says in as many words that it is not a cull list",
+          "cull list" in page.lower(), page[:400])
+
+
 def test_marker_invariant():
     """A marker reports the TOTAL withheld. A later cut may only INCREASE that
     number, never replace it with its own -- the parent showed '+40 chars cut'
@@ -8814,6 +8856,7 @@ def main():
                test_journal, test_history_never_cuts_mid_line,
                test_a_marker_says_whose_cut_it_is,
                test_marker_invariant, test_body,
+               test_the_has_not_survived_column_cannot_be_read_as_a_cull_list,
                test_a_rung_that_answers_and_says_nothing_is_not_a_quota_refusal,
                test_the_census_catches_the_plainest_way_to_claim_an_exit_code,
                test_the_census_has_no_opinion_about_testimony_that_does_not_exist,
