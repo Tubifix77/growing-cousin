@@ -63,6 +63,21 @@ def detect(executed, tools_before, tools_after, cycles_since_visit,
 NOT_A_TOOL = (".bak", ".orig", ".tmp", ".swp", ".rej", "~")
 
 
+def is_backup(name):
+    """A backup, whatever the creature called it.
+
+    `NOT_A_TOOL` matched `.bak` and missed `.testbak`, which the creature
+    wrote on 2026-09-14 -- so for its whole life the framework counted a
+    backup as a tool, and on 2026-09-21 offered it back as a capability the
+    creature had REMOVED. A guard hunting one literal, inside the rule written
+    against a backup being counted as a tool. Checked before widening: no live
+    tool in a 69-tool library has `bak` anywhere in its name.
+    """
+    if name.endswith(NOT_A_TOOL):
+        return True
+    return "." in name and name.rsplit(".", 1)[-1].lower().endswith("bak")
+
+
 def list_tools(tools_dir):
     """The creature's LIBRARY -- not merely the directory listing.
 
@@ -75,6 +90,6 @@ def list_tools(tools_dir):
         return sorted(n for n in os.listdir(tools_dir)
                       if os.path.isfile(os.path.join(tools_dir, n))
                       and not n.startswith(".")
-                      and not n.endswith(NOT_A_TOOL))
+                      and not is_backup(n))
     except OSError:
         return []

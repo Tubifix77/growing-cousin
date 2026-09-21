@@ -1115,6 +1115,127 @@ def test_the_has_not_survived_column_cannot_be_read_as_a_cull_list():
           "cull list" in page.lower(), page[:400])
 
 
+def test_the_library_remembers_what_left_it():
+    """**Tue, 2026-09-21:** *"if we delete unused tools completely with no
+    memory they existed and was never used, they would just be made again...
+    when a new program is proposed, look at the graveyard first, then decide
+    the chance you would use it, then if it makes sense for your goal."*
+
+    `CREATURE-PROMPT.md` line 26 already carries the rule -- *do not rebuild
+    what you own* -- and tells the creature to run `ls tools/own/` when it is
+    unsure. **`ls` shows what exists now.** A tool the creature built, its
+    user never came back to, and it then removed, leaves no trace in anything
+    either inhabitant is shown: measured 2026-09-21, the 11,617-character
+    library block carried **zero** removed names and no `removed`/`retired`
+    language at all.
+
+    So this is the 2026-09-12 shape exactly, and that scar says what to do
+    about it: *before adding a rule, check whether the evidence that rule
+    needs is actually on the page.* The rule was already right then too; the
+    library simply was not being shown, and showing it moved the judgement
+    5/5. **The fix is evidence, not a new instruction.**
+
+    Facts only, and that line matters: name, when it left, how many times its
+    USER ran it before it went, and where its words survive now. What that
+    means -- consolidated, abandoned, worth rebuilding -- is the creature's to
+    decide, because *a scan gathers a fact and then decides what to say about
+    it, and only the first half is framework*.
+    """
+    d = tmpdir()
+    own = os.path.join(d, "tools", "own")
+    os.makedirs(own)
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    _write_tool(own, "plan", does="keeps the plan", call="plan list",
+                body="echo 'set-goal and clear-goal live here now'")
+    _write_tool(own, "fetch", does="gets a url", call="fetch <url>")
+
+    j.append("tools_changed", added=["plan", "fetch", "plan-set-goal",
+                                     "taskprio", "gone-and-back"], removed=[])
+    # its user ran it three times before it went
+    for _i in range(3):
+        j.append("cousin_probe", tool="plan-set-goal", exit_code=0,
+                 bare=False, cmd="plan-set-goal x")
+    j.append("cousin_probe", tool="taskprio", exit_code=2, bare=True,
+             cmd="taskprio")
+    j.append("tools_changed", added=[], removed=["plan-set-goal", "taskprio"])
+    j.append("tools_changed", added=[], removed=["gone-and-back"])
+    j.append("tools_changed", added=["gone-and-back"], removed=[])
+
+    g = library.graveyard(j, own)
+    names = [row["tool"] for row in g]
+    check("graveyard: it holds what left the library",
+          "plan-set-goal" in names and "taskprio" in names, names)
+    check("graveyard: and NOT something that came back -- a tool in the "
+          "library is not in the graveyard", "gone-and-back" not in names,
+          names)
+    check("graveyard: nor anything still live", "plan" not in names, names)
+
+    row = [r for r in g if r["tool"] == "plan-set-goal"][0]
+    check("graveyard: it carries how many times ITS USER ran it, which is the "
+          "whole question -- was this ever wanted", row["runs"] == 3, row)
+    check("graveyard: and when it left", row.get("removed_ts"), row)
+    check("graveyard: and where its words survive now, as a FACT rather than "
+          "a conclusion about whether it was consolidated",
+          "plan" in (row.get("words_survive_in") or []), row)
+    bare = [r for r in g if r["tool"] == "taskprio"][0]
+    check("graveyard: a tool whose user only ever called it bare is counted "
+          "honestly -- one probe, and the listing does not call that a use",
+          bare["runs"] == 1 and bare.get("asked") == 1, bare)
+
+    # AND IT REACHES THE PAGE BOTH INHABITANTS SEE.
+    block = library.render(own, j)
+    check("graveyard: the served library carries it", "plan-set-goal" in block,
+          block[-600:])
+    check("graveyard: with the run count beside the name",
+          "3" in block.split("plan-set-goal")[1][:120], block[-600:])
+    check("graveyard: and says plainly what the section is for",
+          "built and removed" in block.lower() or "no longer" in block.lower(),
+          block[-600:])
+
+    # BOUNDED. An unbounded graveyard is the wake-cost failure class arriving
+    # by a new door, and this block is already 42% of a wake.
+    j2 = Journal(os.path.join(d, "j2.jsonl"))
+    j2.append("tools_changed", added=["t%d" % i for i in range(40)], removed=[])
+    j2.append("tools_changed", added=[], removed=["t%d" % i for i in range(40)])
+    g2 = library.graveyard(j2, own)
+    check("graveyard: it is bounded", len(g2) <= library.GRAVEYARD_LIMIT,
+          len(g2))
+    b2 = library.render(own, j2)
+    check("graveyard: and a bound DEGRADES rather than hides -- it says how "
+          "many it is not showing", "more" in b2.lower(), b2[-400:])
+
+    # NO REMOVALS, NO SECTION: an empty heading every wake is noise the
+    # creature learns to skip, which is the surface-on-a-change rule.
+    j3 = Journal(os.path.join(d, "j3.jsonl"))
+    j3.append("tools_changed", added=["plan"], removed=[])
+    b3 = library.render(own, j3)
+    check("graveyard: a library that has lost nothing says nothing about it",
+          "removed" not in b3.lower(), b3[-300:])
+    # A BACKUP IS NOT A LIBRARY MEMBER, alive or dead. `.testbak` was written
+    # by the creature on 2026-09-14 and counted as a tool for its whole life,
+    # then offered back on 2026-09-21 as a capability it had removed.
+    j4 = Journal(os.path.join(d, "j4.jsonl"))
+    j4.append("tools_changed", added=["plan", "plan.testbak", "plan.bak"],
+              removed=[])
+    j4.append("tools_changed", added=[],
+              removed=["plan.testbak", "plan.bak"])
+    g4 = [r["tool"] for r in library.graveyard(j4, own)]
+    check("graveyard: a backup never enters it, whatever the creature named "
+          "it -- `.bak` was caught and `.testbak` was not", g4 == [], g4)
+    b4 = library.render(own, j4)
+    check("graveyard: and the COUNT agrees with the list -- a bound that says "
+          "'1 more, older' about a backup it will never show teaches a reader "
+          "to distrust both", "more, older" not in b4, b4[-300:])
+    open(os.path.join(own, "plan.testbak"), "w").write("#!/bin/sh\n")
+    check("graveyard: and a backup on disk is not a tool either",
+          "plan.testbak" not in triggers.list_tools(own),
+          triggers.list_tools(own))
+    os.unlink(os.path.join(own, "plan.testbak"))
+
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_marker_invariant():
     """A marker reports the TOTAL withheld. A later cut may only INCREASE that
     number, never replace it with its own -- the parent showed '+40 chars cut'
@@ -8856,6 +8977,7 @@ def main():
                test_journal, test_history_never_cuts_mid_line,
                test_a_marker_says_whose_cut_it_is,
                test_marker_invariant, test_body,
+               test_the_library_remembers_what_left_it,
                test_the_has_not_survived_column_cannot_be_read_as_a_cull_list,
                test_a_rung_that_answers_and_says_nothing_is_not_a_quota_refusal,
                test_the_census_catches_the_plainest_way_to_claim_an_exit_code,
