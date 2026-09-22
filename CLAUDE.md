@@ -1167,6 +1167,70 @@ guess with authority it has not earned.
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
 
+- **ONE `cat` OF ITS BIGGEST TOOL EVICTS THE CREATURE'S ENTIRE TRANSCRIPT,
+  AND THAT IS WHY IT READS IT THIRTY-NINE TIMES A DAY.** 2026-09-23 00:25,
+  found by the daily check following `window_reread`'s runbook, which says to
+  read the raw thinks rather than tune the cap.
+
+  `plan` is **12,058 bytes**. The per-output window is 8,000 and the whole
+  transcript bound is **12,000**. So a single `cat tools/own/plan` costs more
+  than the entire transcript budget, and the oldest-first trim does the rest:
+
+  | | |
+  |---|---|
+  | transcript rendered | 12,397 chars |
+  | earlier transcript dropped to fit it | **36,526 chars** |
+  | commands still visible afterwards | **1** -- the `cat` itself |
+
+  **So every time it looks at `plan`, it forgets everything else it did.**
+  Measured over 2026-09-22: **39 `cat`s of `plan`, and 1 write.** It is not
+  stuck in general -- it added 14 tools the same day -- it is stuck on this
+  one file, in a loop the framework builds for it: read `plan`, lose the
+  transcript, no longer know what you already learned, read `plan` again.
+
+  **The creature says so in its own words**, which is what the runbook asks
+  for:
+
+  > *"Wait, I should first check the current state of `tools/own/plan` to
+  > make sure I have the full code. **The transcript was truncated.**"*
+  > (09-22 23:10, and it then read it and was truncated again)
+
+  Five of sixteen thinks in that window talk about the cut. **Eighteenth
+  appearance of *the framework manufactures work and the creature is billed
+  for it*.**
+
+  **AND THE OBVIOUS FIX DOES NOT WORK, which is the useful half.** Raising
+  the whole-block bound was the 2026-09-17 move and it was measured here
+  before being believed, against the real journal:
+
+  | `HISTORY_TOTAL_CHARS` | commands visible |
+  |---|---|
+  | 12,000 (today) | 1 |
+  | 16,000 | 1 |
+  | 18,000 | 2 |
+  | 24,000 | **2** |
+
+  **Doubling the standing cost of every wake buys one extra visible
+  command.** Because each `cat` of `plan` costs ~8,000 characters, a
+  transcript can only ever hold two or three of them, whatever the bound is.
+  *Do not keep raising the budget* -- §4 says it, item 21 says it, and this
+  is the measurement behind it rather than the opinion.
+
+  **The fix is PLAN 21.2's partial-edit hand, and 21.2's trigger was cut
+  against the wrong wall.** It reads *"the first tool over 15 KB, or
+  `truncated|lost` crossing 10%"* -- both of which are the WRITE wall, the
+  reply budget, now at ~25 KB since `num_predict` went to 8192. **The READ
+  wall is `HISTORY_TOTAL_CHARS` and it is at 12,000**, so it arrived first,
+  at 12 KB, and nothing was watching that number. The trigger has already
+  fired and the board did not notice because it was looking at the write
+  budget. Corrected in PLAN.
+
+  **Nothing was changed tonight.** A cap change is the single thing this
+  file's scars most insist on measuring first (2026-09-20: *I raised the
+  window so it could read its tool, and it spent three days unable to finish
+  writing one*), and the measurement above says a cap change is not the fix.
+  The hand lands after 2026-09-25, when the metric's first week closes.
+
 - **I MEASURED THE FIX WITH THE FIXED CODE AND GOT "IT ISN'T HAPPENING".**
   2026-09-21 17:52, caught in the same minute because the number contradicted
   one taken sixteen hours earlier.

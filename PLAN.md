@@ -48,7 +48,7 @@ can clear it. **Every heading that is not `[x]` is in the table below, and that 
 | **16** the cousin notices a tool serves nothing | the rule can be drafted; scoring it spends the same tier the live run is on | 20.4, then score under item 8's discipline |
 | **17.3** the deciding half | moves with 16 by construction | 16 |
 | **20.4** the cousin carries ONE note and has not added a second | 59 harvests carry it, none empty since 09-19, and the last 40 all carried exactly one key — continuity proven, accumulation not | a week of 20.2, read beside the store's key count |
-| **21.2** the rewrite wall itself | the reprieve is PROVEN (53% lost -> 0% over 90 thinks); the wall is only moved, to ~25 KB | first tool over 15 KB, or `truncated|lost` over 10% again |
+| **21.2** the rewrite wall | **FIRED 2026-09-23, on the READ side** — `plan` at 12,058 B crossed `HISTORY_TOTAL_CHARS`; one `cat` evicts the whole transcript, 39 reads to 1 write. Raising the bound is measured not to fix it | the partial-edit hand, after 09-25 |
 | **22.1 / 22.2** | a fence inside a heredoc, and the cost of re-reading a journal that only grows | both named and dated in item 22 |
 | **23.3** the creature is promised an LLM API its box may not have | 80 runs against `api.openai.com` with the literal `"default_key"` | a design decision, not a patch — see item 23 |
 | **23.4 / 23.5** the same audit on the cousin's brief and the kernel's served text | begun; the brief addresses an agent with a job it does not have | work, not a trigger |
@@ -1448,7 +1448,29 @@ share of thinks returns toward the 1% it sat at before 2026-09-17.
 before/after exists already and is unusually clean, because the regression had
 a single known cause and a dated start.
 
-**21.2 `[ ]` The wall itself, which the reprieve only moved from 9 KB to about
+**21.2 `[!]` THE WALL ARRIVED, ON THE READ SIDE, AND THIS ITEM'S TRIGGER
+  WAS WATCHING THE WRONG NUMBER.** Fired 2026-09-23; see `CLAUDE.md` §5.
+
+  The trigger said *the first tool over 15 KB, or `truncated|lost` crossing
+  10%*. Both are the WRITE wall -- the reply budget, now ~25 KB since
+  `num_predict` went to 8192 -- and neither has fired. **The READ wall is
+  `HISTORY_TOTAL_CHARS`, 12,000, and `plan` crossed it at 12,058 bytes.**
+
+  A single `cat tools/own/plan` costs more than the whole transcript budget,
+  so the oldest-first trim drops **36,526 characters** and leaves **one**
+  command visible -- the `cat` itself. Measured 09-22: **39 reads of `plan`,
+  1 write.** The creature: *"The transcript was truncated."*
+
+  **Raising the bound is measured NOT to fix it**: 12,000 -> 24,000 takes the
+  visible commands from 1 to 2, because each read costs ~8,000 whatever the
+  bound is. That is the evidence for the partial-edit hand rather than
+  another cap, which is what this item has said since it was written.
+
+  *Trigger, RE-CUT: it has fired. The hand lands after 2026-09-25, when
+  20.2's first full week closes, because it is a change to the creature's
+  world and those do not land mid-measurement.*
+
+  ~~**21.2 (original)** 
 25 KB.** A library whose tools keep growing will hit it again, and the failure
 is silent from inside: the creature sees its command not run and has no way to
 learn that the reason was its own length. *Trigger: the first tool over 15 KB,
