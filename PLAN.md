@@ -1969,3 +1969,95 @@ true?*
 - **23.5 `[ ]` The kernel's own served text** — the history header, the
   library legend, the want block, the invocation template. Not frozen, so
   anything found here is fixable the same day.
+
+---
+
+### 24. `[x]` A pure-ollama deployment on the Windows box -- PROPOSED AND DECLINED, both on 2026-09-23
+
+> **DECLINED BY TUE THE SAME HOUR, and his reason is better than the one this
+> write-up gave.** *"lets skip the idea for now the lower context window will
+> ahve the two programs compete on fixes i think its too much of a hassle."*
+>
+> The analysis below argued from POPULATIONS OF NUMBERS -- a third set of
+> figures that must never be mixed with the other three. Tue argued from
+> **CONSTANTS**, which is the sharper objection: a smaller-context model hits
+> its walls in different places, and §5's standing rule is that a cap, a
+> budget or a ladder order is tuning and therefore **per-model**. So every
+> such constant would have two right answers and one config file, and each
+> fix would pull the engine toward whichever deployment was being looked at
+> that evening.
+>
+> **This very day is the worked example.** `HISTORY_TOTAL_CHARS` went to
+> 40,000 because the replay put the knee there for a rung with a large
+> context. On an 8B at `num_ctx` 32k that number is not merely unnecessary,
+> it is unaffordable -- the served context would not fit -- so the same
+> measurement, run on the other box, would have demanded a different answer
+> to the same constant on the same evening.
+>
+> **It is DECLINED rather than deferred, so it is off the board.** §4's test
+> is that a hold names a trigger and a date; this has neither, because it is
+> not waiting for anything. What survives is the capability WITHOUT the
+> second deployment: the Windows box has ollama with `gemma4:12b` and the
+> gate's live-model assertions run there (`CLAUDE.md` §0, habits). A local
+> rehearsal is a thing to RUN, not a thing to DEPLOY -- and running one needs
+> no second engine, no second config and no second service.
+>
+> Reopen only if someone is proposing the *second creature*, which is item 11
+> territory and gated on an empty board.
+
+**The proposal and the analysis are kept below**, because a rejected design
+with its reasoning is worth more than a deleted one.
+
+*"i was wondering if we should make an alternative version of the
+growing-cousin that is pure ollama run and for this pc not the laptop. but
+basically the same program and synched with the same fixes all around - or is
+that too hard to handle?"*
+
+**It is not hard, and the reason is that almost none of it is code.** The
+ladder is already configuration (`rungs.local.json`, §0), `backends.ollama`
+already exists and the gate already drives `gemma4:12b` through it, and
+`--root` and `--body docker` are already flags. So *the same program with
+different rungs* is a config file and a service definition.
+
+**It must be a DEPLOYMENT, not a fork, and that is the whole of the
+maintenance answer.** §2.6 carries the scar in as many words -- *a file that
+keeps being merged is how two independent systems quietly become one* -- and
+it was written about `observer.py`, one file. A forked engine would rot inside
+a week and every fix would have to be applied twice, which is how the two
+copies stop being comparable and stop being correct. One codebase, two
+configs, cannot drift.
+
+**The real cost is operational**: a Windows service in place of systemd, the
+monitor's five-minute timer, and confirming `DockerBody` works against Docker
+Desktop (the WSL distro list shows it is installed). An evening, not a project.
+
+**TWO SIZINGS THAT MUST BE DONE BEFORE PROMISING IT WORKS**, both measured
+2026-09-23 while building the local A/B rig:
+
+- The served context is now `CREATURE-PROMPT.md` (8,935) + the library
+  (~12,000, growing) + a transcript bounded at **40,000** -- roughly 61,000
+  characters, ~17,500 tokens, so `num_ctx` wants ~32k. **`gemma4:12b` needs
+  8.1 GB of a 10 GB card at `num_ctx` 8192 and will not fit beside a 32k KV
+  cache.** The local instance runs an 8B. That is a DIFFERENT MODEL FAMILY
+  from the deployed rung, and it is the same shape of confound §4 recorded
+  about the spine's `ask` hand.
+- One ollama rung means **no ladder fall-through at all**, so it does not
+  exercise the quota paths, the walling logic or `ladder_dry` -- the code
+  paths that produced four of §5's scars.
+
+**RECOMMENDED SHAPE: a rehearsal bench, not a second creature.** As a bench it
+is pure upside and §4 has asked for it since 2026-09-12 -- *anything needing
+many cycles quickly must be run against a local model on a development box
+first*. On 2026-09-23 that capability was missing and the cost was visible:
+production was restarted twice in one evening to answer a question about
+`recent_block` that a local loop could have settled in minutes. As a second
+LIVING creature it is a THIRD population of numbers, on different hardware,
+under a different model, with a one-rung ladder -- and §0's standing rule is
+that the three existing populations *must never be mixed*.
+
+~~**THE ONE THING THAT IS TUE'S**, and the only one: bench, or a second
+creature he can watch grow on his own GPU.~~ **Answered within the hour:
+neither.** The second is genuinely interesting and is close to **item 11**,
+which he himself gated on an empty board on 2026-09-21 -- so it is not to be
+started quietly under another name. And the bench does not need a deployment
+at all, which is what the decision above turns on.
