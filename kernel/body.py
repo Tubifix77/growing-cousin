@@ -79,6 +79,31 @@ CHILD_ENV_KEEP = ("PATH", "LANG", "LC_ALL", "TZ", "TERM")
 
 
 # WINDOWS PUTS A TRAP AHEAD OF PATH, AND IT COST THIS PROJECT ITS SECOND
+# THE CODEC IS NAMED, NEVER THE HOST'S PREFERENCE. `text=True` with no
+# `encoding=` decodes with `locale.getpreferredencoding(False)`, which is a
+# property of the machine the ENGINE runs on -- not of the creature, whose
+# tools write UTF-8. 939 of 2,792 live outputs contain non-ASCII (`…` from our
+# own withheld-marker, and `✓ ⏰ ↔` from `plan` itself).
+#
+# Found 2026-09-23 by running the engine against a local model on the Windows
+# box, which is the development environment §4 asks for and which this project
+# had not used for a multi-cycle run. There, preferred is cp1252 and BOTH
+# failure modes are the framework corrupting the creature's work:
+#
+#   - bytes cp1252 maps land as mojibake -- `✓` arrives as `â`, silently;
+#   - bytes it does not map (0x8f, 0x90, 0x9d) raise UnicodeDecodeError in
+#     subprocess's reader thread, and the output is simply gone.
+#
+# Linux is safe today only by accident of PEP 538: Python coerces the C locale
+# to UTF-8, so a unit with no `LANG` still decodes correctly. That is the
+# 2026-09-13 scar's shape -- a protection that holds because of the
+# environment rather than because anything declared it -- so it is declared.
+#
+# `errors="replace"` rather than strict: the creature's own output must never
+# be able to kill its own command. A replacement character is a visible,
+# honest loss; an exception here returns `setup_failed=True`, which respawns
+# the body and discards the visit, blaming infrastructure for a tick mark.
+#
 # GATE. `subprocess.run(["bash", ...])` resolves the name through
 # CreateProcess, which searches `System32` BEFORE anything on PATH -- and
 # `System32\bash.exe` is the **WSL launcher**. It starts a different kernel
@@ -282,6 +307,7 @@ class LocalBody:
                     setup_failed=True)
             p = subprocess.run(
                 [shell, name], cwd=self.mind, capture_output=True, text=True,
+                encoding="utf-8", errors="replace",
                 timeout=timeout, env=self.child_env())
             out, err, code = p.stdout, p.stderr, p.returncode
         except subprocess.TimeoutExpired:
@@ -427,7 +453,8 @@ class DockerBody:
         """
         try:
             r = subprocess.run(["docker", "restart", self.container],
-                               capture_output=True, text=True, timeout=60)
+                               capture_output=True, text=True,
+                               encoding="utf-8", errors="replace", timeout=60)
         except Exception:
             return False
         if r.returncode == 0 and self.responds():
@@ -455,7 +482,9 @@ class DockerBody:
                 "given; nothing was run", 126)
         try:
             p = subprocess.run(self.argv(cmd),
-                               capture_output=True, text=True, timeout=timeout)
+                               capture_output=True, text=True,
+                               encoding="utf-8", errors="replace",
+                               timeout=timeout)
             out, err, code = p.stdout, p.stderr, p.returncode
         except subprocess.TimeoutExpired:
             return ExecResult("", "timed out after %ds" % timeout, 124)

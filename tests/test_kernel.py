@@ -7183,6 +7183,78 @@ def test_a_regression_that_takes_a_day_to_arrive_is_still_caught():
           (hour.state, hour.msg[:120]))
 
 
+def test_the_body_decodes_the_creature_in_the_codec_it_writes():
+    """The framework decoded the creature's output in the HOST's codec.
+
+    `text=True` with no `encoding=` uses `locale.getpreferredencoding(False)`
+    -- a property of the machine the engine runs on. The creature's tools
+    write UTF-8: 939 of 2,792 live outputs hold non-ASCII, from our own `\u2026`
+    withheld-marker and from `plan`, which prints `\u2713 \u23f0 \u2194`.
+
+    Found 2026-09-23 on the Windows development box, running the engine
+    against a local model -- the multi-cycle rehearsal §4 asks for and that this
+    project had never actually done. Preferred there is cp1252, and both
+    outcomes are the framework corrupting the creature's work: mapped bytes
+    arrive as mojibake (`\u2713` as `\xe2`), unmapped ones (0x8f, 0x90, 0x9d) raise
+    inside subprocess's reader thread and the output is lost. The broad
+    `except Exception` then returns `setup_failed=True`, so a tick mark in a
+    tool's output reads as THE BODY IS DOWN, respawns it, and discards the
+    visit. That is *the framework manufactures work and the creature is
+    billed for it*, with the bill written as an infrastructure fault.
+
+    Linux is safe only by accident of PEP 538 locale coercion, which is the
+    2026-09-13 shape -- a protection holding because of the environment
+    rather than because anything declared it.
+
+    TWO HALVES ON PURPOSE. The behavioural half cannot fail on Linux, where
+    the host codec is UTF-8 whatever we pass, and Linux is the gate's
+    authority -- so alone it would be a check that cannot go red where it
+    matters most. The source half goes red on every host.
+    """
+    import ast
+    src = io.open(os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "kernel", "body.py"),
+        encoding="utf-8").read()
+    tree = ast.parse(src)
+    captured, unnamed = 0, []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        f = node.func
+        if not (isinstance(f, ast.Attribute) and f.attr == "run"
+                and isinstance(f.value, ast.Name) and f.value.id == "subprocess"):
+            continue
+        kw = {k.arg for k in node.keywords}
+        if "capture_output" not in kw and "stdout" not in kw:
+            continue          # not reading the creature back; nothing to decode
+        captured += 1
+        if "encoding" not in kw:
+            unnamed.append(node.lineno)
+    check("codec: the body has calls that read a child's output back",
+          captured >= 3, captured)
+    check("codec: every one of them NAMES the codec rather than taking the "
+          "host's preference",
+          not unnamed, "kernel/body.py lines %s decode with the host default"
+          % unnamed)
+
+    # And the behaviour, which is what the source rule is FOR.
+    d = tmpdir()
+    b = bodymod.LocalBody(os.path.join(d, "body"))
+    if not b.responds():
+        cannot_run("the body's codec", "no usable bash on this host")
+        shutil.rmtree(d, ignore_errors=True)
+        return
+    # Written as octal escapes so the fixture itself cannot be mangled by
+    # whatever wrote this file: U+2713 CHECK MARK, as `plan` prints it.
+    r = b.run("printf 'task \\342\\234\\223 done\\n'")
+    check("codec: a tool's UTF-8 arrives as the character it wrote",
+          "\u2713" in (r.stdout or ""), repr(r.stdout))
+    check("codec: and the body is not blamed for it",
+          not r.setup_failed and r.code == 0,
+          "code=%s setup_failed=%s" % (r.code, r.setup_failed))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_the_body_runs_the_bash_it_means_and_not_windows_wsl_launcher():
     """PLAN item 18.8. The Windows gate stopped meaning anything on
     2026-09-17: 92 failures, twice, identical by name, every one a cascade
@@ -9212,6 +9284,7 @@ def main():
                test_the_cousin_gets_the_creatures_work_and_never_its_notes,
                test_the_cousin_has_the_instruments_the_architecture_specified,
                test_the_headline_metric_can_actually_be_computed,
+               test_the_body_decodes_the_creature_in_the_codec_it_writes,
                test_the_body_runs_the_bash_it_means_and_not_windows_wsl_launcher,
                test_a_regression_that_takes_a_day_to_arrive_is_still_caught,
                test_the_tool_the_creature_runs_every_cycle_stops_absorbing_every_visit,
