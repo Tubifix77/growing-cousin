@@ -154,7 +154,10 @@ def test_a_marker_says_whose_cut_it_is():
         mind = d
     e = Engine(j, Stub(), "brief", None, None, os.path.join(d, "context.md"))
     j.append("exec_start", cmd="cat tools/own/plan")
-    j.append("exec_end", exit_code=0, stdout="z" * 9000, stderr="")
+    # OVER the cap by construction, whatever the cap is -- 9,000 was over
+    # 8,000 and under 16,000, so this stopped cutting when the cap moved.
+    j.append("exec_end", exit_code=0,
+             stdout="z" * (Engine.HISTORY_OUTPUT_CHARS + 1000), stderr="")
     hist = e.recent_block()
     check("marker: the CONTEXT cap names itself too",
           "withheld by the log" in hist, hist[-220:])
@@ -182,7 +185,14 @@ def test_history_never_cuts_mid_line():
     e = Engine(j, Stub(), "brief", None, None, os.path.join(d, "context.md"))
 
     NL = chr(10)
-    src = NL.join("line %03d some content here" % i for i in range(400))
+    # DERIVED from the cap rather than sized against it. 400 lines was ~9,600
+    # characters: above the 8,000 cap this was written for and below the
+    # 16,000 it became on 2026-09-23, so raising the cap quietly turned the
+    # test into one that observed no cut at all. Its own "not a vacuous pass"
+    # guard is what caught that, which is the guard doing its job.
+    _line = "line %03d some content here"
+    src = NL.join(_line % i
+                  for i in range((Engine.HISTORY_OUTPUT_CHARS // 27) + 200))
     j.append("exec_start", cmd="cat tools/own/thing")
     j.append("exec_end", exit_code=0, stdout=src, stderr="")
     hist = e.recent_block()
@@ -195,9 +205,10 @@ def test_history_never_cuts_mid_line():
     check("history: a cut output still shows whole lines of content",
           all(ln.endswith("content here") for ln in content),
           [ln for ln in content if not ln.endswith("content here")][:2])
+    _written = (Engine.HISTORY_OUTPUT_CHARS // 27) + 200
     check("history: and it cut somewhere, so this is not a vacuous pass",
-          "withheld by the log" in hist and len(body) < 400,
-          "%d lines of 400" % len(body))
+          "withheld by the log" in hist and len(body) < _written,
+          "%d lines of %d written" % (len(body), _written))
 
     # The real case that caused it: a tool just over the old 700 limit must now
     # arrive whole.
@@ -3918,6 +3929,75 @@ def test_the_unit_bounds_its_own_restarting():
           in_unit.get("StartLimitIntervalSec"))
     check("unit: StartLimit* is NOT left in [Service], where it is ignored",
           not in_service, in_service)
+
+
+def test_one_output_cannot_evict_the_whole_transcript():
+    """**The bound that keeps a wake small must not destroy what the wake is
+    for.** 2026-09-23, from a standing `window_reread` alarm.
+
+    `plan` reached 12,058 bytes against a per-output window of 8,000 and a
+    whole-block bound of 12,000. So a single `cat tools/own/plan` cost more
+    than the entire transcript budget, and the oldest-first trim dropped
+    **36,526 characters, leaving ONE command visible** -- the `cat` itself.
+
+    The creature therefore lost everything it had learned every time it
+    looked at the file it was trying to edit, and did the only rational
+    thing: looked again. Measured over the 17 hours after the previous
+    deploy: **74 `cat`s of `plan`, 0 writes, 2 tools added** -- against 37,
+    1 and 14 the day before. Seventy of its commands were that one `cat`.
+
+    **Two bounds in series decide this and only one of them was ever
+    examined.** The per-output window decides whether the file can be SEEN;
+    the block bound decides whether anything ELSE survives it. Raising the
+    block bound alone was measured on 2026-09-22 and bought one extra
+    visible command, which was read as *raising caps does not help* -- the
+    wrong conclusion from the wrong knob, and the 2026-09-13 scar ("the one
+    that was tuned was not the one that acts") committed inside the check
+    that quotes it.
+
+    **The durable half is this assertion rather than the new numbers.** A
+    library grows; the next tool to outgrow a window will do it again. What
+    must hold is a RELATIONSHIP: after a maximal output, the transcript still
+    carries earlier work.
+    """
+    e, j, b, d = build_engine([], [])
+
+    # `plan` AS IT MEASURED ON 2026-09-23, because the fault was about a real
+    # file and a dated fixture can be checked against the day it came from.
+    PLAN_BYTES = 12058
+    plan_src = "\n".join("def step_%04d(): return %d" % (n, n)
+                           for n in range(PLAN_BYTES // 29))
+    plan_src = plan_src[:PLAN_BYTES]
+
+    j.append("exec_start", cmd="echo the-work-it-had-already-done")
+    j.append("exec_end", exit_code=0, stdout="a result worth keeping", stderr="")
+    j.append("exec_start", cmd="cat tools/own/plan")
+    j.append("exec_end", exit_code=0, stderr="",
+             stdout=capped(plan_src, EXEC_STDOUT_CHARS))
+
+    block = e.recent_block(cycles=6)
+    cmds = [l for l in block.split("\n")
+            if l.startswith(e.HISTORY_QUOTE + "$ ")]
+
+    check("evict: the creature can SEE the largest tool in its library -- "
+          "12,058 bytes on the day this was written, shown whole rather than "
+          "two thirds of it",
+          "withheld by the log" not in block, block[-300:])
+    check("evict: and looking at it did NOT cost everything else it had done "
+          "-- a creature that loses its work every time it reads a file will "
+          "read that file again, which is what 74 `cat`s in 17 hours was",
+          len(cmds) >= 2, (len(cmds), cmds))
+    check("evict: the earlier work is the thing that survived, by name",
+          any("already-done" in c for c in cmds), cmds)
+
+    # THE RELATIONSHIP, so the next tool to outgrow a window cannot bring this
+    # back as a number nobody re-derived. The block must hold one maximal
+    # output and still have room for the cycle before it.
+    room = e.HISTORY_TOTAL_CHARS - e.HISTORY_OUTPUT_CHARS
+    check("evict: the block bound exceeds the per-output window by enough for "
+          "an earlier cycle to survive a maximal read",
+          room >= 4000, (e.HISTORY_TOTAL_CHARS, e.HISTORY_OUTPUT_CHARS, room))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
 def test_a_cap_downstream_never_exceeds_the_cap_upstream():
@@ -9065,6 +9145,7 @@ def main():
                test_the_engine_unit_runs_the_creature_in_a_container,
                test_the_unit_bounds_its_own_restarting,
                test_a_cap_downstream_never_exceeds_the_cap_upstream,
+               test_one_output_cannot_evict_the_whole_transcript,
                test_a_reply_with_no_verdict_falls_through_to_the_next_rung,
                test_an_unreadable_verdict_says_which_of_three_things_went_wrong,
                test_a_want_is_discharged_by_the_visit_that_answers_it,

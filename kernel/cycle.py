@@ -346,13 +346,23 @@ class Engine:
     # 8000 with the journal's cap (kernel/journal.py says why, with the
     # measurement); the two move TOGETHER or the raise is swallowed, which is
     # the caps-in-series scar this file has already paid for once.
-    HISTORY_OUTPUT_CHARS = 8000
+    HISTORY_OUTPUT_CHARS = 16000
     # The whole-block bound moves with them for the same reason: a per-output
     # cap of 8000 under a total of 6000 would have hidden the raise inside the
     # block instead of inside the journal -- the third cap in the series.
     # Oldest lines drop first, so one whole read of the largest tool always
     # survives with room for the command and result lines around it.
-    HISTORY_TOTAL_CHARS = 12000
+    # 24,000, and the RELATIONSHIP is the point rather than the number.
+    # At 12,000 against a per-output window of 8,000 there was not room for a
+    # maximal read AND anything else, so one `cat` of a big tool evicted the
+    # whole transcript and the creature lost everything it had learned -- then
+    # read the file again, 74 times in seventeen hours.
+    #
+    # 24,000 holds one whole 16,000 output, its command and result lines, the
+    # `| ` prefix on every line, and a previous cycle. `test_one_output_cannot
+    # _evict_the_whole_transcript` asserts that as a property rather than as
+    # arithmetic, so the next tool to outgrow a window cannot bring it back.
+    HISTORY_TOTAL_CHARS = 24000
 
     def recent_block(self, cycles=3):
         """The last few things it ran and what came back.

@@ -58,7 +58,30 @@ import time
 # SIZED TO THE LIBRARY, not guessed: 29 of 60 tools exceeded 2,400 bytes; the
 # largest is 7,223 (`subagent-orchestrator`), then `plan` at 6,119. 8,000 shows
 # every tool the creature has whole, with room for the next edit.
-EXEC_STDOUT_CHARS = 8000
+# 16,000, from 8,000, on 2026-09-23 -- and this raise moves the OTHER TWO
+# with it, which is the whole lesson of the one before it.
+#
+# `plan` reached 12,058 bytes, so a `cat` of it was stored at 8,000 plus a
+# marker. It could not be seen whole, and the block bound of 12,000 meant one
+# such read EVICTED THE ENTIRE TRANSCRIPT: 36,526 characters dropped, one
+# command left standing. Measured over the 17 hours to 2026-09-23 17:52:
+# **74 `cat`s of `plan`, 0 writes, 2 tools added**, against 37 / 1 / 14 the
+# day before. Seventy of its commands were that one read.
+#
+# SIZED TO THE LIBRARY, not guessed, the same way 2026-09-17 was: 86 tools,
+# largest `plan` at 12,058, next largest `subagent-orchestrator` at 7,223.
+# 16,000 shows `plan` whole with a third to spare for the growth it is
+# plainly still doing.
+#
+# **The write side has the headroom this time**, which is what makes it safe:
+# `num_predict` is 8192 (~25,000 characters) since 2026-09-20, and over the
+# 125 thinks since the last deploy there were **0 finished on `length` and 0
+# commands lost**, with a median reply of 372 characters. The 2026-09-20
+# disaster -- raise the read window, watch it attempt whole-file rewrites
+# against a 3072-token budget -- cannot repeat at these numbers, and if it
+# starts to, `deploy_regression_day` compares this start against the day
+# before it.
+EXEC_STDOUT_CHARS = 16000
 EXEC_STDERR_CHARS = 600
 EXEC_CMD_CHARS = 800
 
