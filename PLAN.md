@@ -48,7 +48,7 @@ can clear it. **Every heading that is not `[x]` is in the table below, and that 
 | **16** the cousin notices a tool serves nothing | the rule can be drafted; scoring it spends the same tier the live run is on | 20.4, then score under item 8's discipline |
 | **17.3** the deciding half | moves with 16 by construction | 16 |
 | **20.4** the cousin carries ONE note and has not added a second | 59 harvests carry it, none empty since 09-19, and the last 40 all carried exactly one key — continuity proven, accumulation not | a week of 20.2, read beside the store's key count |
-| **21.2** the rewrite wall | **FIRED 2026-09-23 on the READ side, and the first night's fix aimed at the wrong cap** — `plan` at 12,058 B against a per-output window of 8,000; a day later, 74 reads to 0 writes. Caps raised to 16k/16k/24k and deployed; the rewrite idiom is untouched | the partial-edit hand, after 09-25 |
+| **21.2** the rewrite wall | **FIRED 2026-09-23 on the READ side; took THREE readings to land** — wrong cap, then right caps at the wrong ratio. Replay over 360 real wakes: uncut transcript 24%→86%, eviction 61%→56% at 24k and →27% at 40k. Deployed 16k/16k/40k; the rewrite idiom is untouched | the partial-edit hand, after 09-25 |
 | **22.1 / 22.2** | a fence inside a heredoc, and the cost of re-reading a journal that only grows | both named and dated in item 22 |
 | **23.3** the creature is promised an LLM API its box may not have | 80 runs against `api.openai.com` with the literal `"default_key"` | a design decision, not a patch — see item 23 |
 | **23.4 / 23.5** the same audit on the cousin's brief and the kernel's served text | begun; the brief addresses an agent with a job it does not have | work, not a trigger |
@@ -1478,6 +1478,18 @@ a single known cause and a dated start.
   and `test_one_output_cannot_evict_the_whole_transcript` holds the
   relationship as a property so the next oversized tool cannot restore it
   quietly. Deployed 18:14:28 as `44f53b5`.
+
+  **AND 24,000 WAS HALF A FIX, corrected the same evening.** Replayed
+  deterministically over the real window -- 360 wakes, the true 12,042-char
+  `plan` substituted back so the new setting pays full price -- it fixed
+  READING (uncut transcript **24% -> 86%**) and did not fix FORGETTING
+  (wakes with <=1 command left **61% -> 56%**). 12,000/8,000 and
+  24,000/16,000 are the same ratio, so the number of maximal outputs that
+  fit never changed, and the guard shipped with it asserted a DIFFERENCE
+  (`>= 4000`) where the property is a capacity. At 40,000 eviction goes to
+  **27%**; 48k and 64k buy nothing. `HISTORY_TOTAL_CHARS` is 40,000 and the
+  guard asserts two maximal outputs fit. Deployed 18:53:48 as `07cbd19`.
+  `CLAUDE.md` §5 carries the table and the discarded method.
 
   **This does NOT close the item, and saying why is the point.** A window
   wide enough to read a 12 KB tool is not an idiom for editing one. The

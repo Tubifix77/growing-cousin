@@ -375,6 +375,34 @@ not a midnight patch.**
   changed a board item twice.
 - **Re-arm a monitor in the same turn as the check**, before writing the
   report. Claiming a re-arm that never happened has occurred twice.
+- **A question about what the creature SEES is deterministic -- replay the
+  journal. Only a question about what it DOES needs a model.** 2026-09-23,
+  after spending an evening on a live A/B that returned a null result while
+  the answer sat in `live/journal.jsonl`. Rendering is a pure function of the
+  records and the caps, so *how much would it have seen* can be replayed over
+  hundreds of real wakes in eleven seconds, with no quota, no luck and no
+  model variance -- and §5's *one observation is not a measurement* does not
+  even apply, because there is no sampling. Three rules make such a replay
+  honest: substitute the TRUE file content back over anything the storage cap
+  already clipped, or the new setting is flattered; count off the RENDERED
+  output by its own markers, never by grepping the journal for a word; and
+  drive the real renderer through a substituted journal rather than
+  reimplementing it, because a reimplemented renderer is a checker agreeing
+  with the producer by eye. `deploy_regression_day` remains the instrument
+  for the other half -- what it then does about what it saw.
+- **There IS a local model box, and §4's "run it locally first" has been
+  available all along.** 2026-09-23, Tue: *"you could also test your proposed
+  fix on a local ollama model, use wsl or such alternative environments if
+  needed."* The Windows box runs ollama with `gemma4:12b` -- the trial's own
+  standin for the deployed rung -- plus `qwen3:8b`, `phi4:14b` and others, so
+  the gate's live-model assertions RUN there and are skipped on the laptop.
+  **Two things to size before trusting such a run.** The card is 10 GB and
+  `gemma4:12b` needs 8.1 of it at `num_ctx` 8192, so a rehearsal that serves
+  a big context must drop to an 8B model -- state that as the cost, since it
+  is not the production family. And `backends.ollama` defaults to
+  `num_ctx=8192` while a served context now reaches ~10,000 tokens: leave it
+  and every arm is clipped to the same window and the experiment measures
+  nothing.
 - **`git stash` is a trap in this checkout and `git push origin main` can lie.**
   2026-09-21, both inside ten minutes. There is a stash from 2026-09-16
   labelled *"superseded by laptop commits"* sitting in `refs/stash`, and a
@@ -1264,6 +1292,76 @@ was measured, with what, and on what date.*
   >
   > Deployed 2026-09-23 18:14:28 as `44f53b5`; `selfcheck` all-true,
   > `unproven: []`; laptop gate green.
+  >
+  > **AND THAT WAS HALF A FIX, WITH A GUARD THAT COULD NOT SEE THE OTHER
+  > HALF. Third reading of the same fault in one evening, 2026-09-23 18:53.**
+  > Tue: *"for really killing bugs like this you could also test your proposed
+  > fix on a local ollama model, use wsl or such alternative environments if
+  > needed."* §4 had said so since 2026-09-12 and this change had not had it.
+  >
+  > **The local A/B was a NULL RESULT and is recorded as one.** `qwen3:8b`,
+  > two arms of ten cycles, identical seed: the creature never entered the
+  > read loop at all -- it went off building a new tool -- 7 of 10 cycles
+  > emitted no command, and its tools died `exit 49` because a Windows
+  > `LocalBody` has no `python3`. **It answered nothing about the caps.** Its
+  > own reported *"reads of plan: 1"* was a substring match of `cat`/`plan`
+  > against a COMMENT line, which is the top scar aimed at my own probe for
+  > the third day running. What the rig did earn is two real findings on its
+  > way to measuring nothing: the codec fault (`e08b6f9`) and a `num_ctx`
+  > default of 8,192 that would have clipped BOTH arms to one window and
+  > hidden the entire effect -- *two caps in series*, inside the instrument
+  > built to measure two caps in series.
+  >
+  > **THE RIGHT INSTRUMENT NEEDS NO MODEL.** Whether the creature SEES more
+  > is deterministic, so it is replayed over the real read-loop window
+  > (00:30-17:52, **360 real wakes**), with three deliberate honesties: the
+  > true 12,042-char `plan` is substituted back over every clipped stored
+  > read so the new arm pays FULL price; commands are counted off the
+  > RENDERED block by its own quote prefix rather than grepped for a word;
+  > and `recent_block` is driven through a substituted journal rather than
+  > reimplemented, because a reimplemented renderer is a checker agreeing
+  > with the producer by eye.
+  >
+  > | caps | wakes with <=1 command left | uncut transcript | mean block |
+  > |---|---|---|---|
+  > | 8k / 8k / 12k | 61% | 24% | 9,124 |
+  > | **16k / 16k / 24k** (deployed 18:14) | **56%** | **86%** | 15,859 |
+  > | 16k / 16k / 32k | **27%** | 86% | 18,868 |
+  > | 16k / 16k / 40k | 27%, median 3 visible | 86% | 21,052 |
+  > | 16k / 16k / 48k | 27% | 86% | 22,475 |
+  > | 16k / 16k / 64k | 27% | 86% | 23,776 |
+  >
+  > **It fixed READING and did not fix FORGETTING, and the arithmetic says
+  > why: 12,000/8,000 and 24,000/16,000 are the SAME RATIO.** Doubling both
+  > left the number of maximal outputs that fit unchanged, so eviction moved
+  > 61% to 56% and nowhere. **And the guard written with it asserted
+  > `total - output >= 4000` -- a DIFFERENCE, which is green at every scale
+  > and moves nothing.** A constant chosen for the shape of the arithmetic
+  > rather than measured against it, which is the first fault this file's own
+  > §0 names, committed in the test written to prevent it.
+  >
+  > `HISTORY_TOTAL_CHARS` **24,000 -> 40,000**, the point where returns stop
+  > on both metrics; 48k and 64k buy nothing. The guard now asserts a
+  > **CAPACITY** -- at least two maximal outputs fit -- **red-proved at the
+  > value deployed three hours earlier** (1.50) before green at 2.50.
+  >
+  > **The cost is bounded and is NOT §4's "doubling the standing cost of
+  > every wake":** the median block is 21,858 at EVERY setting from 24k up,
+  > because `recent_block`'s 18-row limit binds before the char cap. Only the
+  > wakes that really did read something big grow. `EXEC_STDOUT_CHARS` and
+  > `HISTORY_OUTPUT_CHARS` are untouched, so the 2026-09-20 write-side risk
+  > is unchanged: this shows the creature more of ITS OWN PAST, never a
+  > bigger file to rewrite.
+  >
+  > **A second restart the same evening voids the first's
+  > `deploy_regression_day`, and that was the deciding cost rather than an
+  > afterthought.** It is cheap tonight precisely because the tier is dry:
+  > `44f53b5` had accumulated **72 records in 1.5 hours and not one read of
+  > `plan`**, so there was nothing in the window to lose. At noon tomorrow
+  > the same decision costs a day. Deployed 18:53:48 as `07cbd19`;
+  > `selfcheck` all-true, `unproven: []`; `deploy_regression_day` re-armed
+  > for 09-24 18:53, and what it must show is **reads falling WITHOUT writes
+  > falling**.
 
   **The fix is PLAN 21.2's partial-edit hand, and 21.2's trigger was cut
   against the wrong wall.** It reads *"the first tool over 15 KB, or
