@@ -3991,12 +3991,23 @@ def test_one_output_cannot_evict_the_whole_transcript():
           any("already-done" in c for c in cmds), cmds)
 
     # THE RELATIONSHIP, so the next tool to outgrow a window cannot bring this
-    # back as a number nobody re-derived. The block must hold one maximal
-    # output and still have room for the cycle before it.
-    room = e.HISTORY_TOTAL_CHARS - e.HISTORY_OUTPUT_CHARS
-    check("evict: the block bound exceeds the per-output window by enough for "
-          "an earlier cycle to survive a maximal read",
-          room >= 4000, (e.HISTORY_TOTAL_CHARS, e.HISTORY_OUTPUT_CHARS, room))
+    # back as a number nobody re-derived.
+    #
+    # THIS ASSERTED A DIFFERENCE AND THE PROPERTY IS A RATIO -- corrected the
+    # same evening, by the replay that should have preceded it. `>= 4000` was
+    # green at 12,000/8,000 AND at 24,000/16,000, which are the same ratio and
+    # therefore hold the same number of maximal outputs. Measured over 360
+    # real wakes: raising both caps together took "wakes with <=1 command
+    # left" from 61% to 56%, i.e. nowhere. At a ratio of 2.0 it goes to 27%.
+    #
+    # A capacity, then, and stated as one: how many maximal outputs fit
+    # alongside each other. Two is the measured knee.
+    fits = e.HISTORY_TOTAL_CHARS / float(e.HISTORY_OUTPUT_CHARS)
+    check("evict: the block holds at least two maximal outputs, so reading a "
+          "big tool twice does not erase everything before it -- a RATIO, "
+          "because a difference is green at every scale and moves nothing",
+          fits >= 2.0, "%d / %d = %.2f maximal outputs"
+          % (e.HISTORY_TOTAL_CHARS, e.HISTORY_OUTPUT_CHARS, fits))
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 

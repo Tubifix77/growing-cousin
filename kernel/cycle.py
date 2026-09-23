@@ -352,7 +352,40 @@ class Engine:
     # block instead of inside the journal -- the third cap in the series.
     # Oldest lines drop first, so one whole read of the largest tool always
     # survives with room for the command and result lines around it.
-    # 24,000, and the RELATIONSHIP is the point rather than the number.
+    # 40,000, from 24,000, the same evening -- because 24,000 was HALF a
+    # fix and the replay says which half. Measured deterministically over the
+    # real read-loop window (2026-09-23 00:30-17:52, 360 wakes, the true
+    # 12,042-char `plan` substituted back over every clipped stored read, and
+    # the real `recent_block` driven through a substituted journal rather than
+    # reimplemented):
+    #
+    #   caps            <=1 cmd left    uncut transcript   mean block
+    #   8k /  8k / 12k      61%              24%             9,124
+    #  16k / 16k / 24k      56%              86%            15,859
+    #  16k / 16k / 32k      27%              86%            18,868
+    #  16k / 16k / 40k      27% (med 3)      86%            21,052
+    #  16k / 16k / 48k      27%              86%            22,475
+    #  16k / 16k / 64k      27%              86%            23,776
+    #
+    # **Raising both caps together fixed READING and not FORGETTING**, and the
+    # arithmetic says why: 12,000/8,000 and 24,000/16,000 are the SAME RATIO,
+    # so doubling both left the number of maximal outputs that fit unchanged.
+    # The guard written that afternoon asserted `total - output >= 4000` -- a
+    # DIFFERENCE, which passes while the property that matters does not move.
+    # A constant chosen for the shape of the arithmetic rather than measured
+    # against it, which is this file's oldest fault.
+    #
+    # 40,000 is where returns stop on BOTH metrics; 48k and 64k buy nothing
+    # and only cost. The cost is bounded and is not the "doubling the standing
+    # cost of every wake" that §4 warns about: the median block is 21,858 at
+    # EVERY setting from 24k up, because `recent_block`'s 18-row limit binds
+    # first. Only the wakes that really did read something big grow.
+    #
+    # It does not touch EXEC_STDOUT_CHARS or HISTORY_OUTPUT_CHARS, so the
+    # write-side risk the 2026-09-20 scar is about is unchanged: this shows
+    # the creature MORE OF ITS OWN PAST, never a bigger file to rewrite.
+    #
+    # The RELATIONSHIP is the point rather than the number.
     # At 12,000 against a per-output window of 8,000 there was not room for a
     # maximal read AND anything else, so one `cat` of a big tool evicted the
     # whole transcript and the creature lost everything it had learned -- then
@@ -362,7 +395,7 @@ class Engine:
     # `| ` prefix on every line, and a previous cycle. `test_one_output_cannot
     # _evict_the_whole_transcript` asserts that as a property rather than as
     # arithmetic, so the next tool to outgrow a window cannot bring it back.
-    HISTORY_TOTAL_CHARS = 24000
+    HISTORY_TOTAL_CHARS = 40000
 
     def recent_block(self, cycles=3):
         """The last few things it ran and what came back.
