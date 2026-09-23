@@ -1216,6 +1216,55 @@ was measured, with what, and on what date.*
   *Do not keep raising the budget* -- §4 says it, item 21 says it, and this
   is the measurement behind it rather than the opinion.
 
+  > **THAT TABLE MEASURED THE WRONG KNOB, AND THE LOOP GOT WORSE FOR A DAY
+  > WHILE ITS CONCLUSION STOOD.** Corrected 2026-09-23 17:52 by the next
+  > daily check.
+  >
+  > **`plan` does not cost ~8,000 characters because it is big. It costs
+  > 8,000 because `HISTORY_OUTPUT_CHARS` cuts it there.** The sweep above
+  > moved `HISTORY_TOTAL_CHARS` and held the per-output window at 8,000, so
+  > every row still paid 8,000 per read and every row was still shown a
+  > two-thirds file. It measured what a bigger box does for a load that was
+  > being clipped to a constant on the way in -- and answered, correctly,
+  > *almost nothing*. **The knob that acts is the one that was not touched.**
+  > `EXEC_STDOUT_CHARS` and `HISTORY_OUTPUT_CHARS` are the 2026-09-13 scar by
+  > name -- *two caps in series, and the one that was tuned was not the one
+  > that acts* -- and I re-derived it from the other end, ten days later, in
+  > the same file, having quoted that scar the same week.
+  >
+  > **What it cost, measured over the 17.3 hours the conclusion stood:**
+  >
+  > | | `cat plan` | writes | thinks | tools added |
+  > |---|---|---|---|---|
+  > | 2026-09-22, full day | 37 | 1 | 146 | 14 |
+  > | 2026-09-23, since 00:30 | **74** | **0** | 125 | **2** |
+  >
+  > Seventy of its commands in that window were that one read. **Nothing was
+  > changed tonight** is a defensible sentence about a cap and was the wrong
+  > one here, because the thing it declined to change had not been measured.
+  >
+  > **All three caps moved together**, sized to the library rather than
+  > guessed -- 90 tools, largest `plan` at 12,058 bytes, next
+  > `subagent-orchestrator` at 7,196: `EXEC_STDOUT_CHARS` and
+  > `HISTORY_OUTPUT_CHARS` to **16,000**, `HISTORY_TOTAL_CHARS` to
+  > **24,000**. The relationship is the property, not the numbers:
+  > `test_one_output_cannot_evict_the_whole_transcript` asserts the creature
+  > sees the largest tool whole, that earlier work survives the read, and
+  > that the block bound exceeds the per-output window by at least 4,000 --
+  > so the next tool to outgrow a window cannot bring this back as a constant
+  > nobody re-derived.
+  >
+  > **And the reason this is not 2026-09-20 repeating is the WRITE side, which
+  > is checked rather than hoped.** That disaster was a read raise against a
+  > 3072-token reply budget. `num_predict` has been 8192 since 09-20, and over
+  > the 125 thinks under the previous deploy: **0 finished on `length`, 0
+  > commands lost, median reply 372 characters** against a ceiling near
+  > 25,000. `deploy_regression_day` compares the 24 hours after this start
+  > against the day before it, and the table above is its baseline.
+  >
+  > Deployed 2026-09-23 18:14:28 as `44f53b5`; `selfcheck` all-true,
+  > `unproven: []`; laptop gate green.
+
   **The fix is PLAN 21.2's partial-edit hand, and 21.2's trigger was cut
   against the wrong wall.** It reads *"the first tool over 15 KB, or
   `truncated|lost` crossing 10%"* -- both of which are the WRITE wall, the
@@ -1225,11 +1274,15 @@ was measured, with what, and on what date.*
   fired and the board did not notice because it was looking at the write
   budget. Corrected in PLAN.
 
-  **Nothing was changed tonight.** A cap change is the single thing this
+  ~~**Nothing was changed tonight.**~~ A cap change is the single thing this
   file's scars most insist on measuring first (2026-09-20: *I raised the
   window so it could read its tool, and it spent three days unable to finish
-  writing one*), and the measurement above says a cap change is not the fix.
-  The hand lands after 2026-09-25, when the metric's first week closes.
+  writing one*), and the measurement above said a cap change is not the fix.
+  **It said that because it measured the wrong cap** -- see the correction
+  above. The caps moved 2026-09-23; **PLAN 21.2's partial-edit hand still
+  lands after 2026-09-25**, because a window wide enough to READ a 12 KB tool
+  is not an idiom for editing one, and the whole-file rewrite is the wall
+  that raising a window can only postpone.
 
 - **I MEASURED THE FIX WITH THE FIXED CODE AND GOT "IT ISN'T HAPPENING".**
   2026-09-21 17:52, caught in the same minute because the number contradicted

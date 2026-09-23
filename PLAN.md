@@ -48,7 +48,7 @@ can clear it. **Every heading that is not `[x]` is in the table below, and that 
 | **16** the cousin notices a tool serves nothing | the rule can be drafted; scoring it spends the same tier the live run is on | 20.4, then score under item 8's discipline |
 | **17.3** the deciding half | moves with 16 by construction | 16 |
 | **20.4** the cousin carries ONE note and has not added a second | 59 harvests carry it, none empty since 09-19, and the last 40 all carried exactly one key — continuity proven, accumulation not | a week of 20.2, read beside the store's key count |
-| **21.2** the rewrite wall | **FIRED 2026-09-23, on the READ side** — `plan` at 12,058 B crossed `HISTORY_TOTAL_CHARS`; one `cat` evicts the whole transcript, 39 reads to 1 write. Raising the bound is measured not to fix it | the partial-edit hand, after 09-25 |
+| **21.2** the rewrite wall | **FIRED 2026-09-23 on the READ side, and the first night's fix aimed at the wrong cap** — `plan` at 12,058 B against a per-output window of 8,000; a day later, 74 reads to 0 writes. Caps raised to 16k/16k/24k and deployed; the rewrite idiom is untouched | the partial-edit hand, after 09-25 |
 | **22.1 / 22.2** | a fence inside a heredoc, and the cost of re-reading a journal that only grows | both named and dated in item 22 |
 | **23.3** the creature is promised an LLM API its box may not have | 80 runs against `api.openai.com` with the literal `"default_key"` | a design decision, not a patch — see item 23 |
 | **23.4 / 23.5** the same audit on the cousin's brief and the kernel's served text | begun; the brief addresses an agent with a job it does not have | work, not a trigger |
@@ -1461,14 +1461,38 @@ a single known cause and a dated start.
   command visible -- the `cat` itself. Measured 09-22: **39 reads of `plan`,
   1 write.** The creature: *"The transcript was truncated."*
 
-  **Raising the bound is measured NOT to fix it**: 12,000 -> 24,000 takes the
-  visible commands from 1 to 2, because each read costs ~8,000 whatever the
-  bound is. That is the evidence for the partial-edit hand rather than
-  another cap, which is what this item has said since it was written.
+  ~~**Raising the bound is measured NOT to fix it**: 12,000 -> 24,000 takes
+  the visible commands from 1 to 2, because each read costs ~8,000 whatever
+  the bound is.~~
 
-  *Trigger, RE-CUT: it has fired. The hand lands after 2026-09-25, when
-  20.2's first full week closes, because it is a change to the creature's
-  world and those do not land mid-measurement.*
+  **THAT SWEEP HELD THE WRONG CAP FIXED, corrected 2026-09-23 17:52.** A read
+  costs ~8,000 because `HISTORY_OUTPUT_CHARS` cuts it at 8,000, not because
+  `plan` is 12 KB -- so every row of that table paid the same clipped price
+  and answered a question nobody had. The 2026-09-13 scar by name: *two caps
+  in series, and the one that was tuned was not the one that acts.* The day
+  the conclusion stood cost **74 reads of `plan`, 0 writes and 2 tools added
+  in 17.3 hours**, against 37 / 1 / 14 the day before.
+
+  **All three caps moved together on 2026-09-23** -- 16,000 / 16,000 /
+  24,000, sized to a 90-tool library whose largest file is 12,058 bytes --
+  and `test_one_output_cannot_evict_the_whole_transcript` holds the
+  relationship as a property so the next oversized tool cannot restore it
+  quietly. Deployed 18:14:28 as `44f53b5`.
+
+  **This does NOT close the item, and saying why is the point.** A window
+  wide enough to read a 12 KB tool is not an idiom for editing one. The
+  creature's only editing move is a whole-file rewrite, so `plan` still costs
+  ~12 KB of reply to change one line, and the write wall is at ~25 KB: the
+  cap raise postponed this item, it did not answer it. What it also did is
+  remove the confound -- until today a rewrite failure could not be told
+  apart from the creature never having seen the file whole.
+
+  *Trigger, RE-CUT: it has fired, and the caps bought time rather than a fix.
+  The hand lands after 2026-09-25, when 20.2's first full week closes,
+  because it is a change to the creature's world and those do not land
+  mid-measurement. Read `deploy_regression_day` for `44f53b5` (due 09-24
+  18:14) first: the baseline is the table above, and what it must show is
+  reads falling WITHOUT writes falling.*
 
   ~~**21.2 (original)** 
 25 KB.** A library whose tools keep growing will hit it again, and the failure
