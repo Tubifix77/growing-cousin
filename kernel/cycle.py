@@ -92,9 +92,10 @@ class Engine:
         mem = self.memory_block()
         if mem:
             parts.append(mem)
-        recent = self.recent_block()
-        if recent:
-            parts.append(recent)
+        # THE TRANSCRIPT'S PLACE IS HERE, AND ITS SIZE IS DECIDED LAST --
+        # once everything that must be served whole is known. See
+        # CONTEXT_BUDGET_CHARS.
+        recent_at = len(parts)
         # ITS OWN LIBRARY, EVERY WAKE. 2026-09-13 (Tue): "I want and need the
         # creature to be always aware of the tools available to it", after the
         # way MCP and skills present a tool's frontmatter on every load rather
@@ -125,6 +126,15 @@ class Engine:
                 wants = self.wants()
         if self.creature_brief:
             parts.append(self.creature_brief)
+        sep = "\n\n---\n\n"
+        rest = sep.join(p for p in parts if p)
+        room = self.CONTEXT_BUDGET_CHARS - len(rest) - len(sep)
+        transcript_budget = max(self.HISTORY_FLOOR_CHARS,
+                                min(self.HISTORY_TOTAL_CHARS, room))
+        recent = self.recent_block(limit=transcript_budget)
+        if recent:
+            parts.insert(recent_at, recent)
+        context = sep.join(p for p in parts if p)
         # WHAT WAS SERVED, AS FACTS, gathered here where it was served. Until
         # 2026-09-15 the wake recorded one number -- how long the context was
         # -- and length cannot say whether the library was on the page or
@@ -143,12 +153,20 @@ class Engine:
             "library_named": len(names),
             "library_total": len(names),
             "wants_served": len(wants),
-            "window": self.HISTORY_OUTPUT_CHARS,
+            # The window the transcript was ACTUALLY shown through, which
+            # shrinks with the page budget -- not the constant it starts from.
+            "window": getattr(self, "window_served", self.HISTORY_OUTPUT_CHARS),
             "refusal_served": bool(self.done_blocked),
             "memory_served": bool(mem),
             "chat_served": bool(chat),
+            # THE BUDGET, AS SERVED. `over_budget` is True only when the rest
+            # of the page left less than the floor -- the one case the bound
+            # cannot hold -- so a reader never has to recompute it.
+            "context_budget": self.CONTEXT_BUDGET_CHARS,
+            "transcript_budget": transcript_budget,
+            "over_budget": len(context) > self.CONTEXT_BUDGET_CHARS,
         }
-        return "\n\n---\n\n".join(p for p in parts if p)
+        return context
 
     def record_want(self, want):
         """The cousin asking for the next capability IS the direction mechanism.
@@ -352,6 +370,39 @@ class Engine:
     # block instead of inside the journal -- the third cap in the series.
     # Oldest lines drop first, so one whole read of the largest tool always
     # survives with room for the command and result lines around it.
+    # THE WHOLE CONTEXT HAS A BUDGET, AND THE TRANSCRIPT IS WHAT YIELDS.
+    # 2026-09-24, the morning after the line below: the engine was WEDGED for
+    # eight hours with no alarm. Every creature think in the preceding day
+    # came from one rung, `gemini/gemma-4-31b-it`, and succeeded at a served
+    # context between 37,737 and **60,866** characters. At 09:00 the context
+    # reached **71,178** and nothing answered again -- 0 thinks in 8 hours,
+    # 201 deferred -- because a transcript at its 40,000 ceiling had pushed
+    # the prompt past what the rung takes per request, and a creature that
+    # cannot think cannot run the commands that would shrink its transcript.
+    # A deadlock, served every wake, with a label on every decline that read
+    # exactly like quota weather.
+    #
+    # **The raise below priced "cost" as characters. On a free tier the cost
+    # of an oversized prompt is not proportional, it is binary: over the
+    # rung's limit, nothing answers at all.** The replay measured what the
+    # creature would SEE and never asked whether the rung would TAKE it.
+    #
+    # So the budget is on the WHOLE, and it is measured rather than chosen:
+    # 56,000 sits ~8% under the largest context the serving rung has
+    # accepted (60,866) and well under the size it refused for eight hours
+    # (71,178). Everything else on the page -- identity, library, wants --
+    # is served whole; the transcript gets what is left, up to its own
+    # ceiling, and never less than a floor. `context_outgrew_rung` watches
+    # the result against what the rungs actually accept, because a budget
+    # is one measurement old and the library it shares a page with grows.
+    CONTEXT_BUDGET_CHARS = 56000
+    # A transcript is never squeezed to nothing: the rule about not repeating
+    # the last command is unfollowable if nothing shows the last command. If
+    # the rest of the page alone leaves less than this, the page runs over
+    # budget, says so on the wake (`over_budget`), and the monitor alarms --
+    # a bound that cannot hold must say so rather than quietly delete.
+    HISTORY_FLOOR_CHARS = 4000
+
     # 40,000, from 24,000, the same evening -- because 24,000 was HALF a
     # fix and the replay says which half. Measured deterministically over the
     # real read-loop window (2026-09-23 00:30-17:52, 360 wakes, the true
@@ -397,7 +448,7 @@ class Engine:
     # arithmetic, so the next tool to outgrow a window cannot bring it back.
     HISTORY_TOTAL_CHARS = 40000
 
-    def recent_block(self, cycles=3):
+    def recent_block(self, cycles=3, limit=None):
         """The last few things it ran and what came back.
 
         **QUOTED, never fenced.** Every line carries a prefix, and the history
@@ -421,6 +472,24 @@ class Engine:
         journal keeps evidence, the context has to stay small enough that a
         wake does not cost more every cycle.
         """
+        # THE BLOCK'S CAP, decided first, because it bounds everything below.
+        cap = self.HISTORY_TOTAL_CHARS if limit is None \
+            else min(int(limit), self.HISTORY_TOTAL_CHARS)
+        # ONE OUTPUT MAY NEVER BE LARGER THAN THE BLOCK THAT HOLDS IT.
+        # 2026-09-24, caught by the test for the page budget before anything
+        # shipped: at a small budget the newest record -- a 12 KB `cat` shown
+        # through a 16,000 window -- was bigger than the whole block, so the
+        # oldest-first trim kept the END OF THE FILE'S OUTPUT and dropped the
+        # `$ cat` line that produced it. The creature would have been shown a
+        # tool's contents with no command above them, which is the exact shape
+        # that once had it re-running its own output as commands (§5,
+        # 2026-09-13). The per-output window therefore shrinks with the block,
+        # leaving room for the header, the command line and the delimiters;
+        # the marker already carries the true total withheld, so a tighter
+        # cut is still an honest one.
+        window = min(self.HISTORY_OUTPUT_CHARS,
+                     max(1000, int((cap - 2000) * 0.9)))
+        self.window_served = window
         rows = self.j.read(kinds=["exec_start", "exec_end", "exec_skip"],
                            limit=cycles * 6)
         if not rows:
@@ -468,12 +537,12 @@ class Engine:
                 out.append(quoted("$ " + (r.get("cmd") or "")))
             elif r["kind"] == "exec_end":
                 out.append(quoted("exit %s" % r.get("exit_code")))
-                body = quoted(r.get("stdout"), self.HISTORY_OUTPUT_CHARS)
+                body = quoted(r.get("stdout"), window)
                 if body:
                     out.append(quoted("--- what it printed back ---")
                                + "\n" + body
                                + "\n" + quoted("--- end of what it printed ---"))
-                err = quoted(r.get("stderr"), self.HISTORY_OUTPUT_CHARS)
+                err = quoted(r.get("stderr"), window)
                 if err:
                     out.append(quoted("--- what it printed to stderr ---")
                                + "\n" + err
@@ -489,7 +558,7 @@ class Engine:
         # context that grows with what the creature happens to print is the
         # wake-cost failure class arriving by the back door. Oldest goes first:
         # the newest cycle is the one it needs to not repeat.
-        if len(block) > self.HISTORY_TOTAL_CHARS:
+        if len(block) > cap:
             # HOW MUCH, not just THAT. Found 2026-09-21 by an independent
             # verifier, an hour after the commit that said the marker
             # invariant now held without the caller remembering: it held for
@@ -500,20 +569,41 @@ class Engine:
             # markers still claimed exactly 55,948. So every per-output marker
             # understates by whatever this took, which is the same fault one
             # level up, in the commit that fixed the level below.
-            dropped = len(block) - self.HISTORY_TOTAL_CHARS
-            keep = block[-self.HISTORY_TOTAL_CHARS:]
+            #
+            # EXACT, header and note included. Until 2026-09-24 the header and
+            # the dropped-lines note were added ON TOP of the cap, so the block
+            # ran ~600 characters over it -- harmless against a per-block cap
+            # and wrong against a budget on the whole page, which is what
+            # `serve_context` now hands in as `limit`.
+            def prefix(n):
+                # The HEADER IS KEPT, not replaced. It carries the warning
+                # that output is not a command, and dropping it here would
+                # remove that warning precisely when the transcript is longest
+                # and busiest -- which is exactly when the creature started
+                # re-running its own output. A safety note that vanishes
+                # under load is not one.
+                return (out[0] + "\n\n" + out[2]
+                        + "\n\n(Older lines dropped: %d characters of earlier "
+                          "transcript are not shown here, on top of anything "
+                          "the log withheld from an individual output below. "
+                          "This is the most recent part.)\n" % n)
+            # Sized with room for the widest number the note could print, so
+            # the count it prints is the count it dropped.
+            room = max(0, cap - len(prefix(len(block))))
+            keep = block[-room:] if room else ""
             nl = keep.find("\n")
-            # The HEADER IS KEPT, not replaced. It carries the warning that
-            # output is not a command, and dropping it here would remove that
-            # warning precisely when the transcript is longest and busiest --
-            # which is exactly when the creature started re-running its own
-            # output. A safety note that vanishes under load is not one.
-            block = (out[0] + "\n\n" + out[2]
-                     + "\n\n(Older lines dropped: %d characters of earlier "
-                       "transcript are not shown here, on top of anything the "
-                       "log withheld from an individual output below. This is "
-                       "the most recent part.)\n" % dropped
-                     + (keep[nl:] if nl > 0 else keep))
+            if nl > 0:
+                keep = keep[nl:]
+            # The header is re-served above, so it is not "dropped": counting
+            # it overstated the loss by the header's length. An overstated
+            # loss is what once sent this creature to rewrite two working
+            # tools shorter (2026-09-12). This fix was first written on
+            # 2026-09-24 inside a command that timed out, never landed, and
+            # was reported as made -- found only because a mutation of it
+            # had nothing to mutate.
+            head = len("\n".join(out[:4])) + 1
+            dropped = max(0, len(block) - len(keep) - head)
+            block = prefix(dropped) + keep
         return block
 
     def write_context(self, text):

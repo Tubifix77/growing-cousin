@@ -1376,6 +1376,93 @@ def complaint_fidelity(ctx):
                       if unchecked else ""))
 
 
+# THE PAGE HAS OUTGROWN THE RUNG. 2026-09-24: the engine was wedged for eight
+# hours and this page said "Alarms (0)" throughout. Every decline was a 429
+# or a 413 -- weather by label -- and the wakes kept coming, so neither
+# `engine_silent` nor `ladder_dry` had anything to say. What had changed was
+# the SIZE of the page: every think in the day before was answered at a
+# served context of 37,737-60,866 characters, and from 09:00 every wake
+# served 71,178 and nothing answered again.
+#
+# So this watches the page against what the rungs have ACCEPTED, not against
+# a budget constant: a budget is one measurement old, and the library it
+# shares a page with grows. Declared floors, measured the same day:
+#
+# - the longest dry spell in run 2 that ended in a think, with the engine
+#   waking and no restart inside, was **1.2 h** across 173 gaps. Two hours
+#   is ~1.7x that, so a quiet this long has never once been weather.
+# - "accepted" is a wake followed by a think before the next wake; 72 h of
+#   them, so a day of weather cannot erase what the rung is known to take.
+OUTGREW_LOOKBACK_H = 72
+OUTGREW_QUIET_H = 2
+OUTGREW_MIN_WAKES = 6
+
+
+def context_outgrew_rung(ctx):
+    """ALARM when the page served now is larger than any page a rung has
+    answered in 72 h AND nothing has thought for two hours of waking -- the
+    prompt has outgrown the rung, which no amount of waiting fixes. ALARM too
+    when the fixed part of the page alone ran over budget (`over_budget` on
+    the wake), which no transcript size can fix. A long drought at a page
+    size the rungs DO accept is weather, and says so, as INFO."""
+    accepted, pending = [], None
+    for r in ctx.recent(OUTGREW_LOOKBACK_H):
+        k = r.get("kind")
+        if k == "wake":
+            c = r.get("context_chars")
+            pending = c if isinstance(c, (int, float)) else None
+        elif k == "think" and pending is not None:
+            accepted.append(pending)
+            pending = None
+    last = ctx.last("wake")
+    now_ctx = (last or {}).get("context_chars")
+    if not isinstance(now_ctx, (int, float)):
+        return Finding("context_outgrew_rung", CANNOT_TELL,
+                       "no wake records the size of the page it served",
+                       human=False)
+    if last.get("over_budget"):
+        return Finding("context_outgrew_rung", ALARM,
+                       "the page served is %d characters against a budget of "
+                       "%s, and the transcript is already at its floor: what "
+                       "must be served whole -- identity, library, wants -- "
+                       "no longer fits" % (now_ctx, last.get("context_budget")),
+                       {"context_chars": now_ctx,
+                        "context_budget": last.get("context_budget"),
+                        "transcript_budget": last.get("transcript_budget")},
+                       scar="a 71,178-character page wedged the engine for "
+                            "eight hours with no alarm, 2026-09-24")
+    if not accepted:
+        return Finding("context_outgrew_rung", CANNOT_TELL,
+                       "no page answered in %dh, so what the rungs accept is "
+                       "unknown" % OUTGREW_LOOKBACK_H, human=False)
+    biggest = max(accepted)
+    quiet = ctx.recent(OUTGREW_QUIET_H)
+    thinks = sum(1 for r in quiet if r.get("kind") == "think")
+    wakes = sum(1 for r in quiet if r.get("kind") == "wake")
+    drought = thinks == 0 and wakes >= OUTGREW_MIN_WAKES
+    ev = {"context_chars": now_ctx, "largest_answered": biggest,
+          "wakes_quiet": wakes, "thinks_quiet": thinks}
+    if drought and now_ctx > biggest:
+        return Finding("context_outgrew_rung", ALARM,
+                       "the page served now (%d) is larger than any page a "
+                       "rung has answered in %dh (%d), and nothing has thought "
+                       "across %d wakes in %dh: the prompt has outgrown the "
+                       "rung. This is not weather -- waiting does not shrink "
+                       "a page" % (now_ctx, OUTGREW_LOOKBACK_H, biggest, wakes,
+                                   OUTGREW_QUIET_H), ev,
+                       scar="a 71,178-character page wedged the engine for "
+                            "eight hours with no alarm, 2026-09-24")
+    if drought:
+        return Finding("context_outgrew_rung", INFO,
+                       "no think across %d wakes in %dh, at a page size the "
+                       "rungs have answered (%d of %d): weather, longer than "
+                       "any measured before" % (wakes, OUTGREW_QUIET_H, now_ctx,
+                                                biggest), ev, human=False)
+    return Finding("context_outgrew_rung", OK,
+                   "page %d; largest answered in %dh %d"
+                   % (now_ctx, OUTGREW_LOOKBACK_H, biggest), ev)
+
+
 ALL = (engine_silent, gave_up, unusable_verdicts, replies_unusable,
        commands_lost,
        repeated_failure, want_retired_unacted, want_never_served,
@@ -1384,7 +1471,8 @@ ALL = (engine_silent, gave_up, unusable_verdicts, replies_unusable,
        deploy_regression_day,
        deploy_regression, want_repeated, probe_stuck, complaint_fidelity,
        body_unrecoverable, window_reread, creature_said,
-       shared_tier_contested, cousin_starved, testimony_repeated)
+       shared_tier_contested, cousin_starved, testimony_repeated,
+       context_outgrew_rung)
 
 
 def run_all(ctx, detectors=ALL):

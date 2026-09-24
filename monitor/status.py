@@ -105,6 +105,17 @@ RUNBOOK = {
                           "it exercised, and the rule that lets it accept a usage "
                           "refusal was written for the harness's empty hands, not for "
                           "its own (PLAN item 16). Never edit a verdict (§2.2).",
+    "context_outgrew_rung": "Do NOT restart and do NOT wait: a page that "
+                            "no rung will take stays that size until "
+                            "something shrinks it, and waiting is how eight "
+                            "hours went on 2026-09-24. Compare "
+                            "`context_chars` on the last wake with "
+                            "`largest_answered`; the budget is "
+                            "`Engine.CONTEXT_BUDGET_CHARS` and the "
+                            "transcript is what yields to it. If "
+                            "`over_budget` is set, the library or the "
+                            "identity has outgrown the page on its own "
+                            "(§5, 2026-09-24).",
     "window_reread": "This is the SYMPTOM that would reopen PLAN item 13 (the "
                      "output window), not proof of it. Read the raw "
                      "thinks: is it re-reading because it cannot see the whole "

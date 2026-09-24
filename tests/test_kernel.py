@@ -3979,6 +3979,225 @@ def test_the_unit_bounds_its_own_restarting():
           refusal_codes == {4}, refusal_codes or "no StopRequested handler found")
 
 
+def _big_transcript(j, reads=4, size=12058):
+    """The shape that wedged production: consecutive `cat`s of a 12 KB tool."""
+    src = "\n".join("def step_%04d(): return %d" % (n, n)
+                    for n in range(size // 29))[:size]
+    j.append("exec_start", cmd="echo the-work-it-had-already-done")
+    j.append("exec_end", exit_code=0, stdout="a result worth keeping", stderr="")
+    for _ in range(reads):
+        j.append("exec_start", cmd="cat tools/own/plan")
+        j.append("exec_end", exit_code=0, stderr="",
+                 stdout=capped(src, EXEC_STDOUT_CHARS))
+
+
+def test_the_whole_page_fits_the_rung_and_the_transcript_is_what_yields():
+    """**2026-09-24: the engine was wedged for eight hours and no alarm said so.**
+
+    Every creature think in the day before came from one rung and succeeded
+    at a served context between 37,737 and 60,866 characters. At 09:00 the
+    context reached 71,178 and nothing answered again: 0 thinks in eight
+    hours, 201 deferred. A transcript at its new 40,000 ceiling had pushed the
+    page past what the rung takes per request -- and a creature that cannot
+    think cannot run the commands that would shrink its transcript, so the
+    same oversized page was served on every wake. A deadlock whose every
+    decline was labelled like quota weather.
+
+    The bound belongs on the WHOLE page, and the transcript is the part that
+    yields, because everything else on it -- who the creature is, what it
+    owns, what is wanted -- has to be served whole or not at all.
+    """
+    e, j, b, d = build_engine(["thinking"], [])
+    own = os.path.join(b.mind, "tools", "own")
+    for n in range(30):
+        _write_tool(own, "tool-%02d" % n, does="does thing number %d" % n,
+                    call="tool-%02d <arg>" % n)
+    # A page whose fixed part is the size production's was: ~31,000.
+    e.creature_brief = "WHO YOU ARE. " + ("identity text " * 2000)
+    _big_transcript(j)
+
+    page = e.serve_context()
+    check("budget: the whole served page fits the budget, with the transcript "
+          "at the size that wedged production",
+          len(page) <= e.CONTEXT_BUDGET_CHARS,
+          "%d > %d" % (len(page), e.CONTEXT_BUDGET_CHARS))
+    check("budget: the transcript YIELDED -- it was given less than its own "
+          "ceiling, because the rest of the page was served first",
+          e.served.get("transcript_budget", e.HISTORY_TOTAL_CHARS)
+          < e.HISTORY_TOTAL_CHARS,
+          (e.served.get("transcript_budget"), e.HISTORY_TOTAL_CHARS))
+    check("budget: who it is was served WHOLE, not trimmed to fit",
+          e.creature_brief in page)
+    check("budget: its library was served",
+          "tool-00" in page and "tool-29" in page)
+    check("budget: and there is still a transcript, with the newest command",
+          "$ cat tools/own/plan" in page)
+    check("budget: the wake says what it was given, so a reader never "
+          "recomputes it",
+          e.served.get("context_budget") == e.CONTEXT_BUDGET_CHARS
+          and e.served.get("over_budget") is False, e.served)
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_page_that_cannot_fit_says_so_instead_of_deleting_the_transcript():
+    """When the fixed part of the page alone is over budget, no transcript size
+    can fix it. The bound cannot hold, so it must SAY so -- a transcript cut
+    to nothing would make the rule about not repeating the last command
+    unfollowable, and a page that silently runs over is the wedge again."""
+    e, j, b, d = build_engine(["thinking"], [])
+    e.creature_brief = "WHO YOU ARE. " + ("identity text " * 5000)   # ~70k
+    _big_transcript(j)
+    page = e.serve_context()
+    check("budget: over budget is RECORDED on the wake",
+          e.served.get("over_budget") is True, e.served)
+    check("budget: the transcript is held at its floor, never removed",
+          e.served.get("transcript_budget") == e.HISTORY_FLOOR_CHARS
+          and "$ cat tools/own/plan" in page,
+          e.served.get("transcript_budget"))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_budget_sits_inside_what_the_serving_rung_has_accepted():
+    """A DATED fixture, and it says so. On 2026-09-24 the rung that serves
+    every creature think accepted pages up to 60,866 characters and refused
+    71,178 for eight hours. The budget has to sit inside the accepted band,
+    with margin, or it is a number chosen for its shape. The instrument that
+    keeps this honest after today is `context_outgrew_rung`, which reads what
+    the rungs accept instead of this line."""
+    check("budget: inside the largest page the serving rung was seen to accept "
+          "(60,866 on 2026-09-24)",
+          Engine.CONTEXT_BUDGET_CHARS <= 60866, Engine.CONTEXT_BUDGET_CHARS)
+    check("budget: and the floor leaves the budget room to mean something",
+          Engine.HISTORY_FLOOR_CHARS * 4 <= Engine.CONTEXT_BUDGET_CHARS,
+          (Engine.HISTORY_FLOOR_CHARS, Engine.CONTEXT_BUDGET_CHARS))
+
+
+def test_the_transcript_bound_is_exact_header_and_note_included():
+    """The trim used to add its header and its dropped-lines note ON TOP of the
+    cap, so the block ran ~600 characters over. Harmless against a cap on the
+    block; wrong against a budget on the page, which is what now hands the
+    transcript its limit. And the note's number must be what was dropped."""
+    e, j, b, d = build_engine(["thinking"], [])
+    _big_transcript(j)
+    whole = e.recent_block(limit=10 ** 9)
+    for lim in (6000, 10000, 20000):
+        blk = e.recent_block(limit=lim)
+        check("transcript: limit %d is honoured exactly" % lim,
+              len(blk) <= lim, "%d > %d" % (len(blk), lim))
+        # THE NEWEST COMMAND SURVIVES EVERY CUT. Found by the budget test's
+        # floor case: at a small limit the tail kept the end of a file's
+        # output and lost the `$ cat` above it.
+        check("transcript: at %d the newest command line survives, so no "
+              "output is ever shown without the command that made it" % lim,
+              "$ cat tools/own/plan" in blk, blk[-400:])
+        check("transcript: at %d the dropped-lines note is there" % lim,
+              "Older lines dropped:" in blk, blk[:300])
+        # A cut OUTPUT discloses its own loss. With the window shrinking to
+        # fit the block, the newest `cat` is shown through a narrower window
+        # than 12,058, and that must be said where it happened.
+        if e.window_served < 12058:
+            check("transcript: at %d the output cut to fit carries its own "
+                  "marker" % lim, "withheld by the log" in blk, blk[-300:])
+    check("transcript: the header warning that output is not a command "
+          "survives the tightest cut",
+          "## What you just did" in e.recent_block(limit=6000))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+    # THE NOTE'S NUMBER, measured where the note is the ONLY loss: many small
+    # outputs, none of which any window cuts, so every missing character is
+    # one the oldest-first trim removed. Measured against the same transcript
+    # with room to spare. Two losses disclosed in two places are checked in
+    # two places -- the first version compared the note against both at once
+    # and went red on an honest block.
+    e, j, b, d = build_engine(["thinking"], [])
+    for n in range(60):
+        j.append("exec_start", cmd="echo step-%02d" % n)
+        j.append("exec_end", exit_code=0, stderr="",
+                 stdout=("line %02d " % n) * 60)
+    whole = e.recent_block(cycles=20, limit=10 ** 9)
+    check("transcript: the reference render is itself uncut, or it proves "
+          "nothing", "Older lines dropped:" not in whole, len(whole))
+    for lim in (6000, 12000):
+        blk = e.recent_block(cycles=20, limit=lim)
+        m = re.search(r"Older lines dropped: (\d+) characters", blk)
+        check("transcript: at %d, with nothing but the trim to lose, the note "
+              "counts at least every character it took" % lim,
+              bool(m) and int(m.group(1)) >= len(whole) - len(blk),
+              (m and int(m.group(1)), len(whole) - len(blk)))
+        # EXACT, not within a tolerance. The first version allowed +600 and
+        # passed against the code that overstated by the header's length --
+        # a tolerance wider than the error it exists to catch. Found by
+        # mutating the fix and watching this stay green.
+        end = "This is the most recent part.)\n"
+        kept = blk[blk.index(end) + len(end):] if end in blk else ""
+        head = whole.index("| $ ")
+        truly = len(whole) - len(kept) - head
+        check("transcript: at %d the note's number is EXACTLY what the trim "
+              "took, the re-served header not counted -- an overstated loss "
+              "sent a creature to rewrite two working tools (2026-09-12)" % lim,
+              bool(m) and int(m.group(1)) == truly,
+              (m and int(m.group(1)), truly))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_decline_carries_what_the_provider_said():
+    """`classify_error` promised an unknown failure "announces itself once,
+    WITH ITS TEXT". For an HTTP error the text was never read. On 2026-09-24
+    that made an eight-hour wedge indistinguishable from weather in the
+    journal: "you have used this minute's requests" and "this one request is
+    bigger than your per-minute allowance" are both a 429, one clears itself
+    and one never does, and only the body says which."""
+    import urllib.error
+
+    def refusing(body):
+        def ask(prompt):
+            raise urllib.error.HTTPError(
+                "https://example.invalid", 413, "Request Entity Too Large",
+                {}, io.BytesIO(body.encode("utf-8")))
+        return ask
+
+    def answering(prompt):
+        return "fine", {"model": "ok", "done_reason": "stop"}
+
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    key = "gsk_" + "a1B2c3D4" * 5
+    ask = backends.ladder(
+        [("big/rung", refusing(
+            "Request too large on tokens per minute (TPM): Limit 8000, "
+            "Requested 15234. key " + key)),
+         ("ok/rung", answering)],
+        journal=j, retries=0, sleep=lambda s: None)
+    ask("p")
+    dec = [r for r in j.read(kinds=["rung_declined"]) if r.get("rung") == "big/rung"]
+    check("decline: the provider's own words are on the record",
+          bool(dec) and "Request too large" in (dec[0].get("detail") or ""),
+          dec[:1])
+    check("decline: including the numbers that tell a wall from weather",
+          bool(dec) and "15234" in (dec[0].get("detail") or ""), dec[:1])
+    check("decline: a credential the provider echoed is NOT on the record",
+          bool(dec) and key not in (dec[0].get("detail") or "")
+          and "<redacted>" in (dec[0].get("detail") or ""), dec[:1])
+
+    # the same refusal with different numbers is one shape, recorded once
+    ask2 = backends.ladder(
+        [("big/rung", refusing("Request too large on tokens per minute (TPM): "
+                               "Limit 8000, Requested %d." % 15000)),
+         ("ok/rung", answering)],
+        journal=j, retries=0, sleep=lambda s: None)
+    for _ in range(3):
+        ask2("p")
+    later = [r for r in j.read(kinds=["rung_declined"])
+             if r.get("rung") == "big/rung"][1:]
+    check("decline: a repeated shape is counted every time and described once",
+          len(later) == 3 and sum(1 for r in later if r.get("detail")) == 1,
+          [bool(r.get("detail")) for r in later])
+    check("decline: a reply that is not an HTTP error still classifies -- "
+          "describing a failure never becomes a new one",
+          backends.error_body(ValueError("x")) == "")
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_one_output_cannot_evict_the_whole_transcript():
     """**The bound that keeps a wake small must not destroy what the wake is
     for.** 2026-09-23, from a standing `window_reread` alarm.
@@ -5438,6 +5657,35 @@ def test_the_journal_names_the_engine_that_wrote_it():
     shutil.rmtree(d, ignore_errors=True)
 
 
+class _no_local_model(object):
+    """Point the engine's local standin at a port that refuses at once.
+
+    Two tests start `run.main` with no ladder configured so that the engine
+    falls back to `ollama/gemma4:12b`, and their comments say why: *so an
+    unreachable model is a warning rather than a refusal*. They presuppose
+    there is no local model. On the laptop that is true and they take a
+    second. On the Windows box ollama answers -- so a test that needs only to
+    see which body was journalled was making REAL 12B calls, and the gate's
+    runtime swung from 58 s to 623 s with the GPU's mood (2026-09-24: 257 s
+    and 101 s for these two alone).
+
+    `host` is a default argument bound when `ollama` is defined, so changing
+    `backends.OLLAMA` afterwards does nothing; the function is wrapped for the
+    duration and put back, so no test after it is touched.
+    """
+    def __enter__(self):
+        self.real = backends.ollama
+
+        def refusing(model, host=None, **kw):
+            return self.real(model, host="http://127.0.0.1:9", **kw)
+        backends.ollama = refusing
+        return self
+
+    def __exit__(self, *exc):
+        backends.ollama = self.real
+        return False
+
+
 def test_the_journal_says_which_body_the_creature_ran_in():
     """A journal that cannot say whether the creature was CONTAINED.
 
@@ -5465,9 +5713,10 @@ def test_the_journal_says_which_body_the_creature_ran_in():
     # `--forever` so an unreachable model is a warning rather than a refusal
     # (the run must get PAST preflight to record anything), `--cycles 1` so it
     # is still bounded, `--pause 0` so it does not sleep on the way out.
-    runmod.main(["--forever", "--cycles", "1", "--pause", "0",
-                 "--root", root, "--body", "local",
-                 "--rungs", os.path.join(d, "no-such-rungs.json")])
+    with _no_local_model():
+        runmod.main(["--forever", "--cycles", "1", "--pause", "0",
+                     "--root", root, "--body", "local",
+                     "--rungs", os.path.join(d, "no-such-rungs.json")])
     j = Journal(os.path.join(root, "journal.jsonl"))
     starts = j.read(kinds=["engine_start"])
     check("body: the run recorded a start at all", len(starts) == 1,
@@ -5634,6 +5883,82 @@ def _first_raise(timeline, prefix):
         if c["name"].startswith(prefix) and c["to"] == "ALARM":
             return c
     return None
+
+
+def test_the_monitor_sees_a_page_that_has_outgrown_the_rung():
+    """**The alarm an eight-hour wedge did not raise.** 2026-09-24, replayed
+    over the real slice (`0924-context-outgrew-rung`, 07:55-12:15).
+
+    Five thinks were answered between 08:02 and 09:00 at pages of 55,044 to
+    60,866 characters. From 09:00 every wake served 71,178 and nothing
+    answered again, while the page said "Alarms (0)" -- every decline a 429
+    or a 413, weather by label, and the wakes still coming.
+
+    The bounds on WHEN come from measurement, not taste. The longest dry
+    spell in run 2 that ended in a think, engine waking and no restart
+    inside, was 1.2 hours across 173 gaps; so before two hours of silence a
+    wedge cannot be told from the weather, and after it, it can.
+    """
+    from monitor import status as monstatus
+    rows = _fixture("0924-context-outgrew-rung")
+    thinks = [r for r in rows if r["kind"] == "think"]
+    check("outgrew: the slice holds the answered thinks the rung's size is "
+          "learned from", len(thinks) >= 3, len(thinks))
+    last_think = float(thinks[-1]["ts"])
+    tl = monstatus.replay(rows, step=1)
+    hit = _first_raise(tl, "context_outgrew_rung")
+    check("outgrew: it fires on the real wedge", hit is not None,
+          str([c["name"] for c in tl])[:300])
+    check("outgrew: not before two hours of silence -- until then it is "
+          "indistinguishable from the longest weather ever measured (1.2 h)",
+          hit is not None and hit["ts"] >= last_think + 2 * 3600 - 60,
+          hit and "%.2fh after the last think" % ((hit["ts"] - last_think) / 3600))
+    check("outgrew: and within half an hour after that -- not eight hours "
+          "later, which is when a human noticed",
+          hit is not None and hit["ts"] <= last_think + 2.5 * 3600,
+          hit and "%.2fh after the last think" % ((hit["ts"] - last_think) / 3600))
+    ev = (hit or {}).get("evidence") or {}
+    check("outgrew: it names the page served and the largest ever answered, "
+          "so the runbook has its numbers",
+          ev.get("context_chars") == 71178 and ev.get("largest_answered") == 60866,
+          ev)
+    check("outgrew: and a human has to look -- this is not weather",
+          hit is not None and hit.get("human") is not False, hit)
+
+    # THE CONTROLS. A healthy hour stays quiet, and so does a page that is
+    # merely the largest yet: every page that grows is briefly bigger than
+    # any answered, and a dry spell at that moment is weather.
+    tl = monstatus.replay(_fixture("0914-healthy-hour"), step=1)
+    check("outgrew: quiet on the healthy hour",
+          _first_raise(tl, "context_outgrew_rung") is None)
+    early = [r for r in rows if float(r["ts"]) <= last_think + 1.5 * 3600]
+    tl = monstatus.replay(early, step=1)
+    check("outgrew: quiet ninety minutes into the same wedge, when a larger "
+          "page and a dry spell are all that is known",
+          _first_raise(tl, "context_outgrew_rung") is None)
+
+    # AND THE SIZE CONDITION IS WHAT DOES THE WORK. Without it this would be a
+    # plain "no think for two hours" alarm, and none of the checks above
+    # could tell -- every one of them passes with the condition deleted.
+    # SYNTHETIC, and labelled so: a dry spell longer than any in run 2, at a
+    # page the rung HAS answered. That is weather, and must say so.
+    from monitor import detectors
+    t0 = 1790200000.0
+    syn = [{"ts": t0, "kind": "wake", "context_chars": 42000},
+           {"ts": t0 + 30, "kind": "think", "rung": "gemini/gemma-4-31b-it"}]
+    for i in range(1, 40):                       # ~3.25 h of dry wakes
+        syn.append({"ts": t0 + i * 300, "kind": "wake", "context_chars": 41000})
+    f = detectors.context_outgrew_rung(
+        detectors.Context(syn, now=t0 + 40 * 300))
+    check("outgrew: a long dry spell at a page the rung HAS answered is "
+          "weather -- INFO, and nobody is paged",
+          f.state == detectors.INFO and f.human is False, (f.state, f.msg))
+    syn2 = [dict(r, context_chars=71178) if r["kind"] == "wake" and r["ts"] > t0
+            else r for r in syn]
+    f2 = detectors.context_outgrew_rung(
+        detectors.Context(syn2, now=t0 + 40 * 300))
+    check("outgrew: the same dry spell at a page LARGER than any answered is "
+          "the wedge -- ALARM", f2.state == detectors.ALARM, (f2.state, f2.msg))
 
 
 def test_monitor_detectors_fire_where_the_scars_happened():
@@ -7004,9 +7329,10 @@ def test_a_cousin_shell_is_refused_in_a_body_that_confines_nothing():
               "assertion", True, "body does not respond")
 
     # SO THE DEPLOYMENT REFUSES IT -- asked of the body, not of the flag.
-    rc = runmod.main(["--cycles", "1", "--root", os.path.join(d, "live"),
-                      "--cousin-shell", "--body", "local",
-                      "--rungs", os.path.join(d, "no-such-rungs.json")])
+    with _no_local_model():
+        rc = runmod.main(["--cycles", "1", "--root", os.path.join(d, "live"),
+                          "--cousin-shell", "--body", "local",
+                          "--rungs", os.path.join(d, "no-such-rungs.json")])
     check("boundary: a cousin shell in a body that confines nothing is "
           "REFUSED, not documented as risky", rc == 3, rc)
     creature.destroy(); cousin.destroy()
@@ -9207,7 +9533,8 @@ def test_the_monitor_unit_is_read_only_over_the_evidence():
 
 def main():
     t0 = time.time()
-    for fn in (test_monitor_detectors_fire_where_the_scars_happened,
+    for fn in (test_the_monitor_sees_a_page_that_has_outgrown_the_rung,
+               test_monitor_detectors_fire_where_the_scars_happened,
                test_monitor_writes_only_its_own_directory,
                test_monitor_alarms_are_edge_triggered,
                test_a_run_can_be_seeded_with_a_tagged_inheritance,
@@ -9276,6 +9603,11 @@ def main():
                test_the_engine_unit_runs_the_creature_in_a_container,
                test_the_unit_bounds_its_own_restarting,
                test_a_cap_downstream_never_exceeds_the_cap_upstream,
+               test_the_whole_page_fits_the_rung_and_the_transcript_is_what_yields,
+               test_a_page_that_cannot_fit_says_so_instead_of_deleting_the_transcript,
+               test_the_budget_sits_inside_what_the_serving_rung_has_accepted,
+               test_the_transcript_bound_is_exact_header_and_note_included,
+               test_a_decline_carries_what_the_provider_said,
                test_one_output_cannot_evict_the_whole_transcript,
                test_a_reply_with_no_verdict_falls_through_to_the_next_rung,
                test_an_unreadable_verdict_says_which_of_three_things_went_wrong,

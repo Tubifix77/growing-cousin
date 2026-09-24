@@ -208,6 +208,48 @@ def openai_chat(model, base_url, key_env=None, key_file=None, num_predict=900,
 RETRY, NEXT, WALL = "retry", "next", "wall"
 
 
+# WHAT THE PROVIDER SAID, bounded. `classify_error`'s own docstring promises
+# that an unknown failure "announces itself once, WITH ITS TEXT" -- and for an
+# HTTP error the text was never read: `rung_declined` carried the label
+# "quota or rate limit (HTTP 429)" and the body was discarded. So on
+# 2026-09-24 an eight-hour wedge could not be told from weather from the
+# journal at all: "you have used this minute's requests" and "this one request
+# is larger than your per-minute allowance" are both a 429, one clears itself
+# and one never does, and only the body says which.
+ERROR_BODY_CHARS = 300
+# Anything shaped like a credential is removed before it can reach the
+# journal. Providers echo keys in auth errors, masked or not, and the evidence
+# pack refuses to exist if a key-shaped string is inside it -- so an echoed
+# key would silently disable an instrument. Long mixed runs only: a `sk-`
+# prefix alone matches inside `subtask-` (CLAUDE.md §5, 2026-09-16).
+_KEYISH = re.compile(r"[A-Za-z0-9_\-]{24,}")
+
+
+def _redact(text):
+    def one(m):
+        s = m.group(0)
+        if any(c.isdigit() for c in s) and any(c.isalpha() for c in s):
+            return "<redacted>"
+        return s
+    return _KEYISH.sub(one, text)
+
+
+def error_body(e, limit=ERROR_BODY_CHARS):
+    """The first `limit` characters of what the provider sent back, one line,
+    credentials redacted. "" when there is nothing to read -- never raises,
+    because a failure to describe a failure must not become a new one."""
+    read = getattr(e, "read", None)
+    if read is None:
+        return ""
+    try:
+        raw = read(limit * 4)
+    except Exception:
+        return ""
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8", "replace")
+    return _redact(" ".join(str(raw or "").split()))[:limit]
+
+
 def classify_error(e):
     """(disposition, reason). **The default is NEXT and it never raises.**
 
@@ -291,13 +333,18 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
     obvious failure, and you cannot notice that without the per-call record.
     """
     walled, announced = set(), set()
+    # One body per SHAPE of message, not per call: digits are what vary
+    # between two identical refusals ("requested 15234"), so a shape with
+    # them folded is recorded the first time it appears. A new kind of
+    # refusal is therefore always recorded, and a repeated one costs nothing.
+    shapes = set()
     # Remembered exhaustion. Without it every call re-probes every rung, so a
     # rung that already said 429 is asked again -- 15 of 29 failures in one
     # measured half hour, each a real request against an account shared with
     # the spine. See kernel/quota.py.
     qstate = {} if quota_state is None else quota_state
 
-    def announce(name, reason, verdict=NEXT, unusable=False):
+    def announce(name, reason, verdict=NEXT, unusable=False, detail=""):
         """Every failure is counted; the full text is written once.
 
         Announcing once was right for NOISE and wrong for MEASUREMENT: it made
@@ -338,8 +385,15 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
             # unwatched one, so the distinction is recorded here and
             # `replies_unusable` reads it. Found by a verifier before the
             # change was ever deployed.
+            extra = {}
+            if detail:
+                shape = (name, re.sub(r"\d+", "#", detail)[:120])
+                if shape not in shapes:
+                    shapes.add(shape)
+                    extra["detail"] = detail
             journal.append(kind, rung=name, reason=reason, first=first,
-                           expected=(verdict != WALL), unusable=bool(unusable))
+                           expected=(verdict != WALL), unusable=bool(unusable),
+                           **extra)
 
     def ask(prompt):
         tried = []
@@ -414,7 +468,7 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
                     return text, meta
                 except Exception as e:
                     verdict, reason = classify_error(e)
-                    announce(name, reason, verdict)
+                    announce(name, reason, verdict, detail=error_body(e))
                     # ONLY quota marks a rung spent. A 500 or a timeout is
                     # transient and says nothing about budget -- gemini
                     # produced ten non-quota failures in the same window and
