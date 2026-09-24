@@ -867,6 +867,25 @@ guess with authority it has not earned.
   if wanted, is a KEYLESS relay hand: the engine holds the key and answers
   for the creature. That choice is Tue's (PLAN next steps, step 8).
 
+  **DECIDED BY TUE 2026-09-24: ALIGN THEM.** *"if we are ever going to
+  compare the two we need them to be aligned, and the only way for them to
+  align on a subsystem for llm is to match this here basically as in the
+  growing spine, even if it means it is part framework."* Measured the same
+  evening: the spine's creature calls `ask` from **124 of its 929 tools** and
+  used it **234 times** that day (cap 500); 4 more tools use raw keys directly,
+  because `sandbox.container_api_env` puts every enabled rung's key in its
+  environment. The design is PLAN next-steps 8a-8c: an `ask` identical from
+  inside the box, with the key held by a relay outside it. **Not routed
+  through the cousin** -- Tue floated that, and it would be the opposite of
+  alignment: slower, filtered through a judge, and the cousin is forbidden
+  to do the creature's work.
+
+  **And a waste found while measuring it:** our engine sends Groq ~350
+  requests a day and has had **0 answered since 09-21** -- every creature
+  think that falls through to it is a `413`, because the page can never fit
+  Groq's 8,000 TPM. On an account shared with the spine. PLAN 8a stops it
+  before 8b spends any of that account.
+
   **It also has to be controlled for in run 3.** Item 11 seeds both from one
   library; if one creature can call a model and the other cannot, the
   divergence being measured is partly that, and the run measures a mixture
