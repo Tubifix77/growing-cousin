@@ -1960,12 +1960,32 @@ true?*
   > a question about the experiment, not about the engine, which makes it
   > his.
 
-- **23.4 `[ ]` `MANAGER-PROMPT.md`, the same pass.** Begun, not finished: the
-  brief addresses the cousin as someone who *"genuinely could not do the
-  thing you came to do"*, and it has no thing it came to do — which is item
-  16's root in the brief's own words. And it never mentions the cousin's own
-  memory store, while the invocation template does, at the one moment it has
-  nothing to remember. *Trigger: none needed, this is work.*
+- **23.4 `[~]` `MANAGER-PROMPT.md`, the same pass -- READ IN FULL 2026-09-24,
+  NOTHING CHANGED.** Read line by line with the one question; changes to the
+  brief are scored before they are made (item 8), and the scoring needs the
+  Windows bench's GPU. What it presupposes, and what is true:
+
+  | the brief says | true of the cousin we run? | consequence |
+  |---|---|---|
+  | *"Every invocation reduces to: can I use what it JUST built?"* | **No** on 220 of 246 visits -- stalls and heartbeats built nothing just now | the same fault 23.5 fixes in the kernel's case text; **once `TRUTHFUL_VISITS` is on, the brief and the case contradict each other on every stall visit.** Arm C must be read for that, not only for detection |
+  | the five tests apply *"only as tests of what the creature is claiming"* | nine visits in ten carry no claim | four of the five tests have nothing to test on a stall; only "does it run for me" is left. Probably right, never said |
+  | `ACCEPTED` -- *"the claim stands, the done-mark lands"* | no claim and no done-mark on most visits | harmless mechanically -- only a RETURN gates -- and wrong as a description |
+  | *"the creature returns with 'I fixed the thing you complained about'"* | **the cousin never sees a word the creature writes**, only the framework's one-line claim, and until 23.5's notes it could not remember its own complaint | the whole repair section described a judgement it had no means to make; verdict-time notes are the first thing that gives it one |
+  | *"you genuinely could not do the thing you came to do"* | it has no thing it came to do | item 16's root, already recorded |
+  | *"a tool that refuses incomplete input ... you called it wrong"* | written for the bare probe; the cousin now CHOOSES its arguments | excuses the cousin's own thin invocation (16.5) |
+  | *"It has no outbound channel"* | `say` exists and the hands block will announce it | true of the channel TO THE COUSIN, which is what the sentence is for; false as written |
+
+  **One hypothesis REFUTED by the journal, kept because the method is the
+  point.** The brief says a missing key *not caused by this work* is an
+  ACCEPT with a `noticed` -- which, beside 23.3's keyless
+  `subagent-orchestrator`, looked like the rule that hid a tool that cannot
+  work. It did not: the cousin judged that tool **once** in its 80 runs and
+  RETURNED it, with *"Error solving subtask: 'choices'"* in the testimony.
+  What hid it was that the cousin almost never visited it.
+
+  *Trigger: arm C (item 23.5) on the Windows bench, whose reading decides
+  whether the brief's "just built" sentence must change before the switch is
+  flipped. Brief edits are then scored as their own arm.*
 - **23.5 `[ ]` The kernel's own served text** — the history header, the
   library legend, the want block, the invocation template. Not frozen, so
   anything found here is fixable the same day.
