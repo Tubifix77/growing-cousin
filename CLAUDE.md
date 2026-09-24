@@ -36,112 +36,80 @@ keeps it that way.
 against the directory rather than typed: see
 `test_the_module_list_matches_the_kernel`.
 
-### Handover — updated 2026-09-21, read this before touching anything
+### Handover — updated 2026-09-24 evening, read this before touching anything
 
 **The board is `PLAN.md`.** Every open item this project knows about, in the
 order they are being done, one at a time, each with acceptance criteria that
 can be checked rather than asserted, and each verified by a reader who did not
-build it. Do not start work that is not on it; do not leave work off it.
+build it. Do not start work that is not on it; do not leave work off it. The
+table at its top is the list -- **read it there; no count is written here**,
+because every count written here has gone stale within a day.
 
-**THE BOARD IS CLEAR, 2026-09-21.** Tue: *"then lets get the board cleared."*
-`PLAN.md` opens with a table of every heading that is not `[x]`, and the point of that table is the distinction it draws: **nothing is left that work can finish tonight.** *(There was a count in this sentence for a few hours. It was wrong -- twenty of twenty-one against a true fifteen of twenty-one -- and a verifier found it. This file's own §0 refuses to write the gate count down for that reason; the board gets the same treatment.)* Each remaining line names a trigger and a
-date — which is §4's test for a hold that is real rather than inaction in the
-costume of caution.
+**What is running.** Read the first two lines of `live/monitor/status.md` for
+the engine commit and whether a restart is owed; do not derive it from `git
+log`. As of 2026-09-24 17:46 it was `3a6a642`, and what that engine carries
+is the thing to understand before changing any bound:
 
-- **11** run 3, and it is a THIRD experiment rather than this one continued:
-  Tue's design, recorded in his words, gated on this table reaching zero.
-- **14.5** telling the creature `say` exists. The freeze stopped being the
-  reason on 2026-09-21; what holds it now is that a new surface would land in
-  the middle of 20.2's first week. **Trigger: 2026-09-25.**
-- **16 / 17.3** the cousin noticing a tool serves nothing. Half delivered —
-  20.3's instruments are the architecture's own answer and the cousin has used
-  one unprompted. The RULE waits on 20.4 and on item 8's scoring discipline.
-- **20.4** the cousin USES its continuity — measured 2026-09-21, refuting
-  what this file said for two days. Re-read at 17:52: **133 harvests, 59
-  carrying a note, none empty since 09-19 20:35**, and the last 40 all
-  carried exactly one key. The note is still `baseline-parent-id: 100`,
-  now 45 hours old. **Continuity is proven and accumulation is not**: two
-  days and a hundred visits have not produced a second key.
-- **21.2** the rewrite wall, moved from 9 KB to ~25 KB and not removed.
+| bound | value | why |
+|---|---|---|
+| `CONTEXT_BUDGET_CHARS` | **56,000, the WHOLE page** | the rung that serves nine creature thinks in ten accepted pages up to 60,866 and refused 71,178 for eight hours (§5, 2026-09-24) |
+| `HISTORY_TOTAL_CHARS` | 40,000 **ceiling** | the transcript gets what the page has left, up to this; on 09-24 that was ~25,300 |
+| `HISTORY_OUTPUT_CHARS` | 16,000, **shrinking with the block** | one output may never be larger than the block that holds it |
+| `EXEC_STDOUT_CHARS` | 16,000 | the journal keeps at least what any reader may show |
+| `HISTORY_FLOOR_CHARS` | 4,000 | below this the wake says `over_budget` and `context_outgrew_rung` alarms |
 
-**THE HEADLINE METRIC ANSWERED FOR THE FIRST TIME, 2026-09-21 01:42.**
-*Tools that start, are invoked by someone other than their author, and are
-still invoked a week later* (`ARCHITECTURE.md` §12) — the number this project
-says it measures before any other, and which had never once been computable
-here. **One tool has survived it: `plan`.** At 01:42 the other two
-columns read 4 have not and 58 cannot be judged yet; by 02:37 the same
-night they read 7 and 56, because windows close by the hour. **Read them
-off `live/monitor/status.md` and never from here** -- a verifier caught
-this quoting a 46-minute-old pair. The survivor is the stable part:
-named by 12 other tools, reached 107 times by its user across 7.4 days.
+**THE CREATURE IS NEARLY A ONE-RUNG CREATURE, and that is the single most
+important fact for anyone touching a cap.** `gemini/gemma-4-31b-it` serves
+about nine creature thinks in ten -- 131 of 146 on 09-22, 129 of 133 on
+09-23, all 5 on 09-24; `cloudflare` and `openrouter` carry the rest.
+**`groq/gpt-oss-120b` has not served the creature since 09-20, and its
+`HTTP 413` (request too large) began on 09-17 -- the day the read caps were
+first raised.** Every read-side raise since has cost a rung, and nothing
+recorded that it had: 5 413s that day, 104 on each of the next two, 193 on
+09-23. So "raise a cap and let the ladder absorb it" is not available: the
+ladder narrows with every raise, and the last rung's limit is the budget. Since
+3a6a642 `rung_declined` carries the provider's own words (`detail`), so the
+next time this matters the journal will say which limit, instead of a label.
 
-**One is not a score.** The run is barely older than the window, so most
-tools have not had one. Read the three columns on `live/monitor/status.md`
-on 2026-09-25 and do not quote a snapshot as trajectory. *(A number stood
-here — "so 58 tools have not had a window" — four lines under the
-sentence retracting that very figure. A verifier found it within the
-hour; by then the page read 11 and 53.)*
+**WHAT TO READ FIRST:**
 
-**AND READ THE PROBE RATE BESIDE IT, or the metric reads as a verdict on the
-library when it is partly a verdict on us.** Measured 2026-09-21 17:52:
+1. `cat live/monitor/status.md` -- alarms first, then what it cannot tell.
+2. **`context_outgrew_rung`.** If it alarms: **do not restart and do not
+   wait.** A page no rung will take stays that size until something shrinks
+   it, and waiting is how eight hours went on 09-24. Its runbook line says
+   where to look.
+3. **`deploy_regression_day` for `3a6a642`, due 2026-09-25 ~17:47.** It is the
+   first valid day-reading of ANY of this week's read-side changes: the 09-23
+   night was lost to an 11.5-hour outage (a STOP file and a unit that read a
+   refusal as a crash, §5) and 09-24 to the wedge. So the question the caps
+   were raised for -- *does the creature stop re-reading `plan` and start
+   writing it?* -- **has no answer yet.** The baseline is 74 reads / 0 writes /
+   2 tools in 17.3 h (09-23, 8k/8k/12k).
+4. `ls live/STOP` if the engine is down. It survives a reboot on purpose;
+   since 2026-09-24 a refusal no longer burns the restart budget
+   (`SuccessExitStatus=4`), so the observer's Start button works.
 
-| | probes that reached a tool |
-|---|---|
-| whole run | 53.6 a day |
-| last 48 hours | **25.5 a day** |
-| since the 01:41 start | **13.3 a day** |
+**THE HEADLINE METRIC** (*tools that start, are invoked by someone other than
+their author, and are still invoked a week later*, `ARCHITECTURE.md` §12)
+answers, and its columns move by the hour: **read them off `status.md`, never
+from here.** It first answered 2026-09-21 01:42 with one survivor, `plan`.
+**Read the probe rate beside it**, or it reads as a verdict on the library
+when it is partly a verdict on us: on 09-21 the cousin reached 25.5 tools a
+day over 48 hours against a library of 69, so a tool could expect ~2.6 visits
+a week, and a whole-run average (53.6 a day) hid that entirely because the
+bare-probe era dominates it. The week the metric was meant to be read at the
+end of -- to 2026-09-25 -- has had two outages in it (above), so read it with
+that caveat or not at all.
 
-A tool "survives" only if its user reaches for it AGAIN inside seven days.
-The library is 69 tools, so at the last-48-hour rate the expected revisits
-per tool per week is **2.6**, and at today's rate **1.3**. In the last 48
-hours the cousin reached **20 distinct tools of 69**, and 23 of its 51 probes
-were `plan`. **So "28 have not survived" is substantially a statement about a
-contended free tier and two model calls per visit, not only about whether the
-creature builds things worth returning to.** The whole-run average of 53.6
-would have hidden that completely -- it is dominated by the bare-probe era,
-when the harness probed cheaply and constantly.
-
-**WHAT TO READ FIRST, AND IT IS A READ RATHER THAN A CHANGE:**
-
-1. `cat live/monitor/status.md` — first line is when it was written, alarms
-   first, then what it cannot tell, then counts per window with the engine
-   commit that produced each.
-2. **`deploy_regression_day` for engine `c942d88`, due 09-22 01:41.** That is
-   the reading that settles item 21.1, and it needs nobody to remember to
-   look. First 16 thinks after the budget raise: 0 finished on `length`, 0
-   commands lost — which is an anecdote and is labelled as one.
-3. **`commands_lost[gemini]` will still be alarming and that is correct.** It
-   is windowed by COUNT (last 20 thinks), so it spans the 09-20 23:38 restart
-   that fixed it and clears on its own. Do not reset a detector because we
-   deployed; that is how a monitor learns to agree with whoever last touched
-   the machine.
-
-4. **THE HOLD IS DISCHARGED AND `b33c27d` IS DEPLOYED, 2026-09-21 17:58.**
-   The restart was held for one stated reason: `c942d88`'s
-   `deploy_regression_day`, due 09-22 01:41, was the reading that settles item
-   21.1. **The window answered sixteen hours early and unambiguously** -- 90
-   thinks since the budget config loaded, **0 finished on `length` and 0
-   commands lost**, against 175 thinks / 102 / 93 (53%) in the 24 hours before
-   it. There is no reading at 01:41 that could say more than that.
-
-   **What decided it was the other side of the ledger.** The undeployed batch
-   includes the marker fix, and the marker fault is not occasional: measured
-   with the code the engine was actually running, **22 of the 22 marked
-   outputs since 01:41 were understated**, the worst showing *106 chars
-   withheld* where the truth was 2,452. Eight more hours of that to confirm
-   something already settled is the wrong trade, and this engine has a scar
-   about a creature rewriting two working tools after misreading one of these.
-
-   **A manual reading replaced an automated one, and that is a cost, not a
-   nothing.** §0's own rule is that the day-reading *needs nobody to remember
-   to look*. It is recorded here instead, with its numbers, because the thing
-   it would have confirmed is better measured than it would have been.
-
-   Deploy was four separate commands (STOP, stop, remove STOP, start), the
-   container was recreated on image drift -- PLAN 18.4's fix exercised in
-   production for the first time -- `selfcheck` came back all-true with
-   `unproven: []`, and `deploy_regression` is armed for its hour.
-
+**THE WINDOWS BOX IS A REAL BENCH NOW** (2026-09-24). It runs ollama with
+`gemma4:12b`, so the gate's live-model assertions RUN there and are skipped on
+the laptop, and the Windows gate is ~55 s. The laptop remains the authority.
+Two tests had presupposed there is no local model and were making real 12B
+calls there (the gate swung 58 s -> 623 s); they are hermetic now. For a fix
+that needs many cycles, rehearse here; for a question about what the creature
+SEES, replay the journal (`replay_caps.py`, the habits below) -- no model is
+needed for that at all. A second full deployment on this box was proposed and
+declined (PLAN 24): two deployments would demand two answers to every cap.
 
 **TUE IS THE CUSTOMER, NOT THE ARCHITECT — he said so on 2026-09-16 and it
 changes how this file should be used.** *"i have no idea about what you ask
@@ -1205,6 +1173,64 @@ guess with authority it has not earned.
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
 
+- **THE PAGE OUTGREW THE RUNG THAT SERVES IT, AND THE ENGINE SAT WEDGED
+  FOR EIGHT HOURS UNDER "ALARMS (0)".** 2026-09-24, found by the daily check
+  counting thinks: **4 in 9 hours**, against ~146 a day before.
+
+  *Signature, for the lookup:* thinks near zero while wakes continue; every
+  decline a 429 or a 413; `wake.context_chars` pinned at ONE value for hours,
+  above any page that preceded a think.
+
+  Every creature think from 09-23 midday on had come from
+  `gemini/gemma-4-31b-it` -- it serves about nine in ten, and groq has not
+  served the creature since 09-20 -- and been answered at a page of
+  37,737-**60,866** characters. From 09:00 every
+  wake served **71,178** and nothing answered again: 0 thinks in 8 hours, 201
+  deferred. The 40,000 transcript bound deployed the night before had filled
+  -- the creature's last acts were big reads -- and pushed the page past what
+  the rung takes per request. **And a creature that cannot think cannot run
+  the commands that would shrink its transcript**, so the same page was served
+  every wake. A deadlock.
+
+  **The replay that justified 40,000 measured what the creature would SEE and
+  never asked whether the rung would TAKE it.** It priced cost as characters
+  -- "+33% on the transcript block, bounded" -- and on a free tier the cost of
+  an oversized prompt is not proportional, it is **binary**: over the rung's
+  limit, nothing answers at all. **Invariant: a page is priced against what
+  the rung that serves it accepts, and a bound on each PART is not a bound on
+  the WHOLE** -- three caps in series, and not one of them was on the page.
+
+  **Why nothing alarmed.** `engine_silent` saw wakes; `ladder_dry` saw weather;
+  every decline carried a label that reads like quota -- and the body that
+  would have said *request too large* was never journalled, although
+  `classify_error`'s own docstring promised every unknown failure would
+  announce itself WITH ITS TEXT. Eighth appearance of *one label for several
+  faults*.
+
+  **Fixed as bounds and records, not judgement** (`3a6a642`): a 56,000 budget
+  on the WHOLE page with the transcript sized last; a per-output window that
+  shrinks with the block (the budget test's floor case caught the new code
+  showing a 12 KB file's tail with its `$ cat` line trimmed away); an exact
+  block bound; the provider's words on every new SHAPE of decline, with
+  credentials redacted; and `context_outgrew_rung`, which watches the page
+  against what rungs have ACCEPTED rather than against the constant, with
+  floors declared from run 2's longest weather gap (1.2 h over 173). Proven on
+  the live wedged state before deploying: the detector said ALARM, and the new
+  code would serve 55,997. It then served exactly that.
+
+  **FOUR FAULTS OF MINE IN THE SAME DAY, and the method that caught three of
+  them is the thing to keep.** (1) The replay above. (2) A fix written inside a
+  command that timed out: its assertion failed, the gate that followed printed
+  green, and it was reported as made -- it had never landed. (3) The check for
+  it allowed +600 characters, **wider than the error it exists to catch**, so
+  it passed against the unfixed code. (4) Two gate tests presupposed there is
+  no local model, and on the Windows box made real 12B calls. **Two and three
+  were found by MUTATION** -- breaking one mechanism at a time and requiring
+  the check written for it to go red -- after a whole suite had been green
+  over both. A red-proof by whole-file revert shows only that a test crashes
+  when a constant is missing; a mutation shows the check can tell the
+  mechanism from its absence. Seven mutations, seven reds, before this shipped.
+
 - **ONE `cat` OF ITS BIGGEST TOOL EVICTS THE CREATURE'S ENTIRE TRANSCRIPT,
   AND THAT IS WHY IT READS IT THIRTY-NINE TIMES A DAY.** 2026-09-23 00:25,
   found by the daily check following `window_reread`'s runbook, which says to
@@ -1733,12 +1759,13 @@ was measured, with what, and on what date.*
     `chars_stripped`, which only `openai_chat` sets.** On the `ollama` standin
     a reasoning-only reply is mis-named *empty reply*. The standin is not on
     the deployed ladder. *Trigger: a local rung returning to the ladder.*
-  - **The fix moved a watched signal into an unwatched one.** An empty think
-    used to be banked and surface as `commands LOST / budget_spent`, which
-    `commands_lost` watches; it is now a `rung_declined` with
-    `expected=True`, the same label as a 429. A rung that started returning
-    nothing on every call would read as ordinary quota weather. *Trigger:
-    before the next detector is added, this one first.*
+  - ~~**The fix moved a watched signal into an unwatched one.**~~ **CLOSED
+    the same night (2026-09-21), and this bullet said open for three days.**
+    `replies_unusable` reads `rung_declined.unusable` per rung and has been on
+    the page since then; its own docstring names this bullet as the reason it
+    exists. Found 2026-09-24 when adding the next detector, which is what the
+    trigger said to check first -- the check was owed and it found the item
+    already done.
 
 - **THE MARKER UNDERSTATED THE LOSS BY SIX THOUSAND CHARACTERS, AND THE TEST
   THAT GUARDS IT HAD BEEN GREEN SINCE THE DAY IT WAS WRITTEN.** 2026-09-21,
