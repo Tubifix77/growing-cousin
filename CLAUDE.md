@@ -183,6 +183,16 @@ was journalled. `PLAN.md` item 9 says why.
   which would move judgement back into the 99% this design deleted, and not
   the creature demonstrating its own work, which is the wrong side of §4.
 
+**The engine is stopped and will not start?** `ls live/STOP` **first.** That
+file is the documented stop and it SURVIVES A REBOOT on purpose -- a restart
+must never silently undo a deliberate stop. Remove it and start. If a start is
+refused with *Start request repeated too quickly*, the rate limiter has been
+spent: `systemctl --user reset-failed cousin-engine`, then start. **That
+should no longer be reachable** -- since 2026-09-24 the unit declares exit 4 a
+success (`SuccessExitStatus=4`), so a refusal cannot trigger the restart storm
+that spent it (§5). If you meet it anyway, that is a finding and the detector
+named in that scar is owed.
+
 **Is anything wrong right now?** `ls live/monitor/ALARM` — that file exists
 only while something needs a human, and carries the standing alarms. **Is the
 monitor alive?** the first line of `status.md` carries the time it was written.
@@ -1381,6 +1391,80 @@ was measured, with what, and on what date.*
   lands after 2026-09-25**, because a window wide enough to READ a 12 KB tool
   is not an idiom for editing one, and the whole-file rewrite is the wall
   that raising a window can only postpone.
+
+- **A DELIBERATE STOP DISABLED ITS OWN UNDO, AND THE OPERATOR WAS SHOWN A
+  RATE LIMIT INSTEAD OF A STOP FILE.** 2026-09-24 07:39-07:57, found by Tue
+  on a reboot -- *"the engine was turned off when the program autorun?!? at
+  starting debian, and i cant press the start the engine"*.
+
+  A `STOP` file left from the evening survived into the next boot. **That is
+  by design and it is right**: `run.py` refuses and says so -- *a restart must
+  never silently undo a deliberate stop*. It exits **4**, which means exactly
+  that one thing and nothing else.
+
+  **`Restart=on-failure` read the refusal as a crash.** Five automatic
+  retries, 07:39 / 07:42 / 07:44 / 07:46 / 07:47, which is the whole of
+  `StartLimitBurst`. systemd then refused **every** further start with *Start
+  request repeated too quickly* -- including the observer's own Start button,
+  which clears the STOP file and is the documented way back in. Tue pressed it
+  three times at 07:48:46 and all three were refused.
+
+  | | |
+  |---|---|
+  | what the operator was told | *"Job for cousin-engine.service failed"*, and a rate limit in the unit log |
+  | what was actually wrong | a file called `STOP` |
+  | what cleared it | `systemctl --user reset-failed`, **which appears in no runbook in this repo** |
+
+  **So the stop did not merely stop the engine: it disabled the recovery
+  path, and nothing anywhere named the cause.**
+
+  **Invariant: a REFUSAL is not a FAILURE, and the two may not share an exit
+  channel** -- because the thing that retries failures will retry a refusal
+  forever, and the budget it spends doing so is the budget that protects
+  against real crashes. `SuccessExitStatus=4`, which is exactly the move this
+  project already made for the monitor on 2026-09-15 (`SuccessExitStatus=1`)
+  for exactly this reason. Sixth appearance of **a checker that cannot
+  distinguish the thing it measures**, and the second where the confusion was
+  about a unit's own health.
+
+  **Proven by EFFECT, not by reading the directive back** -- §5's oldest
+  systemd scar is that a directive read back proves it was PARSED and never
+  that it WORKS. With the fix installed and a STOP file placed by hand:
+  `ExecMainStatus=4`, `Result=success`, `ActiveState=inactive`,
+  `SubState=dead`, `NRestarts=0`, absent from `systemctl --user --failed`,
+  and **four manual starts in a row produced zero rate-limit refusals**.
+  Before the fix the same sequence left it `failed` after five.
+
+  **The installed unit was a COPY from 16 September and differed from the
+  repo**, so the fix had to be installed and `daemon-reload`ed as a separate
+  act from committing it -- §5's *the edit that was committed away*, avoided
+  by checking rather than by luck. The diff was read before overwriting, in
+  case the laptop carried local edits; it did not.
+
+  **THE MONITOR WAS SILENT AND WAS RIGHT TO BE, AND THAT IS THE RESIDUAL
+  GAP.** `engine_silent` returns INFO with `human=False` when a STOP file is
+  present and the unit is not running, because a deliberate stop is not an
+  alarm -- correct, and it is why no `ALARM` file appeared during eighteen
+  minutes of downtime. It cannot distinguish *stopped on purpose, sitting
+  quietly* from *stopped on purpose, and the restart budget has since been
+  spent so it can no longer be started*. **This commit removes the cause
+  rather than adding the detector**, because after `SuccessExitStatus=4` the
+  second state cannot arise from an automatic restart storm at all; it would
+  now take five deliberate presses. *Trigger: a `cousin-engine` start refused
+  for rate limiting ever again -- then the detector is owed, because the
+  cause would no longer be the one that was fixed.*
+
+  **WHERE THE STOP FILE CAME FROM IS NOT ESTABLISHED, and saying so is the
+  point.** The engine ran from 18:53 to 20:10 on 09-23 and the file was
+  verified absent at 18:52. The observer was not running that evening (its
+  first journal entry is 07:39:30 the next morning), and **nothing in the
+  engine writes a STOP file** -- there is no signal handler in `run.py` or
+  `kernel/forever.py` at all, so a shutdown `SIGTERM` cannot have created it.
+  That leaves a shell, which is the documented operator interface (§0 tells a
+  reader to stop the engine with exactly this file). **A stop taken through
+  the documented interface is not a mistake, and the framework punishing it
+  is the whole finding** -- which is why the fix is in the unit and not in a
+  warning to the human.
 
 - **I MEASURED THE FIX WITH THE FIXED CODE AND GOT "IT ISN'T HAPPENING".**
   2026-09-21 17:52, caught in the same minute because the number contradicted
