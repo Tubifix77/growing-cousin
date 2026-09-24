@@ -444,6 +444,18 @@ class Engine:
     # the result against what the rungs actually accept, because a budget
     # is one measurement old and the library it shares a page with grows.
     CONTEXT_BUDGET_CHARS = 56000
+
+    # STAGED OFF, 2026-09-24, and the reason is the measurement, not doubt.
+    # True serves each visit as what it is and lets the cousin keep notes at
+    # verdict time (PLAN 23.5); False serves exactly the verdict prompt that
+    # was deployed before. They shipped in one commit with the creature-side
+    # changes (the hands block, `tool-replace`), and one engine runs one
+    # commit -- so without this, two causes on two agents would land in one
+    # measurement window, the confound this project's top scar warns about.
+    # Flipping it is a one-line commit and its own deploy.
+    # *Remove the switch and the legacy path once it has been True for a
+    # week and deploy_regression_day has read it clean.*
+    TRUTHFUL_VISITS = False
     # A transcript is never squeezed to nothing: the rule about not repeating
     # the last command is unfollowable if nothing shows the last command. If
     # the rest of the page alone leaves less than this, the page runs over
@@ -868,6 +880,10 @@ class Engine:
 
     def visit_cousin(self, fired, executed, tools_after, tools_before):
         trigger, _fields = fired
+        # What the case is DESCRIBED as. None is the legacy framing -- a
+        # done-claim, whatever summoned it -- served while TRUTHFUL_VISITS is
+        # staged off; the journal records the real trigger either way.
+        frame = trigger if self.TRUTHFUL_VISITS else None
         # PLAN 18.7. Finish what the last visit started before starting
         # another: a probe that ran and never got its judgement is work this
         # project has already paid a model call for, and the trigger that
@@ -878,7 +894,7 @@ class Engine:
         if orphan is not None:
             target = orphan.get("tool") or ""
             claim, header, transcript, library = self.replay_evidence(
-                orphan, trigger=trigger)
+                orphan, trigger=frame)
             self.j.append("verdict_recovered", tool=target,
                           probe_ts=float(orphan.get("ts") or 0),
                           age_s=int(time.time() - float(orphan.get("ts") or 0)),
@@ -887,12 +903,14 @@ class Engine:
         else:
             target, how = self.choose_target(executed, tools_after, tools_before)
             claim, header, transcript, library = self.evidence(
-                target, executed, picked_by=how, trigger=trigger)
+                target, executed, picked_by=how, trigger=frame)
 
         v = cousinmod.visit(self.ask_cousin, self.brief, claim, header,
                             transcript, journal=self.j, trigger=trigger,
-                            library=library, tool=target)
-        self.keep_cousin_notes(v.remember)
+                            library=library, tool=target, frame=frame,
+                            notes=self.TRUTHFUL_VISITS)
+        if self.TRUTHFUL_VISITS:
+            self.keep_cousin_notes(v.remember)
 
         if v.verdict == cousinmod.UNKNOWN:
             # Gates nothing. An instrument that cannot run says UNKNOWN.

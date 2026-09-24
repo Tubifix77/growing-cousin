@@ -161,13 +161,15 @@ def claim_for(trigger, target):
     return "`%s`, which it built earlier. It has claimed nothing about it." % t
 
 
-def build_prompt(brief, claim, header, transcript, library="", trigger=None):
+def build_prompt(brief, claim, header, transcript, library="", trigger=None,
+                 notes=True):
     why, what = WHY.get(trigger or "DONE_CLAIM", (
         "You went to use something the creature built. Nobody told you why "
         "you were sent, so judge only what happened when you used it.",
         "What you were given"))
     out = brief + CASE_TEMPLATE.format(
-        why=why, what=what, claim=claim, header=header, transcript=transcript)
+        why=why, what=what, claim=claim, header=header, transcript=transcript,
+        notes=NOTES_TEMPLATE if notes else "")
     if library:
         out += LIBRARY_TEMPLATE.format(library=library)
     return out
@@ -200,7 +202,9 @@ CASE_TEMPLATE = """
 ---
 
 Decide. Emit exactly one `<<<COUSIN` block as the last thing in your reply.
+{notes}"""
 
+NOTES_TEMPLATE = """
 If this visit taught you something you will want NEXT time -- an identifier
 that worked, which tool failed you and on what -- you may put up to five
 `remember: <key> <value>` lines inside the block. They are yours alone: the
@@ -407,15 +411,19 @@ def choose_invocation(ask, header, library=""):
 
 
 def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
-          library="", tool=None):
+          library="", tool=None, frame="same", notes=True):
     """One manager invocation, end to end. `ask(prompt) -> (text, meta)`.
 
     `tool` is journalled on the verdict so the library can report WHAT ITS
     USER SAID about each tool -- accepted, returned -- which is a fact about
     testimony, in place of the *FAILED* the framework used to compute from
     an exit code it can no longer interpret (see `argless`)."""
+    # `frame` is what the case is DESCRIBED as; `trigger` is what summoned it
+    # and is what the journal records, always. They differ only while the
+    # truthful framing is staged off (Engine.TRUTHFUL_VISITS).
     prompt = build_prompt(brief, claim, header, transcript, library,
-                          trigger=trigger)
+                          trigger=trigger if frame == "same" else frame,
+                          notes=notes)
     try:
         reply, meta = ask(prompt)
     except Exception as e:

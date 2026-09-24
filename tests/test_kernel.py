@@ -6137,6 +6137,7 @@ def test_no_visit_but_a_done_claim_is_told_the_creature_finished():
             _got.append(prompt)
             return ACCEPT_REPLY, {"model": "spy", "done_reason": "stop"}
         e.ask_cousin = spy
+        e.TRUTHFUL_VISITS = True
         e.visit_cousin((trig, {}), [], ["plan"], ["plan"])
         page = got[-1] if got else ""
         check("why: a %s visit reached the cousin at all" % trig, bool(page))
@@ -6154,6 +6155,33 @@ def test_no_visit_but_a_done_claim_is_told_the_creature_finished():
         check("why: every visit is told it may keep a note at verdict time "
               "(%s)" % trig, "remember: <key> <value>" in page)
         b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+    # STAGED OFF IS TODAY'S PROMPT, EXACTLY. The switch exists so the
+    # creature-side changes can be deployed without this one; that is only
+    # true if OFF serves the verdict prompt that was deployed before, byte for
+    # byte, with the real trigger still in the journal.
+    e, j, b, d = build_engine([""], [])
+    _write_tool(os.path.join(b.mind, "tools", "own"), "plan",
+                does="keeps the plan", call="plan list")
+    got = []
+    e.ask_cousin = lambda p: (got.append(p) or
+                              (ACCEPT_REPLY, {"model": "spy", "done_reason": "stop"}))
+    check("why: the switch ships OFF", Engine.TRUTHFUL_VISITS is False)
+    e.visit_cousin(("STALL", {}), [], ["plan"], ["plan"])
+    page = got[-1] if got else ""
+    legacy = ("\n\n---\n\n# This visit\n\nThe creature has just marked a "
+              "piece of work done. You went to use it.\n\n## What it claims"
+              "\n\nI finished plan.\n")
+    tail = ("Decide. Emit exactly one `<<<COUSIN` block as the last thing in "
+            "your reply.\n")
+    check("why: OFF frames a stall exactly as before", legacy in page, page[-700:])
+    check("why: OFF says nothing about verdict-time notes, so it promises "
+          "nothing the kernel will not keep",
+          tail in page and "remember: <key>" not in page, page[-200:])
+    check("why: and the journal still records what really summoned it",
+          any(r.get("trigger") == "STALL"
+              for r in j.read(kinds=["cousin_verdict"])))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
 def test_a_verdict_note_is_kept_for_the_cousin_and_never_reaches_the_creature():

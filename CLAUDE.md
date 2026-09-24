@@ -71,6 +71,24 @@ ladder narrows with every raise, and the last rung's limit is the budget. Since
 3a6a642 `rung_declined` carries the provider's own words (`detail`), so the
 next time this matters the journal will say which limit, instead of a label.
 
+**THE REPOSITORY IS AHEAD OF THE LAPTOP ON PURPOSE, and pulling it is a
+deploy.** 2026-09-24 evening: everything from `c3f8c3d` on (served text, verdict notes, the
+partial-edit hand, the hands block, the `tool-edit` fix) is gated and pushed
+and is NOT on the laptop, because whatever that checkout holds is what a
+crash or a reboot deploys unplanned. **The order, and why:** (1) read
+`deploy_regression_day` for `3a6a642`, due 2026-09-25 ~17:47 -- the first
+valid day of this week's read-side changes, after an outage and a wedge
+voided the earlier ones; (2) then pull and deploy -- that lands the
+CREATURE-side changes (hands block, `tool-replace`, `tool-edit` fix) and
+carries the cousin-side change DORMANT: `Engine.TRUTHFUL_VISITS` ships
+False, and off it serves the deployed verdict prompt byte for byte (15 of
+15, checked against a clean export of `e25b641`); (3) only after arm C has
+scored it, a one-line commit flips it True, deployed in its own window.
+Two causes in one window is the confound this file's top scar warns about,
+and one engine runs one commit, which is why the switch exists at all.
+The page's `restart_owed` compares against the LAPTOP checkout, so it will
+not warn you; this paragraph is the warning.
+
 **WHAT TO READ FIRST:**
 
 1. `cat live/monitor/status.md` -- alarms first, then what it cannot tell.

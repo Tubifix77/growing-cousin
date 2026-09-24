@@ -44,14 +44,14 @@ can clear it. **Every heading that is not `[x]` is in the table below, and that 
 | still open | why, in one line | what would move it |
 |---|---|---|
 | **11** run 3 | Tue's call, and he made it: it waits for an empty board | this table reaching zero |
-| **14.5** tell the creature `say` exists | adds a surface to its context while 20.2's metric is in its first week | the metric's first full week, 2026-09-25 |
+| **14.5** tell the creature `say` exists | **BUILT 2026-09-24, not deployed**: a served "Your hands" block, read from each installed hand's own header, announces `say` and every hand added later. The guard that held `say` as an exception now requires a header instead | deploy after `3a6a642`'s day-reading, 2026-09-25 ~17:47, with 21.2 |
 | **16** the cousin notices a tool serves nothing | the rule can be drafted; scoring it spends the same tier the live run is on | 20.4, then score under item 8's discipline |
 | **17.3** the deciding half | moves with 16 by construction | 16 |
 | **20.4** the cousin carries ONE note and has not added a second | 59 harvests carry it, none empty since 09-19, and the last 40 all carried exactly one key — continuity proven, accumulation not | a week of 20.2, read beside the store's key count |
-| **21.2** the rewrite wall | **FIRED 2026-09-23 on the READ side; took THREE readings to land** — wrong cap, then right caps at the wrong ratio. Replay over 360 real wakes: uncut transcript 24%→86%, eviction 61%→56% at 24k and →27% at 40k. Deployed 16k/16k/40k; the rewrite idiom is untouched | the partial-edit hand, after 09-25 |
+| **21.2** the rewrite wall | **HAND BUILT 2026-09-24, not deployed**: `tool-replace`, SEARCH/REPLACE, all-or-nothing, whole lines only. The read side landed on 09-24 as a WHOLE-PAGE budget after 40k wedged the engine (§5). Local rehearsal of whether a model USES the hand is written and has not run -- the GPU was taken | deploy with 14.5; rehearse on the Windows bench when its GPU is free |
 | **22.1 / 22.2** | a fence inside a heredoc, and the cost of re-reading a journal that only grows | both named and dated in item 22 |
 | **23.3** the creature is promised an LLM API its box may not have | 80 runs against `api.openai.com` with the literal `"default_key"` | a design decision, not a patch — see item 23 |
-| **23.4 / 23.5** the same audit on the cousin's brief and the kernel's served text | begun; the brief addresses an agent with a job it does not have | work, not a trigger |
+| **23.4 / 23.5** the same audit on the cousin's brief and the kernel's served text | **23.5 found two and fixed both in code, 2026-09-24**: the framework served a completion claim on 220 of 246 visits that had none, and the cousin could only note what it knew BEFORE seeing output. Scored on `gemma4:12b`: arm A (deployed) 24/24 caught, 9/24 falsely returned; arm C (the truthful framing) not yet run. **Staged OFF** behind `Engine.TRUTHFUL_VISITS`, proven byte-identical to the deployed prompt (15 of 15) while off, so it rides the creature-side deploy dormant. 23.4 not begun | arm C, then a one-line commit flipping the switch, deployed in its OWN window |
 
 **None of these is blocked on a decision that has not been taken, and none is
 waiting on "more information"** — each names a trigger and a date, which is
