@@ -3930,6 +3930,54 @@ def test_the_unit_bounds_its_own_restarting():
     check("unit: StartLimit* is NOT left in [Service], where it is ignored",
           not in_service, in_service)
 
+    # A REFUSAL IS NOT A FAILURE. `run.py` exits 4 on one condition only --
+    # the STOP file exists, so it declines to start -- and that is the engine
+    # obeying a deliberate stop, not crashing.
+    #
+    # 2026-09-24: a STOP file survived a reboot, as designed. `Restart=
+    # on-failure` read exit 4 as a crash, retried five times, spent the whole
+    # of StartLimitBurst, and systemd then refused EVERY start with "Start
+    # request repeated too quickly" -- including the observer's Start button,
+    # which is the documented way back in. The deliberate stop disabled its
+    # own undo, and the operator was shown a rate limit instead of a STOP
+    # file. Only `systemctl --user reset-failed` cleared it, which appears in
+    # no runbook anywhere in this repo.
+    #
+    # Same shape, same fix as the monitor's `SuccessExitStatus=1` on
+    # 2026-09-15: a unit's own failure may not share a channel with the state
+    # it reports.
+    check("unit: a deliberate stop (exit 4) is declared a SUCCESS, so "
+          "refusing to start cannot burn the restart budget that protects "
+          "against real crashes",
+          any(d == "SuccessExitStatus=4" or
+              (d.startswith("SuccessExitStatus=") and
+               "4" in d.split("=", 1)[1].split())
+              for d in directives),
+          [d for d in directives if d.startswith("SuccessExitStatus")])
+    # And the exit code it names has to be the one run.py actually uses for
+    # this, or the directive is a comment. Read from the source, never typed.
+    import ast
+    runpy = io.open(os.path.join(repo, "run.py"), encoding="utf-8").read()
+    tree = ast.parse(runpy)
+    refusal_codes = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ExceptHandler):
+            continue
+        t = node.type
+        name = getattr(t, "attr", None) or getattr(t, "id", None)
+        if name != "StopRequested":
+            continue
+        for sub in ast.walk(node):
+            if isinstance(sub, ast.Return) and isinstance(sub.value, ast.Constant):
+                refusal_codes.add(sub.value.value)
+            if (isinstance(sub, ast.Call)
+                    and getattr(sub.func, "attr", None) == "exit"
+                    and sub.args and isinstance(sub.args[0], ast.Constant)):
+                refusal_codes.add(sub.args[0].value)
+    check("unit: and 4 is really the code run.py returns when it refuses on "
+          "the STOP file -- read off the source, not typed into the unit",
+          refusal_codes == {4}, refusal_codes or "no StopRequested handler found")
+
 
 def test_one_output_cannot_evict_the_whole_transcript():
     """**The bound that keeps a wake small must not destroy what the wake is

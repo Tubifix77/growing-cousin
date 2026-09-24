@@ -79,6 +79,27 @@ ExecStart=/usr/bin/python3 -u %h/growing-cousin/run.py \
 # or reached its ceiling.
 Restart=on-failure
 RestartSec=60
+# EXIT 4 IS A REFUSAL, NOT A FAILURE, AND CONFLATING THEM COST A MORNING.
+#
+# `run.py` exits 4 for exactly one reason: the STOP file exists, so it will
+# not start. That is the engine OBEYING -- "a restart must never silently
+# undo a deliberate stop" is the whole point of the file.
+#
+# 2026-09-24, found by Tue on a reboot: a STOP file left from the evening
+# survived into the next boot, as it is designed to. The engine refused. But
+# `Restart=on-failure` saw exit 4 as a crash and retried it FIVE times, which
+# is the entire StartLimitBurst -- so systemd then refused every further start
+# with "Start request repeated too quickly", including the observer's own
+# Start button, which is the documented way back in. **A deliberate stop did
+# not merely stop the engine; it disabled the recovery path**, and the error
+# the operator was shown named a rate limit rather than a STOP file.
+#
+# `SuccessExitStatus=4` is the same move this project already made for the
+# monitor on 2026-09-15 (`SuccessExitStatus=1`), for the same reason: a unit's
+# FAILURE must not share a channel with the thing it is reporting. With it,
+# a refusal leaves the unit `inactive` and untouched by the rate limiter, and
+# `systemctl --user --failed` naming cousin-engine means a real fault again.
+SuccessExitStatus=4
 # The bound on how often this may happen is StartLimit* in [Unit] above.
 
 # PrivateUsers=yes IS LOAD-BEARING, and everything below it was decoration
