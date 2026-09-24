@@ -1191,6 +1191,35 @@ guess with authority it has not earned.
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
 
+- **THE FRAMEWORK PUT WORDS IN THE CREATURE'S MOUTH, AND A HAND COULD EMPTY A
+  TOOL -- both found by using the Windows bench the way Tue asked.**
+  2026-09-24 evening. Four findings, one lesson each:
+
+  1. **Nine visits in ten were told the creature had finished something.**
+     Every verdict prompt opened *"The creature has just marked a piece of
+     work done"* and served *"I finished X."* -- on 220 of 246 visits that
+     were a stall, a new file or a heartbeat. The framework authoring a claim
+     for the builder is §2.5's fault from the other side. *A string served on
+     every visit must be true of every visit, not of the visit it was written
+     for.*
+  2. **`tool-edit` truncated before it encoded.** One invalid UTF-8 byte in
+     the container, and a tool went to 0 bytes. Never fired; fixed because
+     the fix was measured as nil -- 86 of 86 real tools byte-identical. *A
+     write is not safe until the new content is on disk, and "fixed a
+     zero-occurrence fault" is only defensible with the no-cost measurement
+     beside it.*
+  3. **Two gate tests presupposed there is no local model** and made real 12B
+     calls on the one box that has one -- the gate swung 58 s to 623 s. The
+     presupposition class (§5, 2026-09-21), found in the tests.
+  4. **The deploy order I wrote down was impossible**: two changes meant for
+     two windows sat in one commit, and one engine runs one commit. Found by
+     writing the order into the board, not by any test. Fixed with a switch
+     that ships OFF and is proven byte-identical to the deployed prompt.
+
+  And the courtesy one: a 12B model on a 10 GB card is not free when the
+  person who owns the card is using it. The runs were stopped when calls went
+  from 6 s to 147 s; the bench is Tue's machine first.
+
 - **THE PAGE OUTGREW THE RUNG THAT SERVES IT, AND THE ENGINE SAT WEDGED
   FOR EIGHT HOURS UNDER "ALARMS (0)".** 2026-09-24, found by the daily check
   counting thinks: **4 in 9 hours**, against ~146 a day before.

@@ -34,7 +34,7 @@ Status: `[ ]` not started · `[~]` in flight · `[x]` done and verified.
 
 ---
 
-## WHERE THE BOARD STANDS — 2026-09-21
+## WHERE THE BOARD STANDS — 2026-09-24
 
 Tue, 2026-09-21: *"then lets get the board cleared."* It is, as far as work
 can clear it. **Every heading that is not `[x]` is in the table below, and that is the whole list.** What is left is not work anybody can do tonight, and the distinction matters more than any count:
@@ -51,7 +51,33 @@ can clear it. **Every heading that is not `[x]` is in the table below, and that 
 | **21.2** the rewrite wall | **HAND BUILT 2026-09-24, not deployed**: `tool-replace`, SEARCH/REPLACE, all-or-nothing, whole lines only. The read side landed on 09-24 as a WHOLE-PAGE budget after 40k wedged the engine (§5). Local rehearsal of whether a model USES the hand is written and has not run -- the GPU was taken | deploy with 14.5; rehearse on the Windows bench when its GPU is free |
 | **22.1 / 22.2** | a fence inside a heredoc, and the cost of re-reading a journal that only grows | both named and dated in item 22 |
 | **23.3** the creature is promised an LLM API its box may not have | 80 runs against `api.openai.com` with the literal `"default_key"` | a design decision, not a patch — see item 23 |
-| **23.4 / 23.5** the same audit on the cousin's brief and the kernel's served text | **23.5 found two and fixed both in code, 2026-09-24**: the framework served a completion claim on 220 of 246 visits that had none, and the cousin could only note what it knew BEFORE seeing output. Scored on `gemma4:12b`: arm A (deployed) 24/24 caught, 9/24 falsely returned; arm C (the truthful framing) not yet run. **Staged OFF** behind `Engine.TRUTHFUL_VISITS`, proven byte-identical to the deployed prompt (15 of 15) while off, so it rides the creature-side deploy dormant. 23.4 not begun | arm C, then a one-line commit flipping the switch, deployed in its OWN window |
+| **23.4 / 23.5** the same audit on the cousin's brief and the kernel's served text | **23.5 found two and fixed both in code, 2026-09-24**: the framework served a completion claim on 220 of 246 visits that had none, and the cousin could only note what it knew BEFORE seeing output. Scored on `gemma4:12b`: arm A (deployed) 24/24 caught, 9/24 falsely returned; arm C (the truthful framing) not yet run. **Staged OFF** behind `Engine.TRUTHFUL_VISITS`, proven byte-identical to the deployed prompt (15 of 15) while off, so it rides the creature-side deploy dormant. **23.4 read in full 2026-09-24**: seven presuppositions recorded, one hypothesis refuted, nothing changed | arm C, then a one-line commit flipping the switch, deployed in its OWN window |
+
+## NEXT STEPS, IN ORDER — written 2026-09-24 evening
+
+**Where things are.** Running on the laptop: `3a6a642` (the whole-page budget
+that ended the 09-24 wedge). On GitHub and NOT on the laptop, on purpose:
+everything from `c3f8c3d` on. Pulling is a deploy, so the order below is the
+deploy order. Each step says who does it, what triggers it, and what has to be
+true before the next one starts.
+
+| # | step | who | trigger | done when |
+|---|---|---|---|---|
+| 1 | **Read `deploy_regression_day` for `3a6a642`** -- the first valid day of this week's read-side changes (the 09-23 night was lost to an outage, 09-24 to the wedge) | Claude, at the daily check | 2026-09-25 ~17:47 | the page shows reads of `plan` against writes, and `context_outgrew_rung` has stayed quiet. If it alarmed: stop and read §5's wedge scar before anything else |
+| 2 | **Pull and deploy `HEAD`**: the hands block (announces `say` and `tool-replace`), the partial-edit hand, the `tool-edit` fix. The cousin-side change rides along DORMANT (`TRUTHFUL_VISITS = False`, byte-identical to today's prompt) | Claude, four separate commands | step 1 read | `selfcheck` all-true; the wake records `hands_served` equal to the installed hands; page under `CONTEXT_BUDGET_CHARS` |
+| 3 | **Finish the local scoring on the Windows bench**: arm B (new text as a done-claim), arm C (truthful stall framing), and the `tool-replace` rehearsal on the real 12 KB `plan` | Claude, **when Tue says the PC is free** -- it needs ~8 GB of the card for ~30-60 min | Tue | arm C is not worse than arm A (24/24 caught, 9/24 falsely returned) on either half; the rehearsal shows whether a model given the hands block uses `tool-replace` and lands a change that still runs |
+| 4 | **Read the creature-side deploy a day later** | Claude | step 2 + 24 h | did the creature use `tool-replace`; did writes of `plan` rise above 0; `truncated\|lost` unchanged |
+| 5 | **Flip `TRUTHFUL_VISITS` to True** in a one-line commit and deploy it ALONE | Claude | step 3 clean AND step 4 read | a day-reading of its own. Decide from arm C whether the brief's *"what it just built"* sentence (23.4) must change first -- if so, that change is scored as its own arm |
+| 6 | **Remove the switch and the legacy framing** | Claude | step 5 has run a clean week | the code path is gone and the gate still green |
+| 7 | **Read the cousin's memory store** -- does it now hold more than the one key it has carried since 09-19 (20.4)? | Claude | a week after step 5 | a count of keys over time, beside what the cousin actually noted |
+| 8 | **23.3, the LLM-API promise in the creature's prompt** | **Tue decides one thing; the rest is Claude's** | when step 5 is done | recommendation stands: retract it. Tue's only if he wants the cousin/spine comparison clean -- the spine's creature HAS an LLM hand and ours does not (§4) |
+| 9 | **16 / 17.3** the cousin noticing a tool serves nothing | Claude | step 7 | the rule drafted and scored under item 8's discipline |
+| 10 | **11, run 3** | **Tue's gate** | this table reaching zero | -- |
+
+**Standing, not scheduled:** 22.1 (a fence inside a heredoc) and 22.2 (journal
+re-read cost) stay latent with their named triggers -- zero occurrences, and
+this project has paid for fixing a zero-occurrence fault in the parser before.
+
 
 **None of these is blocked on a decision that has not been taken, and none is
 waiting on "more information"** — each names a trigger and a date, which is
