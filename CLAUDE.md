@@ -880,6 +880,18 @@ guess with authority it has not earned.
   alignment: slower, filtered through a judge, and the cousin is forbidden
   to do the creature's work.
 
+  **SUPERSEDED THE SAME EVENING -- also Tue's, and it is the better call.**
+  *"this fake subagent running on the creatures own api is actually
+  something to stop on both growing-spine and never implement here, and
+  instead give it the truths."* Alignment by REMOVAL rather than by
+  addition: no subagent orchestration in either creature, and ours is told
+  plainly that its tools have no LLM behind them. The evidence agreed before
+  he said it -- 80 orchestrator runs against a literal fake key, 8 "successes"
+  that did nothing, 28 of 69 tools downstream of it, and the spine's own
+  creature writing *"we simulate the routing"* before its framework gave it a
+  key. **Open to Tue:** whether one stateless `ask` for an unbiased check
+  (e.g. a test) remains -- PLAN step 8b. **The spine half is his** (§2.6).
+
   **And a waste found while measuring it:** our engine sends Groq ~350
   requests a day and has had **0 answered since 09-21** -- every creature
   think that falls through to it is a `413`, because the page can never fit
