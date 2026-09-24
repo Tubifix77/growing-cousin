@@ -853,6 +853,20 @@ guess with authority it has not earned.
   difference than any of those, and it has been true for the life of both
   runs without appearing in a single document.
 
+  **WHO MADE IT, read from the spine's git 2026-09-24 (Tue asked):** the
+  FRAMEWORK, not the creature. `framework-tools/ask` arrived in `234b9d4`,
+  2026-08-14, *"the inference primitive the creature was simulating"* --
+  the spine's creature had tried to build it and could not, exactly as ours
+  built `subagent-orchestrator` against a literal `"default_key"`. The code
+  is one HTTP request; what a creature cannot make itself is the RESOURCES,
+  and the spine's framework supplies three: a credential injected into the
+  container (`GROQ_OSS120_API_KEY`), a quota (500/day, half the free 1,000,
+  with the remaining budget readable by the creature), and a hard contract
+  (stdout is the answer or empty, every failure loud). The first is the
+  one this engine refuses on principle -- `keys_unreadable` -- so parity,
+  if wanted, is a KEYLESS relay hand: the engine holds the key and answers
+  for the creature. That choice is Tue's (PLAN next steps, step 8).
+
   **It also has to be controlled for in run 3.** Item 11 seeds both from one
   library; if one creature can call a model and the other cannot, the
   divergence being measured is partly that, and the run measures a mixture

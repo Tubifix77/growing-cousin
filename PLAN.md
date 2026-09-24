@@ -70,7 +70,7 @@ true before the next one starts.
 | 5 | **Flip `TRUTHFUL_VISITS` to True** in a one-line commit and deploy it ALONE | Claude | step 3 clean AND step 4 read | a day-reading of its own. Decide from arm C whether the brief's *"what it just built"* sentence (23.4) must change first -- if so, that change is scored as its own arm |
 | 6 | **Remove the switch and the legacy framing** | Claude | step 5 has run a clean week | the code path is gone and the gate still green |
 | 7 | **Read the cousin's memory store** -- does it now hold more than the one key it has carried since 09-19 (20.4)? | Claude | a week after step 5 | a count of keys over time, beside what the cousin actually noted |
-| 8 | **23.3, the LLM-API promise in the creature's prompt** | **Tue decides one thing; the rest is Claude's** | when step 5 is done | recommendation stands: retract it. Tue's only if he wants the cousin/spine comparison clean -- the spine's creature HAS an LLM hand and ours does not (§4) |
+| 8 | **23.3, the LLM-API promise in the creature's prompt** | **Tue decides one thing; the rest is Claude's** | when step 5 is done | the spine's `ask` was BUILT BY ITS FRAMEWORK (`234b9d4`, 2026-08-14), not by its creature, which had tried and failed exactly as ours did. So the two creatures differ by a granted capability. Tue's choice: **parity** -> a keyless relay hand (engine holds the key; never a key in the box), or **no parity** -> retract the promise |
 | 9 | **16 / 17.3** the cousin noticing a tool serves nothing | Claude | step 7 | the rule drafted and scored under item 8's discipline |
 | 10 | **11, run 3** | **Tue's gate** | this table reaching zero | -- |
 
