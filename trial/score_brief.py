@@ -63,6 +63,8 @@ def run_half(args, cases_file, tag):
            "--reps", str(args.reps), "--label", "%s-%s" % (args.label, tag)]
     if args.max_tokens:
         cmd += ["--max-tokens", str(args.max_tokens)]
+    if args.trigger:
+        cmd += ["--trigger", args.trigger]
     print("\n>>> %s half: %s" % (tag, " ".join(cmd[-8:])))
     r = subprocess.run(cmd)
     if r.returncode != 0:
@@ -139,6 +141,9 @@ def main(argv=None):
     ap.add_argument("--host", default="http://localhost:11434")
     ap.add_argument("--reps", type=int, default=1)
     ap.add_argument("--max-tokens", type=int, default=None)
+    ap.add_argument("--trigger", default=None,
+                    help="frame every case as this trigger's visit (passed to "
+                         "run_trial.py; its default is a done-claim)")
     ap.add_argument("--label", default=None)
     ap.add_argument("--detection", default=DETECT)
     ap.add_argument("--correction", default=CORRECT)

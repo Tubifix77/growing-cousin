@@ -5197,21 +5197,43 @@ def test_every_hand_the_creature_has_is_one_it_has_been_told_about():
     check("hands: the creature has hands at all, or this proves nothing",
           len(hands) >= 4, hands)
 
-    # The single recorded exception, with the reason it is one.
-    TOLD_LATER = {"say": "PLAN 14.5 -- lands with the brief's unfreeze, "
-                         "because a new surface mid-measurement makes the "
-                         "numbers on either side incomparable"}
+    # NO EXCEPTIONS ANY MORE, and the reason is the point. `say` was the one
+    # recorded exception from 2026-09-21 to 2026-09-24. It is now named every
+    # wake by the served "Your hands" block, which reads each installed hand's
+    # own `# call:` / `# does:` header -- so the creature is told about a hand
+    # by the hand itself, and a hand added later is told about the same day
+    # without anyone remembering to. This entry's own promise was that the
+    # day `say` was introduced it must be deleted or go red; it is deleted.
+    # (Announced in code on 2026-09-24; deployed after PLAN 14.5's 09-25
+    # trigger, because a new surface in the creature's context does not land
+    # mid-measurement.)
+    TOLD_LATER = {}
     # A hand is "named" if it appears in backticks, WITH OR WITHOUT its
     # arguments: the prompt writes `tool-edit <name>`, and the first draft of
     # this check hunted the exact literal `tool-edit` and reported it
     # unmentioned -- a guard keyed on one literal string, in the test written
     # to stop a hand going unmentioned. Third time that shape has appeared in
     # this file.
+    e = Engine.__new__(Engine)
+    e.hands_dir = hands_dir
+    e.body = type("NoBin", (), {"bin": None})()
+    served = e.hands_block()
+    told_where = (prompt, served)
     unmentioned = [h for h in hands
-                   if not re.search(r"`%s(?=[ `])" % re.escape(h), prompt)]
-    check("hands: every hand is either named in the creature's prompt or "
-          "recorded as deliberately withheld -- never merely absent",
+                   if not any(re.search(r"`%s(?=[ `])" % re.escape(h), t)
+                              for t in told_where)]
+    check("hands: every hand is named in the creature's prompt or in the "
+          "hands block it is served every wake -- never merely absent",
           set(unmentioned) <= set(TOLD_LATER), sorted(unmentioned))
+    # The block can only name a hand that describes itself. A hand added
+    # without a header would be installed and silently unannounced, which is
+    # `say`'s fault arriving by a new door -- so a header is required.
+    headless = [h for h in hands
+                if "# call:" not in io.open(os.path.join(hands_dir, h),
+                                            encoding="utf-8",
+                                            errors="replace").read()[:600]]
+    check("hands: and every hand carries the `# call:` header the block is "
+          "built from", not headless, headless)
     check("hands: and every withheld hand still EXISTS, so the exception "
           "cannot outlive the thing it excuses",
           set(TOLD_LATER) <= set(hands), sorted(set(TOLD_LATER) - set(hands)))
@@ -5883,6 +5905,318 @@ def _first_raise(timeline, prefix):
         if c["name"].startswith(prefix) and c["to"] == "ALARM":
             return c
     return None
+
+
+def _hand(name, mind, args, stdin):
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    p = subprocess.run([sys.executable, os.path.join(here, "hands", name)] + args,
+                       input=stdin, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", timeout=60,
+                       env=dict(os.environ, MIND=mind))
+    return p.returncode, p.stdout, p.stderr
+
+
+def test_the_creature_is_shown_the_hands_it_was_given():
+    """**`say` was built and the creature was never told it existed** (PLAN
+    14.5). Its hands were named by one line of a frozen prompt, typed once, so
+    the list drifted the day a hand was added -- and a partial-edit hand
+    announced that way would have repeated it exactly. The hands now describe
+    themselves, from what is INSTALLED, every wake.
+    """
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    real = os.path.join(here, "hands")
+    e, j, b, d = build_engine(["thinking"], [])
+    e.hands_dir = real
+    page = e.serve_context()
+    installed = sorted(n for n in os.listdir(real)
+                       if os.path.isfile(os.path.join(real, n)))
+    check("hands: the block is served", "## Your hands" in page)
+    for n in installed:
+        check("hands: `%s` is on the page, by its own call line" % n,
+              ("`%s" % n) in page, n)
+    check("hands: including `say`, which the frozen prompt never mentions",
+          "`say <message>`" in page)
+    check("hands: and the partial-edit hand",
+          "`tool-replace <name>" in page)
+    check("hands: the wake counts what it served",
+          e.served.get("hands_served") == len(installed),
+          (e.served.get("hands_served"), len(installed)))
+
+    # A HAND ADDED LATER IS ANNOUNCED WITHOUT ANY CODE CHANGE -- the property
+    # `say` did not have.
+    later = os.path.join(d, "later-hands")
+    os.makedirs(later)
+    with io.open(os.path.join(later, "brand-new"), "w", encoding="utf-8") as f:
+        f.write("#!/bin/sh\n# tool: brand-new\n# call: brand-new <x>\n"
+                "# does: something added after this test was written\necho x\n")
+    e.hands_dir = later
+    page = e.serve_context()
+    check("hands: a hand added later appears with no change to the kernel",
+          "`brand-new <x>` -- something added after this test was written" in page,
+          page[-400:])
+
+    # And nothing is claimed when nothing is known.
+    e.hands_dir = os.path.join(d, "no-such-dir")
+    page = e.serve_context()
+    check("hands: no directory, no block -- never a guessed list",
+          "## Your hands" not in page and e.served.get("hands_served") == 0)
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_an_editing_hand_never_empties_a_tool_and_never_rewrites_its_bytes():
+    """**`tool-edit` could empty a tool.** 2026-09-24, found on the Windows bench
+    and then reproduced in a container built from the production image: given
+    one byte that is not valid UTF-8 on stdin -- the container's stdin is utf-8
+    with surrogateescape -- the old hand truncated the tool with `open(p, "w")`
+    and THEN failed to encode it, exiting 1 with the tool at 0 bytes. Never
+    seen in production (0 in the journal, 0 empty tools, 0 tools holding such
+    a byte). And it read the old version with errors="replace", so a stray
+    byte anywhere in a tool became U+FFFD in the tool's .bak -- the framework
+    rewriting the creature's source.
+
+    Measured before the fix shipped, on the laptop against every real tool in
+    the library: 86 of 86 piped through the old and new hand came out
+    byte-identical. So this changes nothing that ever worked; it only removes
+    the two ways it could destroy or alter what the creature wrote.
+    """
+    d = tmpdir()
+    mind = os.path.join(d, "mind")
+    own = os.path.join(mind, "tools", "own")
+    os.makedirs(own)
+    p = os.path.join(own, "t")
+    clean = b"#!/bin/sh\n# tool: t\n# call: t\n# does: says \xe2\x9c\x93 hi\necho ok\n"
+    stray = clean.replace(b"says", b"caf\xe9 says")      # not valid UTF-8
+
+    def hand(name, stdin_bytes, prior):
+        with open(p, "wb") as f:
+            f.write(prior)
+        for x in (p + ".bak",):
+            if os.path.exists(x):
+                os.remove(x)
+        here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        r = subprocess.run([sys.executable, os.path.join(here, "hands", name)]
+                           + (["t"]), input=stdin_bytes, capture_output=True,
+                           env=dict(os.environ, MIND=mind), timeout=60)
+        out = open(p, "rb").read()
+        bak = open(p + ".bak", "rb").read() if os.path.exists(p + ".bak") else None
+        return r.returncode, out, bak
+
+    code, out, bak = hand("tool-edit", clean, b"#!/bin/sh\necho old\n")
+    check("faithful: a valid body is written exactly as given, UTF-8 and all",
+          code == 0 and out == clean, (code, out[:80]))
+    code, out, bak = hand("tool-edit", stray, clean)
+    check("faithful: one invalid byte on stdin does NOT empty the tool",
+          len(out) > 0, len(out))
+    check("faithful: it is written exactly as given",
+          code == 0 and out == stray, (code, out[:80]))
+    check("faithful: and the .bak is the old tool, byte for byte",
+          bak == clean, bak and bak[:80])
+    code, out, bak = hand("tool-edit", clean, stray)
+    check("faithful: a stray byte ALREADY in the tool survives into its .bak "
+          "exactly -- not as U+FFFD", bak == stray, bak and bak[:80])
+    code, out, bak = hand("tool-edit", clean.replace(b"\n", b"\r\n"), stray)
+    check("faithful: CRLF on stdin still arrives as LF, as text-mode stdin "
+          "always delivered it -- so nothing that worked before changes",
+          out == clean, out[:80])
+
+    block = (b"<<<<<<< SEARCH\necho ok\n=======\necho yes\n>>>>>>> REPLACE\n")
+    code, out, bak = hand("tool-replace", block, stray)
+    check("faithful: tool-replace keeps a stray byte elsewhere in the tool "
+          "exactly", code == 0 and out == stray.replace(b"echo ok", b"echo yes")
+          and bak == stray, (code, out[:80]))
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_tool_can_be_changed_by_the_passage_not_by_the_whole():
+    """**PLAN 21.2: the idiom was the wall.** `tool-edit` takes a tool's COMPLETE
+    new content, so changing one line of `plan` costs a reply as long as all
+    12 KB of it. On 2026-09-20 that made the creature's central tool
+    structurally uneditable (298 of 346 cut-off replies were whole-tool
+    rewrites); the budget raise moved the wall and did not remove it.
+    `tool-replace` changes the passages it is shown and nothing else.
+
+    ALL OR NOTHING, and never a guess: a partial edit that lands half its
+    blocks leaves a tool worse than untouched, and a hand that "fixes" a
+    near-miss is the framework rewriting the creature's source (§2.1).
+    """
+    d = tmpdir()
+    mind = os.path.join(d, "mind")
+    own = os.path.join(mind, "tools", "own")
+    os.makedirs(own)
+    src = ("#!/usr/bin/env python3\n# tool: t\n# call: t\n# does: says hi\n"
+           "def greet():\n    return 'hi'\n\n"
+           "def part():\n    return 1\n\n"
+           "def part2():\n    return 1\n\nprint(greet())\n")
+    p = os.path.join(own, "t")
+    with io.open(p, "w", encoding="utf-8", newline="\n") as f:
+        f.write(src)
+
+    def read():
+        return io.open(p, encoding="utf-8").read()
+
+    code, out, err = _hand("tool-replace", mind, ["t"],
+        "<<<<<<< SEARCH\n    return 'hi'\n=======\n    return 'hello'\n>>>>>>> REPLACE\n")
+    check("replace: one passage changed, exit 0", code == 0, (code, err))
+    check("replace: exactly that passage, the rest untouched",
+          read() == src.replace("return 'hi'", "return 'hello'"), read())
+    check("replace: the old version is kept", io.open(p + ".bak",
+          encoding="utf-8").read() == src)
+    check("replace: it says what it did", "replaced 1 passage" in out, out)
+
+    before = read()
+    code, out, err = _hand("tool-replace", mind, ["t"],
+        "<<<<<<< SEARCH\ndef greet():\n=======\ndef greet(): # a\n>>>>>>> REPLACE\n"
+        "<<<<<<< SEARCH\nthis line is not there\n=======\nx\n>>>>>>> REPLACE\n")
+    check("replace: a block that is not there refuses THE WHOLE EDIT",
+          code == 1 and read() == before, (code, err))
+    check("replace: and says which block", "block 2" in err, err)
+
+    code, out, err = _hand("tool-replace", mind, ["t"],
+        "<<<<<<< SEARCH\n    return 1\n=======\n    return 2\n>>>>>>> REPLACE\n")
+    check("replace: a passage found twice is refused, not picked",
+          code == 1 and read() == before and "2 times" in err, (code, err))
+
+    code, out, err = _hand("tool-replace", mind, ["t"],
+        "<<<<<<< SEARCH\nreturn 'hello'\n=======\nreturn 'x'\n>>>>>>> REPLACE\n")
+    check("replace: a passage that matches only if indentation is ignored is "
+          "refused and LOCATED, never fixed",
+          code == 1 and read() == before and "line 6" in err, (code, err))
+
+    code, out, err = _hand("tool-replace", mind, ["t"],
+        "<<<<<<< SEARCH\n=======\nx\n>>>>>>> REPLACE\n")
+    check("replace: an empty SEARCH is refused -- that is tool-edit's job",
+          code == 1 and read() == before, (code, err))
+
+    for bad in ("../t", "..\\t", ".hidden"):
+        code, out, err = _hand("tool-replace", mind, [bad],
+            "<<<<<<< SEARCH\na\n=======\nb\n>>>>>>> REPLACE\n")
+        check("replace: a name that is a path (%r) is refused" % bad, code == 1)
+
+    code, out, err = _hand("tool-replace", mind, ["t"],
+        "<<<<<<< SEARCH\ndef part():\n    return 1\n=======\ndef part(:\n"
+        "    return 1\n>>>>>>> REPLACE\n")
+    check("replace: a change that breaks the tool is SAVED and WARNED about, "
+          "as tool-edit does -- the creature's source is the creature's",
+          code == 0 and "cannot start" in err and "def part(:" in read(),
+          (code, err))
+
+    # the last line of a file with no final newline
+    q = os.path.join(own, "u")
+    with io.open(q, "w", encoding="utf-8", newline="\n") as f:
+        f.write("#!/bin/sh\n# tool: u\necho old")
+    code, out, err = _hand("tool-replace", mind, ["u"],
+        "<<<<<<< SEARCH\necho old\n=======\necho new\n>>>>>>> REPLACE\n")
+    check("replace: the last line of a file with no final newline can be "
+          "quoted, and the file keeps its ending",
+          code == 0 and io.open(q, encoding="utf-8").read()
+          == "#!/bin/sh\n# tool: u\necho new", (code, err))
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_no_visit_but_a_done_claim_is_told_the_creature_finished():
+    """**The framework put a completion claim in the creature's mouth on nine
+    visits in ten.** 2026-09-24, PLAN 23.5, measured over run 2's 246
+    verdicts: 26 came from a DONE_CLAIM; the other 220 -- a new tool file,
+    a stall, a heartbeat -- were each told "The creature has just marked a
+    piece of work done" and "What it claims: I finished X.", and asked to
+    judge a claim nobody made. `CLAUDE.md` §2.5 is *never let the manager
+    claim an experience it did not have*; this was the framework doing it to
+    the builder.
+
+    Driven through the kernel's real visit path, and the prompt read off what
+    the cousin actually RECEIVED -- a template read on its own would prove the
+    template, not the wiring.
+    """
+    for trig in ("TOOL_WRITE", "STALL", "HEARTBEAT", "DONE_CLAIM"):
+        e, j, b, d = build_engine([""], [])
+        own = os.path.join(b.mind, "tools", "own")
+        _write_tool(own, "plan", does="keeps the plan", call="plan list")
+        got = []
+
+        def spy(prompt, _got=got):
+            _got.append(prompt)
+            return ACCEPT_REPLY, {"model": "spy", "done_reason": "stop"}
+        e.ask_cousin = spy
+        e.visit_cousin((trig, {}), [], ["plan"], ["plan"])
+        page = got[-1] if got else ""
+        check("why: a %s visit reached the cousin at all" % trig, bool(page))
+        if trig == "DONE_CLAIM":
+            check("why: a real done-claim is still served as one",
+                  "marked a piece of work done" in page
+                  and "I finished plan" in page, page[-600:])
+        else:
+            check("why: a %s visit is NOT told the creature finished anything"
+                  % trig,
+                  "I finished" not in page
+                  and "marked a piece of work done" not in page, page[-600:])
+            check("why: and a %s visit is told why it came instead" % trig,
+                  cousin.WHY[trig][0] in page, page[-600:])
+        check("why: every visit is told it may keep a note at verdict time "
+              "(%s)" % trig, "remember: <key> <value>" in page)
+        b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_verdict_note_is_kept_for_the_cousin_and_never_reaches_the_creature():
+    """**The cousin could remember what it knew coming in, never what it
+    learned.** 2026-09-24, PLAN 23.5. `remember` ran only in the invocation
+    shell, before any output existed, and the verdict call has no shell -- so
+    PLAN 20.4's measurement (one key, unchanged for days) was the structure
+    working as built. A note may now ride in the verdict block.
+
+    Two ways this could go wrong, both asserted: the note parsed into the
+    TESTIMONY (the old to_creature parser read until the next field it knew,
+    and `remember` was not one) -- which would hand the cousin's private notes
+    to the creature; and the note written somewhere the next harvest
+    overwrites, which would make it vanish exactly one visit later.
+    """
+    import json
+    import run as runmod
+    reply = ("I ran it.\n<<<COUSIN\nverdict: RETURNED\ntried: plan list\n"
+             "outcome: exit 1, nothing listed\n"
+             "to_creature: |\n  I ran plan list and it stopped with an error.\n"
+             "  Nothing was listed at all.\n"
+             "remember: plan-list-fails exit-1-on-an-empty-store\n"
+             "remember: good-id 100\nCOUSIN")
+    v = cousin.parse(reply)
+    check("note: the verdict still parses", v.verdict == cousin.RETURNED,
+          v.verdict)
+    check("note: both notes are read",
+          v.remember == [("plan-list-fails", "exit-1-on-an-empty-store"),
+                         ("good-id", "100")], v.remember)
+    check("note: the testimony is intact",
+          "Nothing was listed at all." in v.to_creature, v.to_creature)
+    check("note: and the cousin's note is NOT in what the creature is told",
+          "plan-list-fails" not in v.to_creature
+          and "remember" not in v.to_creature.lower(), v.to_creature)
+
+    e, j, b, d = build_engine([""], [""])
+    _write_tool(os.path.join(b.mind, "tools", "own"), "plan",
+                does="keeps the plan", call="plan list")
+    cb = runmod.PathBody(os.path.join(d, "cousin-body"))
+    e.cousin_body = cb
+    e.sync_cousin_world()                      # this visit's world
+    n = e.keep_cousin_notes(v.remember)
+    check("note: kept at verdict time", n == 2, n)
+    e.sync_cousin_world()                      # the NEXT visit: harvest runs
+    try:
+        store = json.load(io.open(e.cousin_memory_path(), encoding="utf-8"))
+    except Exception as ex:                    # noqa: BLE001
+        store = {"<unreadable>": str(ex)}
+    check("note: it survives into the cousin's store across the next harvest",
+          store.get("plan-list-fails") == "exit-1-on-an-empty-store"
+          and store.get("good-id") == "100", store)
+    check("note: and the next visit's world hands it back to `recall`",
+          "plan-list-fails" in io.open(
+              os.path.join(cb.mind, "state", "memory.json"),
+              encoding="utf-8").read())
+    cmem = os.path.join(b.mind, "state", "memory.json")
+    check("note: the CREATURE's memory never holds it",
+          not os.path.exists(cmem)
+          or "plan-list-fails" not in io.open(cmem, encoding="utf-8").read())
+    check("note: the journal records that notes were kept, by key only",
+          any(r.get("keys") == ["plan-list-fails", "good-id"]
+              for r in j.read(kinds=["cousin_noted"])))
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
 def test_the_monitor_sees_a_page_that_has_outgrown_the_rung():
@@ -9533,7 +9867,12 @@ def test_the_monitor_unit_is_read_only_over_the_evidence():
 
 def main():
     t0 = time.time()
-    for fn in (test_the_monitor_sees_a_page_that_has_outgrown_the_rung,
+    for fn in (test_the_creature_is_shown_the_hands_it_was_given,
+               test_an_editing_hand_never_empties_a_tool_and_never_rewrites_its_bytes,
+               test_a_tool_can_be_changed_by_the_passage_not_by_the_whole,
+               test_no_visit_but_a_done_claim_is_told_the_creature_finished,
+               test_a_verdict_note_is_kept_for_the_cousin_and_never_reaches_the_creature,
+               test_the_monitor_sees_a_page_that_has_outgrown_the_rung,
                test_monitor_detectors_fire_where_the_scars_happened,
                test_monitor_writes_only_its_own_directory,
                test_monitor_alarms_are_edge_triggered,

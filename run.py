@@ -648,6 +648,7 @@ def main(argv=None):
     j = Journal(os.path.join(args.root, "journal.jsonl"))
     body = PathBody(os.path.join(args.root, "body"))
     body.bin = install_hands(body)
+    hands_dir = body.bin   # kept: `body` becomes the container below
     if args.body == "docker":
         # The host-side PathBody above is still what creates the mind and
         # installs the hands; the container is then wrapped around exactly
@@ -814,6 +815,8 @@ def main(argv=None):
                os.path.join(args.root, "context.md"),
                creature_brief=creature_brief, cousin_body=cousin_body,
                ask_cousin_invoke=ask_cousin_invoke)
+    # What the creature is told it has is read from what it WAS given.
+    e.hands_dir = hands_dir
 
     # Pick up where a killed run left off. Derived from the journal, so there
     # is no savegame to go stale -- a crash costs the cycle in flight and

@@ -24,6 +24,15 @@ import re
 BLOCK_RE = re.compile(r"<<<COUSIN\b(.*?)(?:^COUSIN\s*$|\Z)", re.S | re.M)
 FIELD_RE = re.compile(r"^\s*(verdict|tried|outcome|want|noticed)\s*:\s*(.*)$",
                       re.I | re.M)
+# A NOTE FOR ITS NEXT VISIT, kept at the moment it has something to note.
+# 2026-09-24 (PLAN 23.5): the cousin was told `remember <key> <value>` keeps
+# a note -- in the INVOCATION shell, before it has seen any output -- and the
+# verdict call that follows has no shell at all. So it could remember what it
+# knew coming in and never what it learned, which is exactly the measurement
+# PLAN 20.4 recorded: one key, written during an invocation, unchanged for
+# days. Bounded here as the harvest bounds the store.
+REMEMBER_RE = re.compile(r"^\s*remember\s*:\s*(\S+)\s+(.+?)\s*$", re.I | re.M)
+REMEMBER_MAX = 5
 
 ACCEPTED = "ACCEPTED"
 RETURNED = "RETURNED"
@@ -32,8 +41,9 @@ UNKNOWN = "UNKNOWN"
 
 class Verdict:
     def __init__(self, verdict=UNKNOWN, tried="", outcome="", to_creature="",
-                 want="", noticed="", error=None, raw=""):
+                 want="", noticed="", error=None, raw="", remember=None):
         self.verdict = verdict
+        self.remember = list(remember or [])
         self.tried = tried
         self.outcome = outcome
         self.to_creature = to_creature
@@ -57,6 +67,8 @@ class Verdict:
         return {"verdict": self.verdict, "tried": self.tried,
                 "outcome": self.outcome, "to_creature": self.to_creature,
                 "want": self.want or None, "noticed": self.noticed or None,
+                "remember": ([list(p) for p in self.remember]
+                             if self.remember else None),
                 "error": self.error}
 
 
@@ -70,7 +82,7 @@ def parse(reply):
 
     m = re.search(
         r"^\s*to_creature\s*:\s*\|?\s*\n(.*?)"
-        r"(?=^\s*(?:want|noticed|verdict|tried|outcome)\s*:|\Z)",
+        r"(?=^\s*(?:want|noticed|verdict|tried|outcome|remember)\s*:|\Z)",
         body, re.S | re.M)
     if m:
         msg = "\n".join(l.strip() for l in m.group(1).strip().splitlines()).strip()
@@ -86,8 +98,10 @@ def parse(reply):
     else:
         return Verdict(UNKNOWN, error="no-verdict", raw=reply or "")
 
+    notes = [(k[:120], val[:400]) for k, val in REMEMBER_RE.findall(body)]
     out = Verdict(v, got.get("tried", ""), got.get("outcome", ""), msg,
-                  got.get("want", ""), got.get("noticed", ""), raw=reply or "")
+                  got.get("want", ""), got.get("noticed", ""), raw=reply or "",
+                  remember=notes[:REMEMBER_MAX])
     if not out.deliverable:
         out.error = "mute-refusal"
     return out
@@ -105,9 +119,55 @@ pays forever, in a library it must later hand to you whole.
 """
 
 
-def build_prompt(brief, claim, header, transcript, library=""):
+# WHY THE COUSIN IS HERE, SAID TRUTHFULLY. 2026-09-24 (PLAN 23.5): every
+# verdict prompt opened "The creature has just marked a piece of work done"
+# and served the claim "I finished X." -- on every visit, whatever summoned it.
+# Measured over run 2's 246 verdicts: only 26 came from a DONE_CLAIM. The
+# other 220 -- a new tool file (111), a stall (105), a heartbeat (4) -- were
+# handed a completion claim the creature never made, and asked to judge it.
+# The framework was putting words in the builder's mouth on nine visits in
+# ten, which is `CLAUDE.md` §2.5's fault with the framework as author.
+#
+# `None` is the legacy caller, which only ever meant a done-claim; the kernel
+# always passes the real trigger.
+WHY = {
+    "DONE_CLAIM": (
+        "The creature has just marked a piece of work done. You went to use it.",
+        "What it claims"),
+    "TOOL_WRITE": (
+        "The creature has just written or changed this tool. It has NOT said "
+        "it is finished. You went to use what is there now, as the person who "
+        "needs it would.",
+        "What changed"),
+    "STALL": (
+        "Nothing in the creature's library has changed for a while, and "
+        "nobody has claimed anything. You went to use something it has "
+        "already built, to find out whether it works for you.",
+        "What you picked"),
+    "HEARTBEAT": (
+        "A routine visit, and nobody has claimed anything. You went to use "
+        "something it has built, to find out whether it still works for you.",
+        "What you picked"),
+}
+
+
+def claim_for(trigger, target):
+    """What the case says the creature CLAIMED -- only ever what it did."""
+    t = target or "this work"
+    if trigger in (None, "DONE_CLAIM"):
+        return "I finished %s." % t
+    if trigger == "TOOL_WRITE":
+        return "It wrote or changed `%s`, and has not said it is finished." % t
+    return "`%s`, which it built earlier. It has claimed nothing about it." % t
+
+
+def build_prompt(brief, claim, header, transcript, library="", trigger=None):
+    why, what = WHY.get(trigger or "DONE_CLAIM", (
+        "You went to use something the creature built. Nobody told you why "
+        "you were sent, so judge only what happened when you used it.",
+        "What you were given"))
     out = brief + CASE_TEMPLATE.format(
-        claim=claim, header=header, transcript=transcript)
+        why=why, what=what, claim=claim, header=header, transcript=transcript)
     if library:
         out += LIBRARY_TEMPLATE.format(library=library)
     return out
@@ -119,9 +179,9 @@ CASE_TEMPLATE = """
 
 # This visit
 
-The creature has just marked a piece of work done. You went to use it.
+{why}
 
-## What it claims
+## {what}
 
 {claim}
 
@@ -140,6 +200,13 @@ The creature has just marked a piece of work done. You went to use it.
 ---
 
 Decide. Emit exactly one `<<<COUSIN` block as the last thing in your reply.
+
+If this visit taught you something you will want NEXT time -- an identifier
+that worked, which tool failed you and on what -- you may put up to five
+`remember: <key> <value>` lines inside the block. They are yours alone: the
+creature never sees them, and `recall` gives them back to you next visit. They
+are not a way to tell the creature anything, and not a softer place for a
+refusal -- what happened to you goes in `to_creature`, whatever you note.
 """
 
 
@@ -347,7 +414,8 @@ def visit(ask, brief, claim, header, transcript, journal=None, trigger=None,
     USER SAID about each tool -- accepted, returned -- which is a fact about
     testimony, in place of the *FAILED* the framework used to compute from
     an exit code it can no longer interpret (see `argless`)."""
-    prompt = build_prompt(brief, claim, header, transcript, library)
+    prompt = build_prompt(brief, claim, header, transcript, library,
+                          trigger=trigger)
     try:
         reply, meta = ask(prompt)
     except Exception as e:

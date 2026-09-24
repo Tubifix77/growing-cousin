@@ -27,6 +27,13 @@ import time
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# ONE TEMPLATE. Until 2026-09-24 this file carried its own byte-for-byte copy
+# of the kernel's CASE_TEMPLATE, so the first change to the kernel's served
+# text would have left every trial score measuring the OLD prompt -- a
+# producer and a checker sharing a literal, which this project's parent names
+# as the thing that drifts. The trial now asks the kernel to build the prompt.
+sys.path.insert(0, os.path.dirname(HERE))
+from kernel import cousin as _kcousin   # noqa: E402
 REPO = os.path.dirname(HERE)
 BRIEF = os.path.join(REPO, "MANAGER-PROMPT.md")
 CASES = os.path.join(HERE, "cases.json")
@@ -76,33 +83,7 @@ class Lock:
             pass
         return False
 
-CASE_TEMPLATE = """\
----
-
-# This visit
-
-The creature has just marked a piece of work done. You went to use it.
-
-## What it claims
-
-{claim}
-
-## The tool's header, as you read it
-
-```
-{header}
-```
-
-## What happened when you tried to use it
-
-```
-{transcript}
-```
-
----
-
-Decide. Emit exactly one `<<<COUSIN` block as the last thing in your reply.
-"""
+CASE_TEMPLATE = _kcousin.CASE_TEMPLATE   # the kernel's, never a copy
 
 
 # ---------------------------------------------------------------- backends
@@ -337,6 +318,11 @@ def main():
     ap.add_argument("--label", default=None,
                     help="filename tag for the run; defaults to the model id")
     ap.add_argument("--case", action="append", help="run only these case names")
+    ap.add_argument("--trigger", default="DONE_CLAIM",
+                    choices=sorted(_kcousin.WHY),
+                    help="frame every case as the visit this trigger summons "
+                         "(default: a done-claim, which is what every case "
+                         "was written as)")
     ap.add_argument("--out", default=os.path.join(HERE, "results"))
     ap.add_argument("--cases", default=CASES,
                     help="case file; repair-cases.json runs the correction loop")
@@ -438,8 +424,15 @@ def _run(args):
         # twelve is a fault that will appear in production and pass every test.
         work = [(rep, c) for rep in range(1, args.reps + 1) for c in cases]
         for rep, c in work:
-            prompt = brief + "\n\n" + CASE_TEMPLATE.format(
-                claim=c["claim"], header=c["header"], transcript=c["transcript"])
+            # A case is framed as the trigger asked for. DONE_CLAIM keeps the
+            # case's own claim; any other trigger gets the claim the kernel
+            # would serve for it, so a stall visit is never told the creature
+            # finished something.
+            claim = (c["claim"] if args.trigger == "DONE_CLAIM"
+                     else _kcousin.claim_for(args.trigger, c["name"]))
+            prompt = _kcousin.build_prompt(brief, claim, c["header"],
+                                           c["transcript"],
+                                           trigger=args.trigger)
             try:
                 if args.backend == "openai":
                     reply, secs, meta = call_openai(
@@ -486,6 +479,7 @@ def _run(args):
 
             row = {
                 "kind": "trial_verdict", "model": model, "case": c["name"],
+                "trigger": args.trigger,
                 "rep": rep,
                 "class": c["class"], "expect": c["expect"], "verdict": verdict,
                 "mark": mark, "parse_error": perr, "call_error": err,

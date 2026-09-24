@@ -9,14 +9,41 @@ if not name:
 mind = os.environ.get("MIND", ".")
 d = os.path.join(mind, "tools", "own"); os.makedirs(d, exist_ok=True)
 p = os.path.join(d, name)
-body = sys.stdin.read()
+# BYTES IN, BYTES OUT (2026-09-24). This hand used to read stdin in the
+# host's codec and write with strict UTF-8 AFTER `open(p, "w")` had already
+# truncated the tool: one byte that is not valid UTF-8 -- the container's
+# stdin is utf-8 with surrogateescape -- and the write raised, leaving the
+# creature an EMPTY tool and a traceback. Never seen in production (0 in the
+# journal, 0 empty tools); found on the Windows bench, where the host codec
+# makes it fire every time. And the old version was read back with
+# errors="replace", so a stray byte anywhere in the tool became U+FFFD in the
+# tool AND in its .bak -- the framework rewriting the creature's source.
+#
+# Now bytes are kept exactly as given, and nothing is truncated before the
+# new content is safely on disk. Text-mode stdin used to turn \r\n and a
+# lone \r into \n, and that is kept, so the TOOL written is byte-identical
+# to before for every input that worked; the gate asserts it. The .bak is
+# now a true copy, which it was not.
+SE = "surrogateescape"
+body = (sys.stdin.buffer.read().decode("utf-8", SE)
+        .replace("\r\n", "\n").replace("\r", "\n"))
 if not body.strip():
     sys.stderr.write("refusing to write an empty tool\n"); sys.exit(1)
 old = None
+
+
+def _write(path, text):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8", errors=SE, newline="") as f:
+        f.write(text)
+    os.replace(tmp, path)
+
+
 if os.path.exists(p):
-    old = open(p, encoding="utf-8", errors="replace").read()
-    open(p + ".bak", "w", encoding="utf-8").write(old)   # never edit without a .bak
-open(p, "w", encoding="utf-8").write(body)
+    with open(p, encoding="utf-8", errors=SE, newline="") as f:
+        old = f.read()
+    _write(p + ".bak", old)                  # never edit without a .bak
+_write(p, body)
 os.chmod(p, os.stat(p).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 print("wrote tools/own/%s (%d -> %d lines)"
       % (name, len((old or "").splitlines()), len(body.splitlines())))
@@ -26,7 +53,8 @@ if not first.startswith("#!"):
     sys.stderr.write("WARNING: %s has no #! line, so nothing tells the kernel how "
                      "to run it. A tool must be able to start.\n" % name)
 elif "python" in first:
-    t = tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8")
+    t = tempfile.NamedTemporaryFile("w", suffix=".py", delete=False,
+                                    encoding="utf-8", errors=SE, newline="")
     t.write(body); t.close()
     r = subprocess.run([sys.executable, "-m", "py_compile", t.name],
                        capture_output=True, text=True)

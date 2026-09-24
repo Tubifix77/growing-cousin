@@ -117,6 +117,9 @@ class Engine:
         lib = librarymod.render(own, self.j)
         if lib:
             parts.append(lib)
+        hands = self.hands_block()
+        if hands:
+            parts.append(hands)
         wants = []
         if os.path.exists(self.context_path):
             with open(self.context_path, encoding="utf-8") as f:
@@ -159,6 +162,7 @@ class Engine:
             "refusal_served": bool(self.done_blocked),
             "memory_served": bool(mem),
             "chat_served": bool(chat),
+            "hands_served": hands.count("\n- `") if hands else 0,
             # THE BUDGET, AS SERVED. `over_budget` is True only when the rest
             # of the page left less than the floor -- the one case the bound
             # cannot hold -- so a reader never has to recompute it.
@@ -167,6 +171,50 @@ class Engine:
             "over_budget": len(context) > self.CONTEXT_BUDGET_CHARS,
         }
         return context
+
+    def hands_block(self):
+        """ITS HANDS, EVERY WAKE, each described by its own header.
+
+        2026-09-24 (PLAN 14.5 / 21.2). The creature learns its built-in hands
+        from one line of `CREATURE-PROMPT.md`, typed once and frozen since:
+        `remember`, `recall`, `tool-new`, `tool-edit`. **`say` was built
+        afterwards and the creature was never told it existed** -- the
+        library's gap (§4, 2026-09-13) arriving at the hands, where a list
+        written by hand drifted the day a hand was added. A partial-edit hand
+        announced the same way would have repeated it exactly.
+
+        So the hands describe themselves, the way the library's tools do:
+        their `# call:` and `# does:` lines, read from what is INSTALLED in
+        this body -- never from a list, and never claiming a hand it does not
+        have. No directory known, nothing served: an empty block is honest, a
+        guessed one is the fault this exists to fix.
+        """
+        d = getattr(self, "hands_dir", None) or getattr(self.body, "bin", None)
+        if not d or not os.path.isdir(d):
+            return ""
+        rows = []
+        for n in sorted(os.listdir(d)):
+            p = os.path.join(d, n)
+            if not os.path.isfile(p) or n.startswith("."):
+                continue
+            call = does = ""
+            try:
+                with io.open(p, encoding="utf-8", errors="replace") as f:
+                    for line in f.readlines()[:8]:
+                        s = line.strip()
+                        if s.startswith("# call:"):
+                            call = s[len("# call:"):].strip()
+                        elif s.startswith("# does:"):
+                            does = s[len("# does:"):].strip()
+            except OSError:
+                continue
+            if call or does:
+                rows.append("- `%s` -- %s" % (call or n, does or "(no # does: line)"))
+        if not rows:
+            return ""
+        return ("## Your hands\n\nBuilt in and always on your PATH; they are "
+                "the framework's, not your tools, and you cannot change them. "
+                "Each is described by its own header:\n\n" + "\n".join(rows))
 
     def record_want(self, want):
         """The cousin asking for the next capability IS the direction mechanism.
@@ -829,7 +877,8 @@ class Engine:
         orphan = self.orphan_probe()
         if orphan is not None:
             target = orphan.get("tool") or ""
-            claim, header, transcript, library = self.replay_evidence(orphan)
+            claim, header, transcript, library = self.replay_evidence(
+                orphan, trigger=trigger)
             self.j.append("verdict_recovered", tool=target,
                           probe_ts=float(orphan.get("ts") or 0),
                           age_s=int(time.time() - float(orphan.get("ts") or 0)),
@@ -837,12 +886,13 @@ class Engine:
                           picked_by=orphan.get("picked_by"))
         else:
             target, how = self.choose_target(executed, tools_after, tools_before)
-            claim, header, transcript, library = self.evidence(target, executed,
-                                                               picked_by=how)
+            claim, header, transcript, library = self.evidence(
+                target, executed, picked_by=how, trigger=trigger)
 
         v = cousinmod.visit(self.ask_cousin, self.brief, claim, header,
                             transcript, journal=self.j, trigger=trigger,
                             library=library, tool=target)
+        self.keep_cousin_notes(v.remember)
 
         if v.verdict == cousinmod.UNKNOWN:
             # Gates nothing. An instrument that cannot run says UNKNOWN.
@@ -1109,6 +1159,44 @@ class Engine:
         self._cousin_memory_installed = True
         return len(mine)
 
+    def keep_cousin_notes(self, notes):
+        """Notes the cousin wrote into its VERDICT, put where its `remember`
+        writes -- the state of its own world -- so the one harvest that
+        already exists carries them into its store at the next visit.
+
+        Written to the world rather than to the store because the harvest
+        REPLACES the store with the world's memory: a note written straight
+        to the store would be overwritten by the next visit's harvest. One
+        store, one path, and exactly one harvest call site, which is the
+        design's own rule for a thing that must never be missed. The creature
+        never reads the cousin's world, so §2.3 holds.
+        """
+        import json
+        if not notes or self.cousin_body is None:
+            return 0
+        if not getattr(self, "_cousin_memory_installed", False):
+            return 0
+        p = os.path.join(self.cousin_body.mind, "state", "memory.json")
+        try:
+            with io.open(p, encoding="utf-8") as f:
+                d = json.load(f)
+            if not isinstance(d, dict):
+                d = {}
+        except Exception:
+            d = {}
+        for k, v in notes:
+            d[str(k)[:120]] = str(v)[:400]
+        try:
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            tmp = p + ".tmp"
+            with io.open(tmp, "w", encoding="utf-8") as f:
+                f.write(json.dumps(d, indent=2))
+            os.replace(tmp, p)
+        except OSError:
+            return 0
+        self.j.append("cousin_noted", keys=[str(k)[:120] for k, _ in notes])
+        return len(notes)
+
     def harvest_cousin_memory(self):
         """Keep what the cousin learned; discard everything else it touched.
 
@@ -1221,7 +1309,7 @@ class Engine:
             return None
         return last
 
-    def replay_evidence(self, probe, now=None):
+    def replay_evidence(self, probe, now=None, trigger=None):
         """What the cousin is shown when judging a run it already made.
 
         The transcript is rebuilt from the journal rather than re-run: running
@@ -1243,7 +1331,7 @@ class Engine:
                     header = "".join(f.readlines()[:8])
             except OSError:
                 header = ""
-        claim = "I finished %s." % (target or "this work")
+        claim = cousinmod.claim_for(trigger, target)
         ran = probe.get("cmd") or target
         age = max(0, int(now - float(probe.get("ts") or 0)))
         transcript = (
@@ -1256,7 +1344,7 @@ class Engine:
                ("\n" + probe.get("stderr")) if probe.get("stderr") else ""))
         return claim, header, transcript, library
 
-    def evidence(self, target, executed, picked_by=None):
+    def evidence(self, target, executed, picked_by=None, trigger=None):
         """What the cousin is shown. It runs the tool ITSELF -- the transcript
         is the cousin's own attempt, never a replay of the creature's.
         `picked_by` is `choose_target`'s reason, recorded on the probe."""
@@ -1309,7 +1397,7 @@ class Engine:
             os.path.join(self.body.mind, "tools", "own"), self.j,
             exclude=target, title=None)
 
-        claim = "I finished %s." % (target or "this work")
+        claim = cousinmod.claim_for(trigger, target)
         if target:
             # Invoke BY NAME, never by a path this code assembles. 2026-09-11,
             # first live run: os.path.join produced `tools\own\fetcher.py` on
