@@ -91,9 +91,20 @@ The stop file is also honoured at START-up: while it exists the engine refuses
 to run and says so. A reboot or a `systemctl restart` therefore cannot quietly
 undo a deliberate stop.
 
-`Restart=on-failure`, never `always`. The loop exits **0** both when it was
-asked to stop and when a run of consecutive failures ended it; restarting either
-would defeat the bound. A crash loop here is billed to the spine's quota.
+`Restart=on-failure`, never `always`, and the exit codes are what make that
+right. ~~The loop exits **0** both when it was asked to stop and when a run of
+consecutive failures ended it.~~ Corrected 2026-09-25 -- that stopped being true
+on 2026-09-13, when a give-up that exited 0 was found lying there unrestarted:
+
+| exit | meaning | systemd |
+|---|---|---|
+| **0** | asked to stop (the STOP file, mid-run), or a bounded run finished | stays down |
+| **3** | refused to start: preflight failed, or the body does not answer a probe | restarts, bounded to 5 starts / 30 min |
+| **4** | **refused to start** because a STOP file exists | stays down -- `SuccessExitStatus=4`, so a refusal cannot spend the restart budget (2026-09-24: five automatic retries of a refusal locked the observer's Start button until `reset-failed`) |
+| **5** | **gave up** -- consecutive failures, or every rung walled for a rejected credential (`run.py`, `sup.ended_in_fault`) | restarts, same bound; if it keeps giving up, a human is needed |
+| anything else | crashed | restarts, same bound |
+
+A crash loop here is billed to the spine's quota, which is why the bound exists.
 
 ## Reading the monitor
 
@@ -152,7 +163,8 @@ in `main()`, before the loop starts.
 |---|---|---|
 | `kernel/*.py`, `run.py` | **restart** | imported once at startup |
 | `CREATURE-PROMPT.md`, `MANAGER-PROMPT.md` | **restart** | read once in `main()` (`run.py:156-158`) — the creature's identity is SERVED from memory every wake, not re-read |
-| `rungs.local.json`, `rungs.cousin.local.json` | **restart** | `load_spec` runs once (`run.py:178-179`) |
+| `rungs.local.json`, `rungs.cousin.local.json` | **restart** | `load_spec` runs once in `main()` |
+| what the ladder has learned: rungs walled for a rejected credential, and the smallest request each rung refused as too large (413) | **forgotten on restart** | held in the process on purpose -- a restart is the one moment a provider that raised its limit, or a fixed key, gets asked again |
 | `deploy/*.service`, `*.timer` | **`daemon-reload` + restart** | and copy it to `~/.config/systemd/user/` first — editing the repo copy alone changes nothing |
 | `live/context.md` (the wants) | **live** | the cousin writes it, the kernel re-reads it every wake. This is the whole point of "the manager writes the context, the kernel serves it" |
 | `live/journal.jsonl` | **live** | append-only; `vitals.py`, `census.py` and the observer all read it while the engine runs |
@@ -191,9 +203,10 @@ directory does not exist until somebody writes to it; that is not a fault.
 You do not have to watch for it: the monitor's `creature_said` finding surfaces
 the newest message on `live/monitor/status.md`.
 
-> **The creature has NOT been told `say` exists** (PLAN item 14.5).
-> `CREATURE-PROMPT.md` is frozen until the brief's unfreeze, and a new
-> surface arriving mid-measurement makes every number on either side
-> incomparable. So in practice the channel is one-way today. The gate refuses
-> to let that be forgotten: every file in `hands/` must be named in the
-> prompt or recorded as deliberately withheld.
+> ~~**The creature has NOT been told `say` exists** (PLAN item 14.5).~~
+> **It is told, every wake, since `d833f7d` (deployed 2026-09-25 23:21).** The
+> served *"Your hands"* block reads each installed hand's own `# call:` /
+> `# does:` header, so `say` -- and `tool-replace`, and any hand added later --
+> is named the day it is installed, without an edit to the prompt. The gate
+> asserts every file in `hands/` carries that header, so a hand cannot arrive
+> unannounced.

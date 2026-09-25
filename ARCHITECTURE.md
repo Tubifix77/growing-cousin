@@ -297,7 +297,9 @@ intervene was a missing bound. The fix is always a limiter, never a judgment.
 | `run_command` timeout, and a reaper for what it backgrounds | The timeout bound the exec, not its children; 49 orphans accumulated |
 | Journal append + schema | Ground truth. Neither agent may edit it |
 | Truncation caps, with the marker invariant | A marker reports **total** characters not shown; a later cut may only increase that number |
-| Provider ladder mechanics + `classify_error` | An unrecognised error routes to the next rung, never walls the account, and announces itself once with its text |
+| Provider ladder mechanics + `classify_error` | An unrecognised error routes to the next rung, never walls the account, and announces itself once with its text — since 2026-09-24 with the provider's own words (`rung_declined.detail`, credentials redacted) |
+| A request a rung refused as too large is not sent to it again at that size (2026-09-25) | A 413 is a fact about the request, not the hour, so remembering it keeps the ladder deterministic. Groq refused every creature think with 413 — ~400 a day, 0 answered in four days, on an account shared with the spine. A 429 still skips nothing |
+| A budget on the **whole** page the creature is served (56,000 chars, transcript sized last) | A bound on each part is not a bound on the whole: on 2026-09-24 three per-part caps let the page outgrow the only rung serving it, and nothing answered for eight hours |
 | Test gate | Must literally contain `ALL TESTS PASS`, written to a file, never a pipe |
 | Trigger detection | Mechanical, cheap, unarguable — see below |
 
@@ -435,7 +437,18 @@ eight standing inspections work unmodified:
   parent has a scar for exactly that: grepping a date string returns coincidental
   hits and reads like a quiet day.)
 - Same health-log line formats, so FLATLINE / WAKE / UNMET / JANITOR parse.
-- Same tool contract and `framework-tools/` hands.
+- Same tool contract (`# tool:` / `# call:` / `# does:` headers). ~~Same
+  `framework-tools/` hands~~ — **not any more, and one difference is
+  deliberate.** The spine's creature has 14 framework tools; ours has 6 hands
+  (`tool-new`, `tool-edit`, `tool-replace`, `remember`, `recall`, `say`), each
+  announced every wake by its own header. **The deliberate one is `ask`**: the
+  spine's creature can send one question to a real model, and ours cannot,
+  because no key ever enters its box (`selfcheck` re-proves `keys_unreadable`
+  at every start). Tue, 2026-09-25: *"no ask for cousin, that's the idea
+  here."* Both creatures are now told the truth about what they have — the
+  starter map no longer lists *subagent orchestration* in either — and the
+  difference is a stated condition of every comparison between them, never a
+  finding. `README.md` *No subagents* has the reasoning and the numbers.
 
 New journal kinds this engine adds: `cousin_verdict`, `cousin_want`,
 `trigger_fired`. All outside `MEANINGFUL_KINDS` — they reach the instruments and
@@ -634,6 +647,15 @@ cause *fewer, better* tools.
 - **The manager writing or editing tools.** It is the second user, not a second
   builder. That coupling surface is what killed the "builder" proposal in the
   parent project.
+- **Subagent orchestration, or any model hand for the creature** — decided
+  2026-09-24/25 (Tue), never to be built here. On a free tier a helper model
+  is not extra capacity; it spends the same small shared allowance. And a
+  model inside the box needs a key inside the box, which is the oldest security
+  hole this project closed. Our prompt used to promise the capability anyway,
+  and the creature spent eighty runs and eleven rewrites on an orchestrator that
+  could never authenticate. What replaced the promise is the fact: *it cannot
+  call a language model.* A keyless relay that would have matched the spine's
+  `ask` was designed the same evening and dropped the same evening.
 - **Manager-visible full output while the creature sees a window.** It relocates
   the truncation problem rather than removing it, and makes the manager the
   creature's eyes — a dependency the design exists to avoid.

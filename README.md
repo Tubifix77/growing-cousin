@@ -247,20 +247,22 @@ creature to build *"a toolkit for a near-conscious LLM 'cousin' (Linux
 container, Python 3, persistent memory, shell tools, free-tier LLM APIs, no
 human watching)"* — which is a description of the creature's own environment.
 Nobody ever runs those tools. This project exists to make that second inhabitant
-real.
+real. (Our own creature's prompt carried the same *free-tier LLM APIs* line,
+false inside our box, until 2026-09-25 — see *No subagents* below.)
 
 ### The creature
 
 | | Growing Spine | Growing Cousin | |
 |---|---|---|---|
 | What it is | LLM agent in a container building shell tools | identical | **same** |
-| Hands | `tool-new`, `tool-edit`, `remember`, `recall` | identical | **same** |
+| Hands (tools the framework puts on its PATH) | 14 in `framework-tools/`, among them `tool-new`, `tool-edit`, `remember`, `recall`, `web-fetch` and **`ask`** | 6: `tool-new`, `tool-edit`, `tool-replace` (edit part of a file), `remember`, `recall`, `say` — each announced every wake by its own header | different |
+| **Can it call a language model?** | **yes** — `ask` sends one question to `gpt-oss-120b` on Groq (500 a day), and the provider keys sit in its environment | **no, and it is told so** — no key exists in either box (`selfcheck` proves it at every start) | **the difference, on purpose** (2026-09-25, below) |
 | `tools/own` is its world, never edited by the framework | yes | yes | **same** |
-| Think budget | 3072 tokens | 3072 | **same** |
+| Think budget | 3,072 tokens | 8,192 (raised 2026-09-20, when whole-tool rewrites were being cut off) | different |
 | Who it builds for | an **imagined** cousin described in prompt text | a **real** agent that runs what it builds | **the difference** |
 | What it hears back | framework-computed warnings about itself | one user's testimony about what happened to *them* | different |
-| Context per wake | ~16 blocks assembled fresh every cycle | 6 parts, served from a file the cousin wrote | different |
-| Wake cost as the library grows | rises | flat by construction | different |
+| Context per wake | ~16 blocks assembled fresh every cycle | a few parts — testimony, memory, library, hands, the cousin's standing wants, its own brief, and a transcript of what it just did — under a **56,000-character budget on the whole page** | different |
+| Wake cost as the library grows | rises | bounded: the transcript is sized last, to whatever the page has left | different |
 
 ### Second LLM session
 
@@ -303,6 +305,67 @@ and hires the user.
 Nothing above carries a number that was not earned. The call sites, guard names,
 cadence constants and the cousin description were read from source; spine's live
 tool counts and rates were **not** re-measured and are not quoted here.
+
+## No subagents, in either creature (decided 2026-09-24/25)
+
+Both creatures were handed the same starter map, and one of its five kinds of
+tool was *subagent orchestration — spawning helper LLM calls over the free-tier
+APIs*. It is an idea the models bring with them anyway: coding assistants have
+subagents, and agents and orchestrators are all over what they have read.
+
+**Here it was a promise the box could not keep.** Our creature's prompt said its
+cousin had *free-tier LLM API access*, while the deployment is built so that no
+key ever enters either box. The creature did what it was told. It built
+`subagent-orchestrator` and ran it **80 times** against a literal `"default_key"`
+— every call failed to authenticate, and 8 exited 0 having done nothing. A
+family of tools grew up around the logs of an orchestrator that never really
+ran. Seventeenth time this project has recorded *the framework manufactures
+work and the creature is billed for it* (`CLAUDE.md` §5).
+
+**In the spine the calls are real, and so is the dependence.** Its framework gave
+the creature `ask` on 2026-08-14. Read-only from here, and checked by the spine's
+own session against its own instruments: about 398 of its ~750 tools depend on
+one hub, `subagent_ask_helper`. So removing model access there would break most
+of the library, and deleting the tools would be worse than useless.
+
+Tue's perspective settled what to do with that: the subagent idea is off for a
+free-tier project — a helper is not extra capacity, it spends the same small
+shared allowance — and yet building around it may have produced good ideas,
+such as breaking a task into steps or asking a fresh model for an outside
+check. Nobody can sort those by reading the code. **Use can**: a tool that
+keeps being used by someone other than its author was worth building. The
+spine's session measured that it already is sorting them: 58 of those 398
+tools used this week, 337 quiet, use of the family falling month on month
+while plain `ask` rises.
+
+So the fix is **stop the false promise, keep the work**:
+
+| | Growing Spine (its own repo, its own session) | Growing Cousin |
+|---|---|---|
+| The prompt | stops presenting subagents as the model of good growth, retires the category and the build suggestions that route through it | three sentences replaced by true ones: *"It cannot call a language model: nothing in its box, or in yours, holds a key to one."* The category is gone, and the composition example no longer calls a subagent helper |
+| Model access | keeps `ask`, described by what it is — one question to a fresh model, no memory of you, a daily token budget | **none** (Tue: *"no ask for cousin, that's the idea here"*) — no key, no relay, no account |
+| Existing tools | kept; use decides | kept; they are the creature's world (`CLAUDE.md` §2.1) |
+
+The wording states facts rather than forbidding a mechanism — *"ask is not an
+agent"* names the thing to avoid, and a creature told what not to do obeys the
+letter and rebuilds it another way (the spine's `jq -n` scar, above).
+
+**The two creatures now differ by one granted capability, openly.** That is a
+recorded condition of every comparison between them, run 3 included, rather
+than a confound somebody has to discover — which is how it was found, on
+2026-09-21, after being true for the life of both runs.
+
+**And one waste closed in the same change.** Our creature's page (~14,000
+tokens) can never fit Groq's 8,000 tokens-per-minute limit, so every think that
+fell through to Groq came back *413, request too large* — about 400 a day, **0
+answered since 09-21**, on an account the spine shares. The ladder now remembers
+the smallest request each rung refused as too large and does not send it one
+that big again. A 413 is a fact about the *request* — the same prompt gets the
+same answer — so the ladder stays deterministic; a 429 (*not now*) still skips
+nothing.
+
+Deployed 2026-09-25 23:21 as `d833f7d`. What it changes is read a day later,
+one signal per cause (`PLAN.md` step 4).
 
 ## Honest trade
 
@@ -371,7 +434,10 @@ the ladder is exactly how its numbers later get quoted as the real rung's.
 |---|---|
 | [`MANAGER-PROMPT.md`](MANAGER-PROMPT.md) | The cousin's brief. **The product** — the creature-facing doctrine the parent never had, because there it was implemented rather than stated |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Engine design: the kernel, triggers, economics, compatibility, metrics, what is deliberately not built |
-| [`CLAUDE.md`](CLAUDE.md) | Maintainer doctrine. Starts with almost no scars, and says so |
+| [`CREATURE-PROMPT.md`](CREATURE-PROMPT.md) | What the creature is told every wake: its purpose, its user, the starter map. Changed on 2026-09-25 to stop promising model access |
+| [`PLAN.md`](PLAN.md) | The board: every open item in order, with checkable acceptance criteria, and the next-steps table at its top |
+| [`CLAUDE.md`](CLAUDE.md) | Maintainer doctrine and log: the handover, standing decisions, and every scar with the instrument that caught it |
+| [`deploy/README.md`](deploy/README.md) | How it runs on the laptop: units, what may write where, the evidence pack |
 
 ## Does it work?
 
@@ -439,6 +505,28 @@ diagnosis).
 Full method, fixtures and per-case results: [`trial/`](trial/).
 
 ## Status
+
+**As of 2026-09-25 23:21 the laptop runs `d833f7d`.** What it carries that
+earlier engines did not, newest first — each with its reason in `CLAUDE.md` §5
+and its reading on `PLAN.md`'s board:
+
+- **No model promised, none reachable, and no requests Groq can never take**
+  (*No subagents*, above).
+- **A partial-edit hand, `tool-replace`, and a served "Your hands" block** that
+  names every hand from its own header. The creature's only editing idiom used
+  to be rewriting a whole file, and its central tool had outgrown one reply.
+- **A 56,000-character budget on the whole page**, with the transcript sized
+  last. On 2026-09-24 a bigger transcript pushed the page past what the one
+  rung that serves nine thinks in ten will accept, and the engine sat wedged for
+  eight hours with no alarm. A detector (`context_outgrew_rung`) now watches the
+  page against what rungs have actually accepted.
+- **A refusal is not a crash** to systemd any more, so a deliberate STOP left
+  over a reboot no longer spends the restart budget and locks the Start button.
+
+What the day before this deploy measured: the creature stopped re-reading its
+12 KB `plan` tool (74 reads a day to 2) but has not yet written it, and it
+thought about half as often as before — which may be the page now sitting at
+the budget on every wake. Both are read again after a day of `d833f7d`.
 
 Design settled 2026-09-10; the brief was scored against real fixtures
 2026-09-11 -- in-sample, on a local stand-in, which is a floor and not a
