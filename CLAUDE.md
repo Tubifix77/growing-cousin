@@ -905,6 +905,15 @@ guess with authority it has not earned.
   which rung actually serves the thinks, and that figure was in §0 of this
   file** -- the top scar's shape, in a proposal about the other project.
 
+  **DECIDED BY TUE 2026-09-25: NO `ask` FOR COUSIN, and the spine goes ahead
+  with B in its own repo.** *"no ask for cousin thats the idea here."* So the
+  alignment is by removal on our side: no model hand, no relay, no key, no
+  account -- and the creature's prompt stops promising one (PLAN 8b). The
+  two creatures will then differ by one granted capability, openly: the
+  spine keeps a plain, truthfully described `ask`; ours has none. **That
+  difference is a recorded condition of any comparison, including run 3**,
+  not a confound anybody has to discover.
+
   **And a waste found while measuring it:** our engine sends Groq ~350
   requests a day and has had **0 answered since 09-21** -- every creature
   think that falls through to it is a `413`, because the page can never fit
