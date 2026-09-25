@@ -72,6 +72,18 @@ ladder narrows with every raise, and the last rung's limit is the budget. Since
 3a6a642 `rung_declined` carries the provider's own words (`detail`), so the
 next time this matters the journal will say which limit, instead of a label.
 
+**AND THAT RUNG HAS A RATE LIMIT SHARED WITH THE SPINE, which the 56,000
+budget was never priced against** (2026-09-25, from the spine session, which
+read it in Google's own 429 body): `GenerateContentInputTokensPerModelPerMinute-FreeTier`
+= **16,000 input tokens a minute, per model, per account** -- and the account
+is the spine's too. Our page at the budget is ~14k tokens, the spine's ~10k+,
+so the two creatures cannot both think on `gemma-4-31b-it` in the same minute.
+Thinks halved when our pages reached the budget (PLAN step 1). **So a cap
+raise on our side is also a cost to the spine**, and the page budget is to be
+re-derived against the rate, not only against what one request may carry --
+PLAN step 4b, with the spine's baseline and its promise to hold its own page
+and retries constant while we measure.
+
 **DEPLOYED 2026-09-25 23:21 as `d833f7d` -- the paragraph below is history.**
 Step 1's reading came first (reads of `plan` 74 -> 2 a day, writes 0, thinks
 halved: PLAN steps 1 and 4b). The deploy carried the creature-side changes
@@ -937,7 +949,16 @@ guess with authority it has not earned.
   an angle nobody was watching.
 
 - **Growing Spine is on the SAME API accounts, so the free tier is SHARED**
-  (Tue, 2026-09-12). **Suspended 2026-09-13 — see above.** This engine gets at most half of what it would with its own
+  (Tue, 2026-09-12). ~~Suspended 2026-09-13 — see above.~~ **In force: the
+  spine has run again since 2026-09-15** (above), and the sharing is deliberate
+  -- the spine session suggested separate accounts on 2026-09-25 and retracted
+  it once told this is Tue's decision. **Where the two actually collide,
+  measured by the spine session's key fingerprints (yes/no only, no key
+  printed):** every one of our rungs is on a spine account. On
+  `gemma-4-31b-it` they share 16,000 input tokens a minute (above); on Groq
+  the spine's `ask` alone reaches the 200,000 tokens a day, which is our
+  cousin's FIRST rung (our creature's ladder has Groq third, and since 8a
+  sends it nothing too large). This engine gets at most half of what it would with its own
   account, and the two projects can starve each other. Three consequences, all
   binding: (1) a rate limit here may be the spine's traffic, not a real ceiling
   — never read a 429 as a measurement of this engine's cost; (2) **throughput is
