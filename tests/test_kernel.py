@@ -3014,6 +3014,96 @@ def test_classify_error_never_raises():
           "something new" in reason, reason)
 
 
+def test_the_creature_is_not_promised_a_model_it_cannot_call():
+    """PLAN 8b, Tue 2026-09-24/25: *"give it the truths"* and *"no ask for
+    cousin"*. The prompt told the creature its cousin had *free-tier LLM API
+    access*, listed *subagent orchestration* as a kind of tool to build, and
+    held up *a planner that calls your subagent helper* as good composition --
+    while `keys_unreadable` guarantees neither box holds a key. It built
+    `subagent-orchestrator` and ran it 80 times against a made-up key.
+
+    The prompt now states the fact (no model can be called, no key exists)
+    and names no forbidden mechanism, which the creature would obey by the
+    letter and route around (the spine session's §5). Nothing here may
+    promise model access again while the boxes cannot provide it."""
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    low = io.open(os.path.join(repo, "CREATURE-PROMPT.md"),
+                  encoding="utf-8").read().lower()
+    promises = [p for p in ("llm api", "subagent", "helper llm", "free-tier api",
+                            "model access", "api access")
+                if p in low]
+    check("truth: the creature's prompt promises no model access",
+          not promises, promises)
+    check("truth: and says plainly that no model can be called",
+          "cannot call a language model" in low and "holds a key" in low,
+          "not stated")
+
+
+def test_a_rung_that_says_too_large_is_not_asked_again_at_that_size():
+    """PLAN 8a, 2026-09-25. Groq answered every creature think with HTTP 413
+    -- the page can never fit its 8,000 TPM -- 411 times in one day, 0
+    answered since 09-21, on an account shared with the spine. A 413 is a
+    property of the REQUEST, so the ladder remembers the smallest size a
+    rung refused and does not send it anything that big again; smaller
+    requests (a cousin verdict) still go, and a 429 still skips nothing."""
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+
+    class H(Exception):
+        def __init__(self, code): self.code = code
+
+    sent = []
+
+    def small_only(p):
+        sent.append(len(p))
+        if len(p) > 100:
+            raise H(413)
+        return "small ok", {"model": "g"}
+
+    def fallback(_p):
+        return "fell", {"model": "f"}
+
+    ask = backends.ladder([("groq", small_only), ("gemini", fallback)],
+                          journal=j, sleep=lambda _s: None)
+    big, bigger, small = "x" * 500, "x" * 900, "x" * 50
+    t1, _ = ask(big)
+    t2, _ = ask(big)
+    t3, _ = ask(bigger)
+    check("413: the first oversized request is sent and falls through",
+          t1 == "fell" and sent[:1] == [500], str(sent))
+    check("413: the same size is NOT sent to that rung again",
+          t2 == "fell" and sent.count(500) == 1, str(sent))
+    check("413: nor anything larger", t3 == "fell" and 900 not in sent, str(sent))
+    t4, m4 = ask(small)
+    check("413: a smaller request still goes to the rung",
+          t4 == "small ok" and m4.get("rung") == "groq", str(sent))
+    t5, _ = ask("x" * 300)
+    check("413: a 413 below the ceiling LOWERS it",
+          t5 == "fell" and 300 in sent, str(sent))
+    ask("x" * 300)
+    check("413: ...and the lower ceiling holds", sent.count(300) == 1, str(sent))
+    learned = j.read(kinds=["rung_too_large"])
+    check("413: each ceiling learned is journalled with its size",
+          [r.get("ceiling_chars") for r in learned] == [500, 300]
+          and all(r.get("rung") == "groq" for r in learned), str(learned))
+    falls = [r.get("past", "") for r in j.read(kinds=["rung_fell_through"])]
+    check("413: a skipped rung is named in the fall-through record",
+          all("groq(too_large)" in p for p in falls) and len(falls) == 5, str(falls))
+
+    # A 429 is "not now", never "never at this size": nothing is remembered.
+    n429 = []
+
+    def rate_limited(p):
+        n429.append(1)
+        raise H(429)
+
+    ask2 = backends.ladder([("groq", rate_limited), ("gemini", fallback)],
+                           journal=j, sleep=lambda _s: None)
+    ask2(big)
+    ask2(big)
+    check("429: a rate limit is asked again on the next call", len(n429) == 2)
+
+
 def test_ladder_routes_and_records():
     d = tmpdir()
     j = Journal(os.path.join(d, "journal.jsonl"))
@@ -4185,8 +4275,11 @@ def test_a_decline_carries_what_the_provider_said():
                                "Limit 8000, Requested %d." % 15000)),
          ("ok/rung", answering)],
         journal=j, retries=0, sleep=lambda s: None)
-    for _ in range(3):
-        ask2("p")
+    # Each prompt SMALLER than the last: since PLAN 8a a rung that said 413 is
+    # not sent anything as big again, and this test is about how repeated
+    # declines are recorded, so every call must still reach the rung.
+    for n in (3, 2, 1):
+        ask2("p" * n)
     later = [r for r in j.read(kinds=["rung_declined"])
              if r.get("rung") == "big/rung"][1:]
     check("decline: a repeated shape is counted every time and described once",
@@ -10035,6 +10128,8 @@ def main():
                test_want_reaches_the_creature, test_strip_reasoning,
                test_temperature_is_configurable_and_defaults_to_zero,
                test_classify_error_never_raises, test_ladder_routes_and_records,
+               test_a_rung_that_says_too_large_is_not_asked_again_at_that_size,
+               test_the_creature_is_not_promised_a_model_it_cannot_call,
                test_resume_is_derived_from_the_journal,
                test_resume_matches_a_live_run,
                test_history_can_never_parse_as_a_command,

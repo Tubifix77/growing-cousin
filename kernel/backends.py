@@ -343,6 +343,18 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
     # measured half hour, each a real request against an account shared with
     # the spine. See kernel/quota.py.
     qstate = {} if quota_state is None else quota_state
+    # rung -> the SMALLEST prompt (chars) it refused as too large (HTTP 413).
+    # A request at least that big is not sent to it again this session.
+    #
+    # This is not the time-based skip the NOTE in ask() rejects. A 429 says
+    # "not now", and a rung that recovers must be asked again. A 413 says
+    # "never at this size": it is a property of the REQUEST, the same prompt
+    # gets the same answer, so the ladder stays deterministic. Measured
+    # 2026-09-24: 411 creature thinks a day went to groq and every one came
+    # back 413 -- the page (~14k tokens) can never fit its 8,000 TPM -- with 0
+    # answered since 09-21, each one a real request on an account shared with
+    # the spine. A smaller prompt, such as a cousin verdict, still goes.
+    too_large = {}
 
     def announce(name, reason, verdict=NEXT, unusable=False, detail=""):
         """Every failure is counted; the full text is written once.
@@ -397,8 +409,12 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
 
     def ask(prompt):
         tried = []
+        size = len(prompt) if isinstance(prompt, str) else None
         for name, rung in rungs:
             if name in walled:
+                continue
+            if size is not None and size >= too_large.get(name, size + 1):
+                tried.append("%s(too_large)" % name)
                 continue
             # NOTE: the quota record below is OBSERVATION ONLY. It does not
             # skip a rung and must not. Tue, 2026-09-13: the framework tries
@@ -469,6 +485,14 @@ def ladder(rungs, journal=None, retries=1, quota_state=None,
                 except Exception as e:
                     verdict, reason = classify_error(e)
                     announce(name, reason, verdict, detail=error_body(e))
+                    if (getattr(e, "code", None) == 413 and size is not None
+                            and size < too_large.get(name, size + 1)):
+                        too_large[name] = size
+                        if journal:
+                            journal.append("rung_too_large", rung=name,
+                                           ceiling_chars=size)
+                        tried.append("%s(too_large)" % name)
+                        break
                     # ONLY quota marks a rung spent. A 500 or a timeout is
                     # transient and says nothing about budget -- gemini
                     # produced ten non-quota failures in the same window and
