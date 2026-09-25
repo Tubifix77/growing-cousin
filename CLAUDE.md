@@ -892,6 +892,19 @@ guess with authority it has not earned.
   key. **Open to Tue:** whether one stateless `ask` for an unbiased check
   (e.g. a test) remains -- PLAN step 8b. **The spine half is his** (§2.6).
 
+  **THE SPINE SESSION READ OUR PROPOSAL AND CORRECTED IT, 2026-09-25** (Tue
+  carried it across; PLAN 8c has the numbers). It agrees with B and caught
+  two claims of ours that were wrong. *"The creature invented subagents"* --
+  no: its framework seeded them on about ten surfaces, so there B is fixing
+  the machine, not a line of prompt. Ours is seeded in three sentences of
+  `CREATURE-PROMPT.md` and nowhere in the kernel. *"`ask` competes with the
+  creature's thinking for quota"* -- no, on either side: neither creature's
+  thinks are served by Groq, so the real constraint is that the spine alone
+  saturates the shared Groq account, and a Cousin `ask` needs an account of
+  its own. **I argued from how quota works in general instead of reading
+  which rung actually serves the thinks, and that figure was in §0 of this
+  file** -- the top scar's shape, in a proposal about the other project.
+
   **And a waste found while measuring it:** our engine sends Groq ~350
   requests a day and has had **0 answered since 09-21** -- every creature
   think that falls through to it is a `413`, because the page can never fit
