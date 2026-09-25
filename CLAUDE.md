@@ -47,8 +47,9 @@ because every count written here has gone stale within a day.
 
 **What is running.** Read the first two lines of `live/monitor/status.md` for
 the engine commit and whether a restart is owed; do not derive it from `git
-log`. As of 2026-09-24 17:46 it was `3a6a642`, and what that engine carries
-is the thing to understand before changing any bound:
+log`. As of 2026-09-25 23:21 it is `d833f7d` (before it, `3a6a642` from
+09-24 17:46), and what that engine carries is the thing to understand before
+changing any bound:
 
 | bound | value | why |
 |---|---|---|
@@ -71,8 +72,15 @@ ladder narrows with every raise, and the last rung's limit is the budget. Since
 3a6a642 `rung_declined` carries the provider's own words (`detail`), so the
 next time this matters the journal will say which limit, instead of a label.
 
-**THE REPOSITORY IS AHEAD OF THE LAPTOP ON PURPOSE, and pulling it is a
-deploy.** 2026-09-24 evening: everything from `c3f8c3d` on (served text, verdict notes, the
+**DEPLOYED 2026-09-25 23:21 as `d833f7d` -- the paragraph below is history.**
+Step 1's reading came first (reads of `plan` 74 -> 2 a day, writes 0, thinks
+halved: PLAN steps 1 and 4b). The deploy carried the creature-side changes
+AND 8a + 8b together, by Tue's call (*"so you both work this b-fix in at the
+same time"* as the spine), so PLAN step 4 reads each cause by the signal only
+it moves. `TRUTHFUL_VISITS` is still False; its flip is still its own window.
+
+~~**THE REPOSITORY IS AHEAD OF THE LAPTOP ON PURPOSE, and pulling it is a
+deploy.**~~ 2026-09-24 evening: everything from `c3f8c3d` on (served text, verdict notes, the
 partial-edit hand, the hands block, the `tool-edit` fix) is gated and pushed
 and is NOT on the laptop, because whatever that checkout holds is what a
 crash or a reboot deploys unplanned. **The order, and why:** (1) read
@@ -96,7 +104,9 @@ not warn you; this paragraph is the warning.
    wait.** A page no rung will take stays that size until something shrinks
    it, and waiting is how eight hours went on 09-24. Its runbook line says
    where to look.
-3. **`deploy_regression_day` for `3a6a642`, due 2026-09-25 ~17:47.** It is the
+3. **`deploy_regression_day` for `d833f7d`, due 2026-09-26 ~23:21**, then
+   PLAN step 4 (one signal per cause) and 4b (is the 56k page costing
+   thinks?). *Kept for the record:* the one for `3a6a642` was the
    first valid day-reading of ANY of this week's read-side changes: the 09-23
    night was lost to an 11.5-hour outage (a STOP file and a unit that read a
    refusal as a crash, §5) and 09-24 to the wedge. So the question the caps
