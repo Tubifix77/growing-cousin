@@ -231,6 +231,13 @@ def replies_unusable(ctx):
         if r.get("kind") != "rung_declined":
             continue
         rung = r.get("rung") or "(none)"
+        # A 413 is neither weather nor an answer: the REQUEST was too big, and
+        # since PLAN 8a the ladder stops sending it. Counted, it diluted this
+        # share -- groq's ~500 413s a day hid its unusable cousin replies --
+        # and 8a removing them would have turned this into an ALARM that read
+        # as a regression of the deploy. Found by the 8a verifier, 2026-09-25.
+        if "413" in str(r.get("reason") or ""):
+            continue
         if r.get("unusable"):
             by_rung[rung][0] += 1
             by_rung[rung][2][str(r.get("reason") or "?")[:60]] += 1

@@ -1076,6 +1076,20 @@ def test_a_rung_that_answers_and_says_nothing_is_not_a_quota_refusal():
           f4 and all(x.state == det.INFO for x in f4),
           [(x.name, x.state) for x in f4])
 
+    # A 413 is not weather: the request was too big, and since PLAN 8a the
+    # ladder stops sending it. So a wall of 413s must neither hide unusable
+    # answers nor, by vanishing after a deploy, reveal them as an alarm.
+    def too_big(rung, ts):
+        return {"kind": "rung_declined", "ts": ts, "rung": "a", "expected": True,
+                "unusable": False, "reason": "HTTP 413"}
+
+    walled_413 = many + [too_big("a", 1000.0 + i / 10.0) for i in range(500)]
+    f5 = [x.state for x in det.replies_unusable(ctx(walled_413)) if "[" in x.name]
+    f6 = [x.state for x in det.replies_unusable(ctx(many)) if "[" in x.name]
+    check("unusable: 413s do not dilute the share -- the same reading with "
+          "them as without, which is what makes it survive 8a's deploy",
+          f5 == f6 == [det.ALARM], (f5, f6))
+
     # AND THE PAGE CARRIES A RUNBOOK LINE, because a finding without one is a
     # puzzle handed to whoever is awake at three in the morning.
     from monitor import status as monstatus
@@ -3029,8 +3043,11 @@ def test_the_creature_is_not_promised_a_model_it_cannot_call():
     repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     low = io.open(os.path.join(repo, "CREATURE-PROMPT.md"),
                   encoding="utf-8").read().lower()
+    # "offload" too: *no way to offload work* stated a lack whose obvious fix,
+    # for an LLM, is the category just retired (the 8b verifier, 2026-09-25).
     promises = [p for p in ("llm api", "subagent", "helper llm", "free-tier api",
-                            "model access", "api access")
+                            "model access", "api access", "offload",
+                            "helper model")
                 if p in low]
     check("truth: the creature's prompt promises no model access",
           not promises, promises)
@@ -3087,8 +3104,24 @@ def test_a_rung_that_says_too_large_is_not_asked_again_at_that_size():
           [r.get("ceiling_chars") for r in learned] == [500, 300]
           and all(r.get("rung") == "groq" for r in learned), str(learned))
     falls = [r.get("past", "") for r in j.read(kinds=["rung_fell_through"])]
-    check("413: a skipped rung is named in the fall-through record",
-          all("groq(too_large)" in p for p in falls) and len(falls) == 5, str(falls))
+    check("413: a skipped rung is named in the fall-through record, once",
+          all(p == "groq(too_large)" for p in falls) and len(falls) == 5, str(falls))
+
+    # A page NO rung will take is not a rejected credential. all_walled=True
+    # makes the supervisor give up (exit 5); this must say "come back later".
+    def always_413(_p):
+        raise H(413)
+
+    ask3 = backends.ladder([("a", always_413), ("b", always_413)],
+                           journal=j, retries=1, sleep=lambda _s: None)
+    outcomes = []
+    for _ in range(2):
+        try:
+            ask3(big)
+        except backends.LadderExhausted as ex:
+            outcomes.append(ex.all_walled)
+    check("413: a page too large for EVERY rung is not 'all walled'",
+          outcomes == [False, False], outcomes)
 
     # A 429 is "not now", never "never at this size": nothing is remembered.
     n429 = []
