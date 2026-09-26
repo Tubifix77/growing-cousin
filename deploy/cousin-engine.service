@@ -152,5 +152,9 @@ NoNewPrivileges=true
 StandardOutput=append:%h/growing-cousin/live/engine.log
 StandardError=append:%h/growing-cousin/live/engine.log
 
-[Install]
-WantedBy=default.target
+# NO [Install] SECTION, ON PURPOSE (Tue, 2026-09-26): *"so it only starts on
+# me actually starting it manually ... no rogue backend run."* Without one,
+# `systemctl --user enable` has nothing to hook into, so no boot, login or
+# reinstall can start the engine. It starts only when started: the observer's
+# Start button, or `systemctl --user start cousin-engine`. Restart=on-failure
+# still restarts a run someone started, within the StartLimit bound.

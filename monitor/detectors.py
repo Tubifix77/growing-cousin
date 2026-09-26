@@ -128,6 +128,16 @@ def engine_silent(ctx):
                        "stopped by request: STOP file present, unit %s, last "
                        "event %s ago" % (state or "unknown", derive.fmt_age(age)),
                        human=False)
+    # NOT STARTED is not SILENT. Since 2026-09-26 the engine starts only when
+    # Tue starts it (the unit has no [Install]), so after a reboot it sits
+    # `inactive` with no STOP file, and that is the machine doing what it was
+    # told. A hang is a unit that is ACTIVE and writes nothing; a unit that
+    # died is `failed`, which `gave_up` reports.
+    if state == "inactive":
+        return Finding("engine_silent", INFO,
+                       "not running: the unit is inactive and starts only when "
+                       "started by hand; last event %s ago" % derive.fmt_age(age),
+                       human=False)
     if age > SILENT_MINUTES * 60:
         return Finding("engine_silent", ALARM,
                        "no journal event for %s (floor %dm); unit %s"

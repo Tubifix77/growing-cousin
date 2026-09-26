@@ -57,8 +57,11 @@ to be independent systems that happen to share a box.
 mkdir -p ~/.config/systemd/user
 cp deploy/*.service deploy/*.timer ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now cousin-engine cousin-observer
 systemctl --user enable --now cousin-vitals.timer cousin-monitor.timer
+# The engine and the observer are NOT enabled, and cannot be: their units have
+# no [Install] section (Tue, 2026-09-26 -- nothing starts unless he starts
+# it). Open the window from the "Growing Cousin" launcher and press Start, or:
+#   systemctl --user start cousin-engine
 loginctl enable-linger "$USER"      # so it survives logout
 ```
 

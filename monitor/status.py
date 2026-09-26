@@ -225,7 +225,17 @@ def read_json(path):
 def collect(root, repo=None, now=None):
     rows, complete, bad = derive.load(os.path.join(root, "journal.jsonl"))
     unit = systemd_show(ENGINE_UNIT, ["ActiveState", "SubState", "NRestarts",
-                                      "ExecMainStartTimestamp", "Result"])
+                                      "ExecMainStartTimestamp", "Result",
+                                      "WorkingDirectory"])
+    # THE UNIT DESCRIBES ONE ROOT, `<WorkingDirectory>/live`, and no other.
+    # Read against a scratch root -- every gate run does that -- it reported
+    # the laptop's real engine as that root's engine, so a test's verdict
+    # depended on whether the engine happened to be running (found
+    # 2026-09-26, when the engine stopped starting at boot).
+    wd = (unit or {}).get("WorkingDirectory")
+    if unit and wd and os.path.realpath(root) != os.path.realpath(
+            os.path.join(wd, "live")):
+        unit = None
     ctx = detectors.Context(
         rows, now=now, unit=unit,
         repo_head=git_head(repo) if repo else None,

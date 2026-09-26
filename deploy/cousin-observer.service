@@ -19,5 +19,5 @@ ProtectHome=read-only
 PrivateTmp=true
 NoNewPrivileges=true
 
-[Install]
-WantedBy=default.target
+# NO [Install] SECTION since 2026-09-26 (Tue: nothing of Growing Cousin starts
+# unless he starts it). Open the window from the "Growing Cousin" launcher.

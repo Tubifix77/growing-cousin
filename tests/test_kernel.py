@@ -3028,6 +3028,21 @@ def test_classify_error_never_raises():
           "something new" in reason, reason)
 
 
+def test_nothing_starts_the_engine_but_a_person():
+    """Tue, 2026-09-26: *"so it only starts on me actually starting it
+    manually ... no rogue backend run."* The engine and observer units carry
+    no [Install] section, so no `enable`, boot, login or reinstall can start
+    them; only a start does. The timers stay installable: they are read-only
+    instruments and never run the creature."""
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for unit in ("cousin-engine.service", "cousin-observer.service"):
+        text = io.open(os.path.join(repo, "deploy", unit), encoding="utf-8").read()
+        live = [l.strip() for l in text.splitlines() if not l.lstrip().startswith("#")]
+        check("autostart: %s has no [Install] section" % unit,
+              "[Install]" not in live and not any(l.startswith("WantedBy") for l in live),
+              [l for l in live if l.startswith(("[Install]", "WantedBy"))])
+
+
 def test_the_creature_is_not_promised_a_model_it_cannot_call():
     """PLAN 8b, Tue 2026-09-24/25: *"give it the truths"* and *"no ask for
     cousin"*. The prompt told the creature its cousin had *free-tier LLM API
@@ -9429,6 +9444,42 @@ def test_the_drills_give_the_unproven_detectors_their_red():
               "STOP file is the documented way to stop it",
               stopped.state == detectors.INFO and not stopped.human,
               "%s %s" % (stopped.state, stopped.msg))
+        # 2026-09-26: the engine no longer starts at boot, so after a reboot
+        # it is inactive with NO stop file. Not started is not silent...
+        unstarted = detectors.engine_silent(
+            detectors.Context(rows, now=last + 3600,
+                              unit={"ActiveState": "inactive"}))
+        check("drill silence: an engine nobody has started yet is not an alarm",
+              unstarted.state == detectors.INFO and not unstarted.human,
+              "%s %s" % (unstarted.state, unstarted.msg))
+        # ...but a RUNNING unit that writes nothing is exactly the hang.
+        hung = detectors.engine_silent(
+            detectors.Context(rows, now=last + 3600,
+                              unit={"ActiveState": "active"}))
+        check("drill silence: an ACTIVE unit writing nothing still fires",
+              hung.state == detectors.ALARM, "%s %s" % (hung.state, hung.msg))
+
+    # The unit describes ONE root. Read against any other -- a scratch root in
+    # this gate -- it must be ignored, or a test's verdict depends on whether
+    # the laptop's real engine happens to be running.
+    from monitor import status as monstatus2
+    real_show = monstatus2.systemd_show
+    elsewhere = tmpdir()
+    os.makedirs(os.path.join(elsewhere, "live"), exist_ok=True)
+    try:
+        monstatus2.systemd_show = lambda u, p: {
+            "ActiveState": "failed", "WorkingDirectory": "/nowhere/growing-cousin"}
+        foreign = monstatus2.collect(elsewhere).unit
+        monstatus2.systemd_show = lambda u, p: {
+            "ActiveState": "active", "WorkingDirectory": os.path.dirname(
+                os.path.join(elsewhere, "live"))}
+        own = monstatus2.collect(os.path.join(elsewhere, "live")).unit
+    finally:
+        monstatus2.systemd_show = real_show
+    check("monitor: another root's engine unit is not read as this root's",
+          foreign is None, foreign)
+    check("monitor: ...and the unit's own root still gets it",
+          (own or {}).get("ActiveState") == "active", own)
 
 
 def test_the_giveup_drill_proves_the_chain_systemd_owns():
@@ -10163,6 +10214,7 @@ def main():
                test_classify_error_never_raises, test_ladder_routes_and_records,
                test_a_rung_that_says_too_large_is_not_asked_again_at_that_size,
                test_the_creature_is_not_promised_a_model_it_cannot_call,
+               test_nothing_starts_the_engine_but_a_person,
                test_resume_is_derived_from_the_journal,
                test_resume_matches_a_live_run,
                test_history_can_never_parse_as_a_command,
