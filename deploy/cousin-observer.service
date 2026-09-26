@@ -1,7 +1,8 @@
 [Unit]
-# The window. It is READ-ONLY over the engine's files and holds no state of its
-# own, so it can be restarted, killed or never started without the engine
-# noticing. If stopping the observer ever affects the engine, that is a bug.
+# The window. It never writes the engine's data and holds no state of its own.
+# Its one control is the STOP file: the Start/Stop button, and since 2026-09-26
+# CLOSING the window, which asks the engine to stop after its current cycle
+# (Tue). Killing the window does not; only a close asks.
 Description=Growing Cousin observer (GUI)
 After=graphical-session.target
 

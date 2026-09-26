@@ -13,12 +13,19 @@ lessons already paid for there:
     widget tree until the box swaps.
   - It never writes the engine's DATA. Not the journal, not the context, not
     `tools/own`. Nothing here can alter what the engine did or what it will
-    read; closing this window cannot affect the engine at all.
+    read.
 
     **One exception, and it is a control rather than data:** the stop button
     writes the STOP file, which is the documented operator interface the engine
     polls. Without it, stopping requires a terminal -- a control that exists
     only where the operator is not, which is the same as not having it.
+
+    **And since 2026-09-26 closing the window is that same control** (Tue: the
+    engine is turned on and off with the GUI, *"no rogue backend run"*, and a
+    close means *"wait for shut down next cycle instead of brute shut off"*,
+    and the window closes itself once the engine has stopped).
+    It was "closing this window cannot affect the engine at all" until then.
+    Nothing starts the engine at boot either: its unit has no [Install].
 
 What was NOT taken: spine's kinds, its provider strip keyed on `config.yaml`,
 its chat panel, its `/proc` scan. This engine has different events, no config
@@ -177,6 +184,42 @@ def engine_button(state):
     return ("Start the engine", True,
             "Clears the STOP file and starts the service. A stop request "
             "survives restarts on purpose, so it has to be cleared here.")
+
+
+def request_stop(stop_file, why):
+    """Write the STOP file: the engine finishes the cycle it is in, then
+    exits. Written to a sibling and renamed, so the engine can never read a
+    half-written file. Raises OSError; the caller decides what to tell whom."""
+    tmp = stop_file + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(why + "\n")
+    os.replace(tmp, stop_file)
+
+
+CLOSE_NOW, REQUEST_AND_WAIT, WAIT = "close", "request-and-wait", "wait"
+
+
+def close_action(state, already_closing):
+    """What pressing the window's close button does. Tue, 2026-09-26: closing
+    stops the engine -- *"wait for shut down next cycle instead of brute shut
+    off"* -- and *"it ALSO shuts down the window after it has stopped the
+    engine"*.
+
+    - engine RUNNING: write the STOP request, keep the window open showing
+      that it is stopping, and close it by itself once the engine has stopped.
+    - already STOPPING (the button was pressed): just wait for it.
+    - STOPPED: close now.
+    - a SECOND close while waiting: close now. The STOP request is already on
+      disk and the engine still finishes its cycle and stops; this only stops
+      the window waiting to watch it happen.
+
+    A window KILLED rather than closed never gets to ask; that is the one way
+    the engine outlives it."""
+    if already_closing or state == STOPPED:
+        return CLOSE_NOW
+    if state == RUNNING:
+        return REQUEST_AND_WAIT
+    return WAIT
 
 
 def esc(s):
@@ -467,8 +510,7 @@ def main(root=None, selftest=False):
                 if ok != QMessageBox.StandardButton.Yes:
                     return
                 try:
-                    with open(stop_file, "w", encoding="utf-8") as f:
-                        f.write("stop requested from the observer\n")
+                    request_stop(stop_file, "stop requested from the observer")
                 except OSError as e:
                     QMessageBox.warning(self, "Could not stop",
                                         "Writing %s failed: %s" % (stop_file, e))
@@ -482,6 +524,37 @@ def main(root=None, selftest=False):
                     QMessageBox.warning(self, "Could not start", str(e))
             self.tick()
 
+        def closeEvent(self, event):
+            """See `close_action`. If the request cannot be written the window
+            stays open and says so -- closing it would leave an engine running
+            that its operator believes is winding down."""
+            if selftest:
+                event.accept()
+                return
+            self._unit_n = 0            # ask systemd now, not from the cache
+            state = engine_state(os.path.exists(stop_file), self.unit_active())
+            action = close_action(state, getattr(self, "_closing", False))
+            if action == CLOSE_NOW:
+                event.accept()
+                return
+            if action == REQUEST_AND_WAIT:
+                try:
+                    request_stop(stop_file,
+                                 "stop requested: the observer window was closed")
+                except OSError as e:
+                    QMessageBox.warning(
+                        self, "The engine is still running",
+                        "Closing this window should stop the engine after its "
+                        "current cycle, but writing %s failed: %s\n\nThe window "
+                        "stays open." % (stop_file, e))
+                    event.ignore()
+                    return
+            self._closing = True
+            self.setWindowTitle("Growing Cousin -- closing when the engine has "
+                                "stopped (close again to leave now)")
+            event.ignore()
+            self.tick()
+
         def tick(self):
             self.pump_journal()
             self.refresh_side()
@@ -490,6 +563,8 @@ def main(root=None, selftest=False):
             self.btn.setText(label)
             self.btn.setEnabled(enabled)
             self.btn.setToolTip(tip)
+            if getattr(self, "_closing", False) and state == STOPPED:
+                self.close()        # the engine has stopped: now the window goes
 
         def pump_journal(self):
             """Tail. Never re-read -- see the module docstring."""

@@ -1678,6 +1678,25 @@ def test_observer_stop_button_states():
     check("stopbtn: and says the stop file must be cleared, which it does",
           "STOP" in tip, tip)
 
+    # CLOSING THE WINDOW (Tue, 2026-09-26): stop after this cycle, then the
+    # window closes itself -- never a brute stop, never a window that vanishes
+    # while the engine is still running.
+    check("close: a running engine is asked to stop and the window waits",
+          obs.close_action(obs.RUNNING, False) == obs.REQUEST_AND_WAIT)
+    check("close: an engine already stopping is simply waited for",
+          obs.close_action(obs.STOPPING, False) == obs.WAIT)
+    check("close: a stopped engine lets the window close at once",
+          obs.close_action(obs.STOPPED, False) == obs.CLOSE_NOW)
+    check("close: a second close while waiting leaves at once",
+          obs.close_action(obs.RUNNING, True) == obs.CLOSE_NOW
+          and obs.close_action(obs.STOPPING, True) == obs.CLOSE_NOW)
+    d = tmpdir()
+    stop = os.path.join(d, "STOP")
+    obs.request_stop(stop, "stop requested: the observer window was closed")
+    check("close: the request is the STOP file the engine already obeys",
+          open(stop, encoding="utf-8").read().startswith("stop requested")
+          and not os.path.exists(stop + ".tmp"))
+
 
 def test_observer_vitals_are_derived():
     import observer

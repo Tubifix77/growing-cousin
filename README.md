@@ -384,8 +384,13 @@ is whether the manager's guidance recurs as a fault after being given.
 
 `observer.py` is a PyQt window onto a running engine: the journal tailed live,
 the library as it grows, and the cousin's standing direction — what the second
-inhabitant last asked for. It is **read-only over everything**; if stopping the
-observer ever affects the engine, that is a bug.
+inhabitant last asked for. It never writes the engine's data. **It is also the
+engine's on/off switch** (Tue, 2026-09-26: *"no rogue backend run"*): nothing
+starts the engine at boot — its unit cannot be enabled — so it runs only after
+someone presses **Start**. **Stop**, or **closing the window**, asks it to
+finish the cycle it is in and then stop; a closed window stays open, saying so,
+until the engine has stopped, and then closes itself. Closing it a second time
+leaves at once, and the engine still stops after its cycle.
 
 It was ported from Growing Spine's observer and is deliberately never synced
 with it. What was taken is the architecture, because it encodes lessons already
