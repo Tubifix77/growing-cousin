@@ -628,7 +628,17 @@ def tool_vanished(ctx):
     for start, end in derive.paired_execs(recent):
         if end.get("exit_code") != 127 or start is None:
             continue
+        # A command's exit code is its LAST failure's, not every name in it.
+        # 2026-09-26 10:04 this alarmed on `archive-update` and `archive-get`,
+        # which had both run and printed their usage -- the 127 was a literal
+        # `...` placeholder line further down the same block. So a tool counts
+        # only when the shell's own not-found line names IT. With no stderr to
+        # read, keep the old reading rather than go blind.
+        err = end.get("stderr") or ""
         for n in derive.commands_named(start.get("cmd")) & ctx.library:
+            if err and not re.search(r"(?m)\b%s: [^\n]*(not found|ikke fundet)"
+                                     % re.escape(n), err):
+                continue
             gone[n] += 1
     if gone:
         return Finding("tool_vanished", ALARM,

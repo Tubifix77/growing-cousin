@@ -3047,6 +3047,44 @@ def test_classify_error_never_raises():
           "something new" in reason, reason)
 
 
+def test_a_127_is_blamed_only_on_the_tool_the_shell_says_is_missing():
+    """2026-09-26 10:04, the live run: `tool_vanished` ALARMed on
+    `archive-update` and `archive-get`, which had both RUN and printed their
+    usage; the block's 127 was a literal `...` placeholder line. The detector
+    blamed every library tool the command named. It must blame only the one
+    the shell's not-found line names -- in the container's English and the
+    laptop's Danish -- and a real vanish must still fire."""
+    from monitor import detectors as det
+    now = 5000.0
+
+    def rows(cmd, stderr):
+        return [{"kind": "tools_changed", "ts": now - 100,
+                 "added": ["archive-get", "archive-update"], "removed": []},
+                {"kind": "exec_start", "ts": now - 50, "block": 1, "cmd": cmd},
+                {"kind": "exec_end", "ts": now - 49, "block": 1,
+                 "exit_code": 127, "stdout": "", "stderr": stderr}]
+
+    live = rows("# 2. Test title update\narchive-update $ID --title T\n"
+                "archive-get $ID | grep T\n...\n",
+                "usage: archive-update [-h] id\narchive-update: error: the "
+                "following arguments are required: id\nusage: archive-get [-h] "
+                "ids\narchive-get: error: the following arguments are required: "
+                "ids\nbash: line 5: ...: command not found\n")
+    f = det.tool_vanished(det.Context(live, now=now))
+    check("vanished: tools that ran and printed usage are NOT blamed for a "
+          "placeholder's 127 (the 09-26 false alarm, verbatim shape)",
+          f.state == det.OK, "%s %s" % (f.state, f.msg))
+    for label, err in (("English", "bash: line 1: archive-get: command not found\n"),
+                       ("Danish", "bash: archive-get: kommando ikke fundet\n")):
+        g = det.tool_vanished(det.Context(rows("archive-get 5\n", err), now=now))
+        check("vanished: a tool the shell cannot find still fires (%s)" % label,
+              g.state == det.ALARM and "archive-get" in g.msg
+              and "archive-update" not in g.msg, "%s %s" % (g.state, g.msg))
+    h = det.tool_vanished(det.Context(rows("archive-get 5\n", ""), now=now))
+    check("vanished: with no stderr to read, the old reading stands",
+          h.state == det.ALARM, "%s %s" % (h.state, h.msg))
+
+
 def test_nothing_starts_the_engine_but_a_person():
     """Tue, 2026-09-26: *"so it only starts on me actually starting it
     manually ... no rogue backend run."* The engine and observer units carry
@@ -10234,6 +10272,7 @@ def main():
                test_a_rung_that_says_too_large_is_not_asked_again_at_that_size,
                test_the_creature_is_not_promised_a_model_it_cannot_call,
                test_nothing_starts_the_engine_but_a_person,
+               test_a_127_is_blamed_only_on_the_tool_the_shell_says_is_missing,
                test_resume_is_derived_from_the_journal,
                test_resume_matches_a_live_run,
                test_history_can_never_parse_as_a_command,
