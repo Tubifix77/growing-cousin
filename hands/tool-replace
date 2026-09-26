@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # tool: tool-replace
-# call: tool-replace <name>   (SEARCH/REPLACE blocks on stdin)
+# call: tool-replace <name>   stdin, each marker on its own line: <<<<<<< SEARCH / the lines as they are now / ======= / what they should become / >>>>>>> REPLACE  (repeat the block for more passages)
 # does: Change PART of one of your tools: each exact passage you quote is replaced, the rest is untouched, a .bak is kept.
 """The creature's partial-edit hand (PLAN item 21.2).
 
@@ -78,7 +78,9 @@ def near(text, search):
 def main():
     name = sys.argv[1] if len(sys.argv) > 1 else ""
     if not name or "/" in name or "\\" in name or name.startswith("."):
-        fail("usage: tool-replace <name>   (SEARCH/REPLACE blocks on stdin)")
+        fail("usage: tool-replace <name>, and on stdin one or more blocks:\n"
+             "<<<<<<< SEARCH\n(the lines as they are now)\n=======\n"
+             "(what they should become)\n>>>>>>> REPLACE")
     mind = os.environ.get("MIND", ".")
     p = os.path.join(mind, "tools", "own", name)
     if not os.path.isfile(p):

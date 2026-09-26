@@ -3085,6 +3085,30 @@ def test_a_127_is_blamed_only_on_the_tool_the_shell_says_is_missing():
           h.state == det.ALARM, "%s %s" % (h.state, h.msg))
 
 
+def test_the_partial_edit_hand_shows_its_input_shape_where_it_is_served():
+    """2026-09-26, the creature's first real `tool-replace`, on `plan`: it
+    wrote `SEARCH ... REPLACE` with no `<<<<<<<` / `=======` / `>>>>>>>`
+    markers and the hand refused. The served line said only *SEARCH/REPLACE
+    blocks on stdin* -- presupposing git's conflict-marker format, which
+    nothing in its world teaches (the presupposition class, CLAUDE.md §5).
+    The hands block serves each hand's `# call:` line, so the shape goes
+    there."""
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    call = ""
+    for line in io.open(os.path.join(repo, "hands", "tool-replace"),
+                        encoding="utf-8").readlines()[:8]:
+        if line.startswith("# call:"):
+            call = line
+    check("hands: tool-replace's served call line shows all three markers",
+          all(m in call for m in ("<<<<<<< SEARCH", "=======", ">>>>>>> REPLACE")),
+          call.strip())
+    e = Engine.__new__(Engine)
+    e.hands_dir = os.path.join(repo, "hands")
+    served = e.hands_block()
+    check("hands: ...and that is what the creature is actually served",
+          "<<<<<<< SEARCH" in served and ">>>>>>> REPLACE" in served, served[:300])
+
+
 def test_nothing_starts_the_engine_but_a_person():
     """Tue, 2026-09-26: *"so it only starts on me actually starting it
     manually ... no rogue backend run."* The engine and observer units carry
@@ -10273,6 +10297,7 @@ def main():
                test_the_creature_is_not_promised_a_model_it_cannot_call,
                test_nothing_starts_the_engine_but_a_person,
                test_a_127_is_blamed_only_on_the_tool_the_shell_says_is_missing,
+               test_the_partial_edit_hand_shows_its_input_shape_where_it_is_served,
                test_resume_is_derived_from_the_journal,
                test_resume_matches_a_live_run,
                test_history_can_never_parse_as_a_command,
