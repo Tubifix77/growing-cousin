@@ -191,6 +191,19 @@ was journalled. `PLAN.md` item 9 says why.
   which would move judgement back into the 99% this design deleted, and not
   the creature demonstrating its own work, which is the wrong side of §4.
 
+**NOTHING STARTS THE ENGINE BUT A PERSON (Tue, 2026-09-26).** *"so it only
+starts on me actually starting it manually ... no rogue backend run."* The
+engine and observer units have NO `[Install]` section (`static`; `enable` is
+refused), so after a reboot the engine is simply down, by design, and
+`engine_silent` says INFO, not ALARM. It runs after someone presses **Start**
+in the observer (or `systemctl --user start cousin-engine`). **Stop, or
+closing the observer window, asks it to stop after the cycle in flight**, and a
+closed window waits, saying so, until the engine has stopped, then closes
+itself; a second close leaves at once. **Do not re-enable it or add a timer
+that starts it** -- that is the rogue run he asked to be impossible. The
+monitor and vitals timers stay enabled: read-only, and they never run the
+creature.
+
 **The engine is stopped and will not start?** `ls live/STOP` **first.** That
 file is the documented stop and it SURVIVES A REBOOT on purpose -- a restart
 must never silently undo a deliberate stop. Remove it and start. If a start is
@@ -223,7 +236,7 @@ happened (`tests/fixtures/journal/`). **Tue's standing instruction
 morning.** The page says which commit is running and whether a restart is
 owed; do not work it out from `git log` and systemd by hand again.
 
-**The engine is running and does not need you.** If it gives up it exits
+**While it runs, it does not need you.** If it gives up it exits
 non-zero and systemd restarts it, bounded to 5 starts per 30 minutes; the page's
 `gave_up` and `engine_silent` findings say so if that ever stops being true.
 
