@@ -127,6 +127,9 @@ class Engine:
             if managed:
                 parts.append(managed)
                 wants = self.wants()
+        visits = self.visits_block() if (wants and self.TRUTHFUL_VISITS) else ""
+        if visits:
+            parts.append(visits)
         if self.creature_brief:
             parts.append(self.creature_brief)
         sep = "\n\n---\n\n"
@@ -163,6 +166,7 @@ class Engine:
             "memory_served": bool(mem),
             "chat_served": bool(chat),
             "hands_served": hands.count("\n- `") if hands else 0,
+            "visits_served": bool(visits),
             # THE BUDGET, AS SERVED. `over_budget` is True only when the rest
             # of the page left less than the floor -- the one case the bound
             # cannot hold -- so a reader never has to recompute it.
@@ -171,6 +175,57 @@ class Engine:
             "over_budget": len(context) > self.CONTEXT_BUDGET_CHARS,
         }
         return context
+
+    def visits_block(self, now=None):
+        """WHY A FINISHED WANT STILL STANDS, as a fact (PLAN 4c, 2026-09-27).
+
+        A want stands until the cousin's next answered visit, and on a dry
+        free tier that can be hours. Measured 2026-09-26 19:50-01:00: with the
+        cousin unable to reach a rung (4 visits, 0 verdicts) the creature spent
+        27 thinks re-verifying a tool it had finished and telling its operator
+        it was done -- 8 `say`, 7 of them the same sentence. Nothing on its
+        page said why the want was still there, so it kept answering it.
+
+        *A channel with no completion signal is re-served forever* (CLAUDE.md
+        §5, 2026-09-13). The completion signal cannot be ours to give -- only
+        its user can say the want was met -- but WHY the user has not said so
+        is a fact the journal holds: when a visit last finished with a
+        verdict, and how many visits since have not. Served only when that is
+        the case;
+        otherwise nothing, so the page does not grow a line that says nothing.
+        """
+        # EVERY VISIT SINCE THE LAST ANSWERED ONE, whichever step it failed at.
+        # The first version counted only probes lost before anything ran
+        # (`chosen_by="ladder_dry"`), and replayed over the night that
+        # motivated it, it said NOTHING through the loop: all four visits had
+        # run the tool and then found no model free for the verdict, which
+        # defers the cycle and leaves a probe with no verdict after it.
+        rows = self.j.read(kinds=["cousin_verdict", "cousin_probe"])
+        last = None
+        for r in rows:
+            if r.get("kind") == "cousin_verdict" and r.get("verdict") in ("ACCEPTED", "RETURNED"):
+                last = r.get("ts")
+        unfinished = [r for r in rows if r.get("kind") == "cousin_probe"
+                      and (last is None or (r.get("ts") or 0) > last)]
+        if not unfinished:
+            return ""
+        now = time.time() if now is None else now
+        n = len(unfinished)
+        times = "once" if n == 1 else "%d times" % n
+        if last is None:
+            head = ("Your cousin has come to try your work %s and has not yet "
+                    "been able to finish a visit." % times)
+        else:
+            ago = now - last
+            when = ("%d min ago" % max(1, ago // 60)) if ago < 3600 else ("%.0f h ago" % (ago / 3600))
+            head = ("Your cousin last finished a visit to your work at %s, %s. "
+                    "Since then it has come back %s and has not been able to "
+                    "finish, so nothing you have done since then has been "
+                    "judged yet." % (time.strftime("%H:%M", time.localtime(last)),
+                                     when, times))
+        return ("## Your cousin's visits\n\n" + head + " On this free tier that "
+                "usually means no model was free for it to think with. What it "
+                "asked for above stands until it next finishes a visit.")
 
     def hands_block(self):
         """ITS HANDS, EVERY WAKE, each described by its own header.
@@ -455,7 +510,13 @@ class Engine:
     # Flipping it is a one-line commit and its own deploy.
     # *Remove the switch and the legacy path once it has been True for a
     # week and deploy_regression_day has read it clean.*
-    TRUTHFUL_VISITS = False
+    #
+    # FLIPPED 2026-09-27, after PLAN step 3 scored it on the bench: gemma4:12b,
+    # 16 held-out cases x 3 reps -- deployed 24/24 caught and 9/24 falsely
+    # returned, truthful stall framing 24/24 and 9/24, the same three cases in
+    # every arm. It also governs `visits_block` (PLAN 4c), the creature-side
+    # half of the same fact: why a visit has or has not happened.
+    TRUTHFUL_VISITS = True
     # A transcript is never squeezed to nothing: the rule about not repeating
     # the last command is unfollowable if nothing shows the last command. If
     # the rest of the page alone leaves less than this, the page runs over
