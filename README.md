@@ -511,9 +511,24 @@ Full method, fixtures and per-case results: [`trial/`](trial/).
 
 ## Status
 
-**As of 2026-09-25 23:21 the laptop runs `d833f7d`.** What it carries that
+**As of 2026-09-27 20:41 the laptop runs `1b3ff3a`.** What it carries that
 earlier engines did not, newest first — each with its reason in `CLAUDE.md` §5
 and its reading on `PLAN.md`'s board:
+
+- **The cousin is told truthfully why it came** — a new tool, a quiet
+  stretch, a heartbeat — instead of always *"the creature says it finished
+  this"*, and may keep notes at verdict time. Scored first on a local model:
+  exactly as good a judge as before (24/24 broken tools caught, the same
+  9/24 good ones sent back), with nothing leaning on a claim nobody made.
+- **The creature is told why a request still stands.** When its cousin's
+  visits keep failing on a busy free tier, its page says when the last one
+  finished and what stopped the rest. On 2026-09-26 it spent five hours
+  re-checking a finished tool because nothing said so.
+- **The engine and its window start only when someone presses Start**, and
+  closing the window stops it after the cycle in flight.
+- **The partial-edit tool shows its input format** on the line the creature
+  is served — its first real use had failed for lack of it; its next one
+  landed on the 12 KB `plan`, the first write of it in days.
 
 - **No model promised, none reachable, and no requests Groq can never take**
   (*No subagents*, above).

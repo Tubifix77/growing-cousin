@@ -116,12 +116,13 @@ not warn you; this paragraph is the warning.
    wait.** A page no rung will take stays that size until something shrinks
    it, and waiting is how eight hours went on 09-24. Its runbook line says
    where to look.
-3. **As of 2026-09-27 the engine is `ac45fb2`** (started 09-26 14:46; the
-   `tool-replace` markers) and its day-reading is DONE -- PLAN step 4: 8b
-   holds, the first marked `tool-replace` landed on `plan`, 4b answered *not
-   measurably* so the budget stays. **Next:** step 3 (arm B/C on the Windows
-   bench -- only when Tue says the PC is free), then step 5 together with 4c
-   (a finished want and an unreachable user become a loop). The
+3. **As of 2026-09-27 20:41 the engine is `1b3ff3a`**: `TRUTHFUL_VISITS` ON
+   (the bench cleared it -- step 3) and 4c's `visits_block`, which tells the
+   creature when its cousin last finished a visit and why visits since have
+   not. **Next:** its day-reading, ~09-28 20:41 (PLAN row *5 + 4c*), then
+   remove the switch after a clean week. Before it: `ac45fb2`'s reading
+   (PLAN step 4): 8b holds, the first marked `tool-replace` landed on `plan`,
+   4b answered *not measurably* so the budget stays. The
    `d833f7d` and `3a6a642` readings are in PLAN. *Kept for the record:* the
    one for `3a6a642` was the
    first valid day-reading of ANY of this week's read-side changes: the 09-23
