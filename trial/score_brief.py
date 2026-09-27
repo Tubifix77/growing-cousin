@@ -26,6 +26,7 @@ import glob
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -44,6 +45,17 @@ def load_cases(path):
         return None, "unreadable: %s" % path
     cases = (doc.get("cases") if isinstance(doc, dict) else doc) or []
     return cases, (doc.get("_why_empty") or "") if isinstance(doc, dict) else ""
+
+
+def baseline_path(label, model):
+    """Where a baseline is written. EVERY character a filename cannot safely
+    hold becomes `_`, not only `/`. 2026-09-27: `gemma4:12b` made
+    `B-new-done_gemma4:12b.json`, which on Windows is an EMPTY file called
+    `B-new-done_gemma4` with the baseline hidden in an NTFS side-stream
+    named `12b.json` -- written, printed as written, and invisible to `ls`,
+    `git` and every reader."""
+    safe = re.sub(r"[^A-Za-z0-9._-]", "_", "%s_%s" % (label, model))
+    return os.path.join(BASELINES, safe + ".json")
 
 
 def newest_result(out_dir, after):
@@ -193,8 +205,7 @@ def main(argv=None):
           "split by model -- never by\none number moving.")
 
     os.makedirs(BASELINES, exist_ok=True)
-    path = os.path.join(BASELINES, "%s_%s.json"
-                        % (args.label, args.model.replace("/", "_")))
+    path = baseline_path(args.label, args.model)
     with io.open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump({"model": args.model, "label": args.label, "reps": args.reps,
                    "detection": d, "correction": c,

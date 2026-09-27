@@ -3085,6 +3085,23 @@ def test_a_127_is_blamed_only_on_the_tool_the_shell_says_is_missing():
           h.state == det.ALARM, "%s %s" % (h.state, h.msg))
 
 
+def test_a_baseline_is_written_where_a_reader_can_see_it():
+    """2026-09-27, arms B and C: `score_brief` named its baseline from the
+    model name, and `gemma4:12b` put a colon in it. On Windows that is an
+    EMPTY file with the baseline in an NTFS side-stream -- printed as
+    `written:` and invisible to every reader. Any character a filename
+    cannot safely hold becomes `_`."""
+    sys.path.insert(0, os.path.join(_repo_root(), "trial"))
+    import score_brief
+    for model in ("gemma4:12b", "openai/gpt-oss-120b", "a b\\c*?"):
+        name = os.path.basename(score_brief.baseline_path("C-new-stall", model))
+        check("baseline: %r gives a plain filename" % model,
+              re.fullmatch(r"[A-Za-z0-9._-]+\.json", name) is not None, name)
+    check("baseline: and the model is still readable in it",
+          os.path.basename(score_brief.baseline_path("B", "gemma4:12b"))
+          == "B_gemma4_12b.json")
+
+
 def test_the_partial_edit_hand_shows_its_input_shape_where_it_is_served():
     """2026-09-26, the creature's first real `tool-replace`, on `plan`: it
     wrote `SEARCH ... REPLACE` with no `<<<<<<<` / `=======` / `>>>>>>>`
@@ -10298,6 +10315,7 @@ def main():
                test_nothing_starts_the_engine_but_a_person,
                test_a_127_is_blamed_only_on_the_tool_the_shell_says_is_missing,
                test_the_partial_edit_hand_shows_its_input_shape_where_it_is_served,
+               test_a_baseline_is_written_where_a_reader_can_see_it,
                test_resume_is_derived_from_the_journal,
                test_resume_matches_a_live_run,
                test_history_can_never_parse_as_a_command,
