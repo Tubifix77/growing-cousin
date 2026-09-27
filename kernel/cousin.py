@@ -80,10 +80,17 @@ def parse(reply):
     body = blocks[-1]
     got = {k.lower(): v.strip() for k, v in FIELD_RE.findall(body)}
 
+    # re.I, as FIELD_RE and REMEMBER_RE already are. 2026-09-27, found by the
+    # step-5 verifier: a capitalised `Remember:` after a multi-line
+    # `to_creature` was parsed into the cousin's private notes AND left in the
+    # message the creature is served -- the notes the prompt promises "the
+    # creature never sees". Reachable only once verdict prompts invite notes
+    # (TRUTHFUL_VISITS); measured before the fix: 0 of 274 live verdicts
+    # carry a field-name line inside `to_creature`, so it changes none.
     m = re.search(
         r"^\s*to_creature\s*:\s*\|?\s*\n(.*?)"
         r"(?=^\s*(?:want|noticed|verdict|tried|outcome|remember)\s*:|\Z)",
-        body, re.S | re.M)
+        body, re.S | re.M | re.I)
     if m:
         msg = "\n".join(l.strip() for l in m.group(1).strip().splitlines()).strip()
     else:

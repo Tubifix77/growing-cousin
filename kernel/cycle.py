@@ -200,15 +200,33 @@ class Engine:
         # motivated it, it said NOTHING through the loop: all four visits had
         # run the tool and then found no model free for the verdict, which
         # defers the cycle and leaves a probe with no verdict after it.
-        rows = self.j.read(kinds=["cousin_verdict", "cousin_probe"])
+        #
+        # A VISIT IS A FRESH RUN OR A RETRY of an old one (PLAN 18.7), and a
+        # retry writes `verdict_recovered`, never a new probe -- so counting
+        # probes alone read one run plus three failed retries as "once" (the
+        # step-5 verifier). `visit_deferred` is NOT counted: it is the failure
+        # record OF one of those, and would count it twice.
+        rows = self.j.read(kinds=["cousin_verdict", "cousin_probe",
+                                  "verdict_recovered", "visit_deferred",
+                                  "visit_unanswered"])
         last = None
         for r in rows:
             if r.get("kind") == "cousin_verdict" and r.get("verdict") in ("ACCEPTED", "RETURNED"):
                 last = r.get("ts")
-        unfinished = [r for r in rows if r.get("kind") == "cousin_probe"
-                      and (last is None or (r.get("ts") or 0) > last)]
+        since = [r for r in rows if last is None or (r.get("ts") or 0) > last]
+        unfinished = [r for r in since
+                      if r.get("kind") in ("cousin_probe", "verdict_recovered")]
         if not unfinished:
             return ""
+        # WHY, as the journal recorded it -- never a guess about the tier. The
+        # first wording said "usually no model was free", which is false on a
+        # run of unusable answers.
+        no_model = sum(1 for r in since if r.get("kind") == "visit_deferred"
+                       or (r.get("kind") == "cousin_probe"
+                           and r.get("chosen_by") == "ladder_dry"))
+        unusable = sum(1 for r in since if r.get("kind") == "visit_unanswered")
+        body_down = sum(1 for r in since if r.get("kind") == "cousin_probe"
+                        and r.get("chosen_by") == "cousin_body_down")
         now = time.time() if now is None else now
         n = len(unfinished)
         times = "once" if n == 1 else "%d times" % n
@@ -223,9 +241,16 @@ class Engine:
                     "finish, so nothing you have done since then has been "
                     "judged yet." % (time.strftime("%H:%M", time.localtime(last)),
                                      when, times))
-        return ("## Your cousin's visits\n\n" + head + " On this free tier that "
-                "usually means no model was free for it to think with. What it "
-                "asked for above stands until it next finishes a visit.")
+        why = []
+        if no_model:
+            why.append("no model was free for it to think with (%d)" % no_model)
+        if unusable:
+            why.append("it could not give a usable answer (%d)" % unusable)
+        if body_down:
+            why.append("its own box was not answering (%d)" % body_down)
+        reason = (" What stopped it: %s." % "; ".join(why)) if why else ""
+        return ("## Your cousin's visits\n\n" + head + reason + " What it asked "
+                "for above stands until it next finishes a visit.")
 
     def hands_block(self):
         """ITS HANDS, EVERY WAKE, each described by its own header.
@@ -1214,7 +1239,11 @@ class Engine:
         empty store is the true condition of a stranger and not a broken world.
         """
         import json
-        p = os.path.join(dst_mind, "state", "memory.json")
+        p = self._cousin_state_file(dst_mind)
+        if p is None:
+            self.j.append("cousin_memory_refused", where="install",
+                          reason="state or memory.json is a link or leaves the world")
+            return None
         try:
             os.makedirs(os.path.dirname(p), exist_ok=True)
             mine = {}
@@ -1225,10 +1254,7 @@ class Engine:
                     mine = loaded
             except Exception:
                 mine = {}
-            tmp = p + ".tmp"
-            with io.open(tmp, "w", encoding="utf-8") as f:
-                f.write(json.dumps(mine, indent=2))
-            os.replace(tmp, p)
+            self._write_new(p + ".tmp", p, json.dumps(mine, indent=2))
         except OSError:
             return None
         # Only a world WE installed may be harvested. Without this flag the
@@ -1237,6 +1263,43 @@ class Engine:
         # own -- the leak, made permanent, by the commit that closes it.
         self._cousin_memory_installed = True
         return len(mine)
+
+    @staticmethod
+    def _cousin_state_file(mind):
+        """`<mind>/state/memory.json`, or None if either is a link or the state
+        directory resolves anywhere but inside `mind`.
+
+        2026-09-27, the step-5 verifier: the cousin's world is a COPY the
+        cousin's own bash has just run in, and nothing wipes it between that
+        shell and our write. A planted `state -> ../../body/mind/tools/own`
+        turned the notes write into a file in the creature's library,
+        reproduced in a scratch directory; pointed at the creature's
+        `state` it would merge the cousin's notes into the creature's memory,
+        and the harvest reading through the same link would carry the
+        creature's notes into the cousin's store -- the 09-18 answer-key leak,
+        reopened. The copy is disposable; the paths into it are not trusted."""
+        state = os.path.join(mind, "state")
+        if os.path.islink(state):
+            return None
+        if os.path.dirname(os.path.realpath(state)) != os.path.realpath(mind):
+            return None
+        p = os.path.join(state, "memory.json")
+        if os.path.islink(p):
+            return None
+        return p
+
+    @staticmethod
+    def _write_new(tmp, final, text):
+        """Write `text` to a temp file that did not exist -- never through a
+        link planted under its name -- and rename it over `final`. A rename
+        replaces a link at `final` rather than following it."""
+        if os.path.lexists(tmp):
+            os.unlink(tmp)
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        fd = os.open(tmp, flags, 0o644)
+        with io.open(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp, final)
 
     def keep_cousin_notes(self, notes):
         """Notes the cousin wrote into its VERDICT, put where its `remember`
@@ -1255,7 +1318,11 @@ class Engine:
             return 0
         if not getattr(self, "_cousin_memory_installed", False):
             return 0
-        p = os.path.join(self.cousin_body.mind, "state", "memory.json")
+        p = self._cousin_state_file(self.cousin_body.mind)
+        if p is None:
+            self.j.append("cousin_memory_refused", where="notes",
+                          reason="state or memory.json is a link or leaves the world")
+            return 0
         try:
             with io.open(p, encoding="utf-8") as f:
                 d = json.load(f)
@@ -1267,10 +1334,7 @@ class Engine:
             d[str(k)[:120]] = str(v)[:400]
         try:
             os.makedirs(os.path.dirname(p), exist_ok=True)
-            tmp = p + ".tmp"
-            with io.open(tmp, "w", encoding="utf-8") as f:
-                f.write(json.dumps(d, indent=2))
-            os.replace(tmp, p)
+            self._write_new(p + ".tmp", p, json.dumps(d, indent=2))
         except OSError:
             return 0
         self.j.append("cousin_noted", keys=[str(k)[:120] for k, _ in notes])
@@ -1297,7 +1361,13 @@ class Engine:
             return None
         if self.cousin_body is None:
             return None
-        src = os.path.join(self.cousin_body.mind, "state", "memory.json")
+        src = self._cousin_state_file(self.cousin_body.mind)
+        if src is None:
+            # KEEP THE LAST GOOD STORE, exactly as for a deleted world: a link
+            # here could only be pointing at a store that is not the cousin's.
+            self.j.append("cousin_memory_refused", where="harvest",
+                          reason="state or memory.json is a link or leaves the world")
+            return None
         try:
             with io.open(src, encoding="utf-8") as f:
                 d = json.load(f)

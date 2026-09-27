@@ -3085,6 +3085,76 @@ def test_a_127_is_blamed_only_on_the_tool_the_shell_says_is_missing():
           h.state == det.ALARM, "%s %s" % (h.state, h.msg))
 
 
+def test_the_cousins_notes_never_reach_the_creature():
+    """Two ways found by the step-5 verifier, 2026-09-27, both reachable only
+    once TRUTHFUL_VISITS invites `remember:` lines in every verdict.
+
+    1. A capitalised `Remember:` after a multi-line `to_creature` was kept as
+       a note AND left in the message the creature is served.
+    2. The notes are written into the cousin's world AFTER its own shell ran
+       in it, so a planted link (`state -> ../../body/mind/tools/own`) turned
+       the write into a file in the creature's library; the harvest reading
+       through a link could carry the creature's notes into the cousin's
+       store (the 09-18 answer-key leak)."""
+    reply = ("<<<COUSIN\nverdict: RETURNED\ntried: ran plan list\n"
+             "outcome: crashed\nto_creature: |\n  I ran plan list and it "
+             "stopped.\n  Nothing printed.\nRemember: plan-list crashes on an "
+             "empty plan\nWant: a plan that lists\nCOUSIN")
+    v = cousin.parse(reply)
+    check("notes: a capitalised Remember is kept as the cousin's note",
+          ("plan-list", "crashes on an empty plan") in [tuple(p) for p in v.remember],
+          v.remember)
+    check("notes: ...and is NOT in the message the creature is served",
+          "crashes on an empty plan" not in v.to_creature
+          and "Remember" not in v.to_creature and "Want" not in v.to_creature
+          and "Nothing printed." in v.to_creature, v.to_creature)
+
+    d = tmpdir()
+    creature = os.path.join(d, "body", "mind")
+    own = os.path.join(creature, "tools", "own")
+    os.makedirs(own)
+    os.makedirs(os.path.join(creature, "state"))
+    secret = os.path.join(creature, "state", "memory.json")
+    with io.open(secret, "w", encoding="utf-8") as f:
+        f.write('{"plan-verified": "true"}')
+    cmind = os.path.join(d, "cousin-body", "mind")
+    os.makedirs(cmind)
+    try:
+        os.symlink(own, os.path.join(cmind, "state"), target_is_directory=True)
+    except (OSError, NotImplementedError, AttributeError):
+        print("  SKIP notes: this box cannot create links (Windows without "
+              "the privilege); the laptop's gate runs these")
+        shutil.rmtree(d, ignore_errors=True)
+        return
+    e, j, b, dd = build_engine([""], [])
+    e.cousin_body = type("CB", (), {"mind": cmind})()
+    e._cousin_memory_installed = True
+    got = e.keep_cousin_notes([("k", "v")])
+    check("notes: a linked state directory is refused",
+          got == 0 and not os.listdir(own), os.listdir(own))
+    check("notes: ...and the refusal is on the record",
+          any(r.get("where") == "notes" for r in j.read(kinds=["cousin_memory_refused"])))
+    check("notes: installing through the same link is refused too",
+          e._install_cousin_memory(cmind) is None and not os.listdir(own),
+          os.listdir(own))
+    os.unlink(os.path.join(cmind, "state"))
+    os.makedirs(os.path.join(cmind, "state"))
+    os.symlink(secret, os.path.join(cmind, "state", "memory.json"))
+    store = e.cousin_memory_path()
+    check("notes: the harvest will not read the creature's notes through a link",
+          e.harvest_cousin_memory() is None
+          and (not os.path.exists(store)
+               or "plan-verified" not in io.open(store, encoding="utf-8").read()))
+    os.unlink(os.path.join(cmind, "state", "memory.json"))
+    os.symlink(secret, os.path.join(cmind, "state", "memory.json.tmp"))
+    e.keep_cousin_notes([("k", "v")])
+    check("notes: a link planted under the temp file's name is never written "
+          "through", io.open(secret, encoding="utf-8").read() == '{"plan-verified": "true"}'
+          and '"k"' in io.open(os.path.join(cmind, "state", "memory.json"),
+                               encoding="utf-8").read())
+    b.destroy(); shutil.rmtree(dd, ignore_errors=True); shutil.rmtree(d, ignore_errors=True)
+
+
 def test_a_standing_want_says_why_its_user_has_not_come():
     """PLAN 4c, 2026-09-27. With the cousin unable to reach a rung for 5.2 h,
     the creature spent 27 thinks re-verifying a finished tool and telling its
@@ -3102,17 +3172,26 @@ def test_a_standing_want_says_why_its_user_has_not_come():
     got_through = time.time()
     check("visits: a visit that finished leaves nothing to say",
           e.visits_block(now=got_through + 60) == "")
-    # 09-26's real shape: the tool RAN and no verdict followed (the verdict
-    # found no model and the cycle deferred) -- and one lost before running
+    # 09-26's real shapes: the tool RAN and the verdict found no model (the
+    # cycle deferred); one lost before running; and RETRIES of the old run
+    # (PLAN 18.7), which write `verdict_recovered` and never a new probe
     j.append("cousin_probe", tool="archive-bulk-update", chosen_by="cousin", exit_code=2)
+    j.append("visit_deferred", trigger="DONE_CLAIM", detail="LadderExhausted")
     j.append("cousin_probe", tool="plan", chosen_by="ladder_dry", exit_code=None)
-    j.append("cousin_probe", tool="plan", chosen_by="cousin", exit_code=0)
+    j.append("verdict_recovered", tool="archive-bulk-update", probe_ts=1.0)
+    j.append("visit_deferred", trigger="STALL", detail="LadderExhausted")
+    j.append("verdict_recovered", tool="archive-bulk-update", probe_ts=1.0)
+    j.append("visit_deferred", trigger="STALL", detail="LadderExhausted")
     block = e.visits_block(now=got_through + 3 * 3600)
     check("visits: it says when a visit last finished",
           time.strftime("%H:%M", time.localtime(got_through)) in block
           and "3 h ago" in block, block)
-    check("visits: and counts every visit since that did not finish, "
-          "whichever step it stopped at", "come back 3 times" in block, block)
+    check("visits: and counts every visit since that did not finish -- fresh "
+          "runs AND retries, whichever step each stopped at",
+          "come back 4 times" in block, block)
+    check("visits: and says what stopped them, as the journal recorded it",
+          "no model was free for it to think with (4)" in block
+          and "usable answer" not in block, block)
     check("visits: and says why the want still stands, as a fact",
           "stands until it next finishes a visit" in block, block)
     page = e.serve_context()
@@ -3129,11 +3208,15 @@ def test_a_standing_want_says_why_its_user_has_not_come():
     j.append("cousin_verdict", verdict="RETURNED", tool="plan", model="m")
     check("visits: once a visit gets through again, the line goes",
           e.visits_block(now=time.time()) == "", e.visits_block())
-    j.append("cousin_probe", tool="plan", chosen_by="ladder_dry", exit_code=None)
+    j.append("cousin_probe", tool="plan", chosen_by="cousin", exit_code=0)
     j.append("cousin_verdict", verdict="UNKNOWN", tool="plan", model="m")
+    j.append("visit_unanswered", trigger="STALL", error="no-block")
     late = e.visits_block(now=time.time() + 120)
     check("visits: an UNKNOWN verdict is not a visit that finished, so the "
           "one before it still counts", "come back once and" in late, late)
+    check("visits: and an unusable answer is named as that, never as a busy "
+          "tier", "could not give a usable answer (1)" in late
+          and "no model was free" not in late, late)
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
     e2, j2, b2, d2 = build_engine([""], [])
     j2.append("cousin_probe", tool="x", chosen_by="ladder_dry", exit_code=None)
@@ -10379,6 +10462,7 @@ def main():
                test_the_partial_edit_hand_shows_its_input_shape_where_it_is_served,
                test_a_baseline_is_written_where_a_reader_can_see_it,
                test_a_standing_want_says_why_its_user_has_not_come,
+               test_the_cousins_notes_never_reach_the_creature,
                test_resume_is_derived_from_the_journal,
                test_resume_matches_a_live_run,
                test_history_can_never_parse_as_a_command,
