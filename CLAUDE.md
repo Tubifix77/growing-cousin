@@ -116,9 +116,14 @@ not warn you; this paragraph is the warning.
    wait.** A page no rung will take stays that size until something shrinks
    it, and waiting is how eight hours went on 09-24. Its runbook line says
    where to look.
-3. **`deploy_regression_day` for `d833f7d`, due 2026-09-26 ~23:21**, then
-   PLAN step 4 (one signal per cause) and 4b (is the 56k page costing
-   thinks?). *Kept for the record:* the one for `3a6a642` was the
+3. **As of 2026-09-27 the engine is `ac45fb2`** (started 09-26 14:46; the
+   `tool-replace` markers) and its day-reading is DONE -- PLAN step 4: 8b
+   holds, the first marked `tool-replace` landed on `plan`, 4b answered *not
+   measurably* so the budget stays. **Next:** step 3 (arm B/C on the Windows
+   bench -- only when Tue says the PC is free), then step 5 together with 4c
+   (a finished want and an unreachable user become a loop). The
+   `d833f7d` and `3a6a642` readings are in PLAN. *Kept for the record:* the
+   one for `3a6a642` was the
    first valid day-reading of ANY of this week's read-side changes: the 09-23
    night was lost to an 11.5-hour outage (a STOP file and a unit that read a
    refusal as a crash, §5) and 09-24 to the wedge. So the question the caps
