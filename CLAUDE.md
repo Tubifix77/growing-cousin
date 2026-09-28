@@ -38,6 +38,36 @@ against the directory rather than typed: see
 
 ### Handover — updated 2026-09-24 evening, read this before touching anything
 
+**HOW TO REACH THE LAPTOP (Tue, 2026-09-28).** The `ssh-remote` MCP server
+is gone and will not come back (company policy allows official MCP servers
+only). Use the built-in shell:
+
+```bash
+ssh homelab '<command>'
+```
+
+```bash
+scp <local> homelab:<remote>
+```
+
+`homelab` is an alias in `~/.ssh/config` (key-based, `BatchMode` on), so a
+failed connection errors at once instead of hanging on a prompt. Everything
+this file says to do "on the laptop" -- the gate in a scratch clone
+(`/tmp/gate-check`, changed files copied over it with `scp`), reading the
+journal and `live/monitor/status.md`, pulling the checkout -- goes this way.
+**Quote the remote command in single quotes**: the laptop's shell is zsh,
+which expands `*`, `=word` and `$VAR` before the command runs.
+
+**ASK TUE BEFORE ANYTHING DESTRUCTIVE ON THE LAPTOP (his rule, same day):**
+deleting files, restarting services, installing packages. **That includes
+every engine deploy** -- the STOP-file stop and the start are a service
+restart, so a deploy is prepared, gated and pushed, and then waits for his
+yes. Read-only work needs no asking: status, journal reads, `git pull
+--ff-only` of the checkout (docs-only pulls change no running code), and
+running the gate. **Treated as not destructive, and told to him when
+decided:** overwriting files in the scratch gate clone under `/tmp` that
+Claude itself created; *removing* that clone, or anything outside it, asks.
+
 **The board is `PLAN.md`.** Every open item this project knows about, in the
 order they are being done, one at a time, each with acceptance criteria that
 can be checked rather than asserted, and each verified by a reader who did not
@@ -477,6 +507,8 @@ not a midnight patch.**
   start` — and the tool's timeout killed it between the wait and the start,
   leaving the engine stopped with a STOP file for ninety seconds. Nothing
   would have restarted it. Stop; confirm; start; confirm — four calls.
+  **And since 2026-09-28 all four come after Tue's yes** (*How to reach
+  the laptop*, above): a deploy is a service restart.
 - **A patch script writes to a sibling file and renames it.** `open(path,
   "w")` truncates BEFORE the constructor can fail. On 2026-09-16 an illegal
   `newline="\\n"` — a shell escape typed into a Python file through the
@@ -542,7 +574,8 @@ fails the liveness assertion intermittently under the suite's process churn —
 / Bash/Service`. Linux runs the identical suite in 2.4s, clean, repeatedly. Run
 it there before committing; the pattern that works without pushing first is a
 scratch `git clone ~/growing-cousin /tmp/gate-check` with the changed files
-uploaded over it.
+copied over it (`scp <file> homelab:/tmp/gate-check/<file>`, since
+2026-09-28 -- see *How to reach the laptop* above).
 
 > **FIXED 2026-09-21 (PLAN 18.8), and this paragraph is kept because the
 > diagnosis is the useful part.** `LocalBody` now finds a real bash
