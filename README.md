@@ -543,10 +543,21 @@ and its reading on `PLAN.md`'s board:
 - **A refusal is not a crash** to systemd any more, so a deliberate STOP left
   over a reboot no longer spends the restart budget and locks the Start button.
 
-What the day before this deploy measured: the creature stopped re-reading its
-12 KB `plan` tool (74 reads a day to 2) but has not yet written it, and it
-thought about half as often as before — which may be the page now sitting at
-the budget on every wake. Both are read again after a day of `d833f7d`.
+What its first two days measured (read 2026-09-28 and 09-29, `PLAN.md` rows
+*5 + 4c read* and *day 2*): no alarms, and no correctness indicator worse than
+the engine before it. The creature reads the new visits line and reasons with
+it in its own words, and by the second day it had stopped re-checking finished
+tools and was re-running only the one it was building. The loop kept closing — the cousin
+accepted a tool, asked for the next thing, and the creature built it — and
+nine tools now pass the headline metric, up from seven. The cousin's testimony
+audit found nothing new.
+
+**One fix is prepared and waiting to be applied** (`PLAN.md` 6b): the backup
+model `cloudflare/llama-3.3-70b`, when it answers for the creature, pastes
+Python straight into a shell command in 25 of its 58 answers since 09-20
+(the main model: 0 of 992). It comes off the creature's list of models and
+stays on the cousin's, where it judges well. The list is read when the engine
+starts, so this needs a restart.
 
 Design settled 2026-09-10; the brief was scored against real fixtures
 2026-09-11 -- in-sample, on a local stand-in, which is a floor and not a

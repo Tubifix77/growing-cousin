@@ -68,6 +68,15 @@ running the gate. **Treated as not destructive, and told to him when
 decided:** overwriting files in the scratch gate clone under `/tmp` that
 Claude itself created; *removing* that clone, or anything outside it, asks.
 
+**A DAILY CHECK FIXES WHAT IT FINDS (Tue, 2026-09-30).** *"you should
+actually fix stuff you find in daily checkups not just register them."* On
+09-29 a finding was booked for a restart five days out. That is registering,
+not fixing. A finding is fixed in the check that finds it: code or config
+prepared, gated, committed and pushed, and the one step his rule makes his
+(the restart, a delete, an install) asked for **then**, in one line, with
+everything else already done. "Fold it into a later deploy" is a disposition
+only when the fix is unsafe to ship now, and it says why.
+
 **The board is `PLAN.md`.** Every open item this project knows about, in the
 order they are being done, one at a time, each with acceptance criteria that
 can be checked rather than asserted, and each verified by a reader who did not
@@ -149,8 +158,12 @@ not warn you; this paragraph is the warning.
 3. **As of 2026-09-27 20:41 the engine is `1b3ff3a`**: `TRUTHFUL_VISITS` ON
    (the bench cleared it -- step 3) and 4c's `visits_block`, which tells the
    creature when its cousin last finished a visit and why visits since have
-   not. **Next:** its day-reading, ~09-28 20:41 (PLAN row *5 + 4c*), then
-   remove the switch after a clean week. Before it: `ac45fb2`'s reading
+   not. **Read twice, clean both times** (PLAN rows *5 + 4c read*, 09-28,
+   and *day 2*, 09-29). **Next:** PLAN 6b, cloudflare off the CREATURE's
+   ladder (`rungs.local.json`, laptop config) -- prepared 2026-09-30, not
+   applied: the config write was refused by the session's permission check
+   and the restart needs Tue's yes; then remove the switch after a clean
+   week (~10-04). Before it: `ac45fb2`'s reading
    (PLAN step 4): 8b holds, the first marked `tool-replace` landed on `plan`,
    4b answered *not measurably* so the budget stays. The
    `d833f7d` and `3a6a642` readings are in PLAN. *Kept for the record:* the
