@@ -159,11 +159,14 @@ not warn you; this paragraph is the warning.
    (the bench cleared it -- step 3) and 4c's `visits_block`, which tells the
    creature when its cousin last finished a visit and why visits since have
    not. **Read twice, clean both times** (PLAN rows *5 + 4c read*, 09-28,
-   and *day 2*, 09-29). **Next:** PLAN 6b, cloudflare off the CREATURE's
-   ladder (`rungs.local.json`, laptop config) -- prepared 2026-09-30, not
-   applied: the config write was refused by the session's permission check
-   and the restart needs Tue's yes; then remove the switch after a clean
-   week (~10-04). Before it: `ac45fb2`'s reading
+   and *day 2*, 09-29). **Next, one restart on Tue's yes:** PLAN 6b
+   (cloudflare off the CREATURE's ladder, `rungs.local.json`, laptop config
+   -- the config write was refused by the session's permission check on
+   09-30) and PLAN 6c (four framework fixes from the 09-30 check plus four
+   from its verifier: stale recovered verdicts, placeholder visits, the
+   truth about `jq`, cousin notes across a restart). The laptop checkout is
+   NOT pulled past `45df478` until then, because a pull of code is a
+   deploy. Then remove the switch after a clean week (~10-04). Before it: `ac45fb2`'s reading
    (PLAN step 4): 8b holds, the first marked `tool-replace` landed on `plan`,
    4b answered *not measurably* so the budget stays. The
    `d833f7d` and `3a6a642` readings are in PLAN. *Kept for the record:* the
@@ -1353,6 +1356,27 @@ guess with authority it has not earned.
 
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
+
+- **A BOUND STOOD IN FOR THE INVARIANT, AND THE COUSIN WAS MADE TO TESTIFY
+  ABOUT A FILE THAT NO LONGER EXISTED.** 2026-09-30, found by the daily
+  check following a "not written yet" verdict back to its probe.
+  *Signature:* a `verdict_recovered` whose `probe_ts` is older than a write
+  of the same tool. A recovered verdict judges a run from the journal
+  (PLAN 18.7), and `ORPHAN_MAX_AGE_S` (6 h) was there because *a verdict
+  about a tool as it was is testimony about a world that is gone* -- but
+  age was standing in for **did the tool change**, and a tool changes in
+  minutes. 09-29 00:56 the cousin ran a placeholder; 01:02 the creature
+  wrote the tool; 01:07 the recovered verdict told it *"it told me it was
+  not written yet"*. **27 of run 2's 231 recoveries.** §2.5 with the
+  framework as author. *Invariant: when a proxy exists for a condition you
+  can check directly, check the condition.* The same check found 24 visits
+  spent on `tool-new`'s own placeholder, and both inhabitants reaching for a
+  `jq` nobody had told them was absent (36 probe failures, three `apt-get`
+  attempts by a non-root creature *"to help the cousin"*). **The verifier
+  then found four more in the fixes** -- the target chooser undoing the
+  placeholder rule, untested wiring, a refused edit still ringing, and the
+  cousin's notes lost across every restart because a flag lived only in
+  memory. Fifth round running that a verifier found something real.
 
 - **THE FRAMEWORK PUT WORDS IN THE CREATURE'S MOUTH, AND A HAND COULD EMPTY A
   TOOL -- both found by using the Windows bench the way Tue asked.**

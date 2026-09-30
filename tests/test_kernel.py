@@ -3155,6 +3155,267 @@ def test_the_cousins_notes_never_reach_the_creature():
     b.destroy(); shutil.rmtree(dd, ignore_errors=True); shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_placeholder_is_not_work_to_judge():
+    """2026-09-30. 24 cousin visits in run 2 ran a file that was still
+    tool-new's own placeholder, fired by TOOL_WRITE on its creation, and all
+    the cousin could say was what OUR hand printed: *not written yet*. A
+    placeholder is ours, so it is not a write; the creature's real write of
+    it rings the bell. A done-claim over one still does -- that is a false
+    claim, and catching it is the cousin's job. And `tool-replace`, our
+    partial-edit door, rang nothing at all."""
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    d = tmpdir()
+    mind = os.path.join(d, "mind")
+    own = os.path.join(mind, "tools", "own")
+    os.makedirs(own)
+    r = subprocess.run([sys.executable, os.path.join(repo, "hands", "tool-new"),
+                        "fresh-tool"], env=dict(os.environ, MIND=mind),
+                       capture_output=True, text=True, timeout=30)
+    check("placeholder: the real hand made the file", r.returncode == 0
+          and os.path.exists(os.path.join(own, "fresh-tool")), r.stderr)
+    check("placeholder: the kernel recognises exactly what the hand writes",
+          triggers.is_placeholder(own, "fresh-tool"),
+          io.open(os.path.join(own, "fresh-tool"), encoding="utf-8").read())
+    made = [("tool-new fresh-tool", 0)]
+    fired = triggers.detect(made, [], ["fresh-tool"], 0, 0,
+                            placeholders=["fresh-tool"])
+    check("placeholder: creating one fires no visit", fired == [], fired)
+    fired = triggers.detect(made, [], ["fresh-tool"], 0, 0)
+    check("placeholder: (the same cycle without the placeholder rule DOES "
+          "fire, so the check above can tell the rule from its absence)",
+          [t for t, _ in fired] == ["TOOL_WRITE"], fired)
+    fired = triggers.detect(made + [("remember current-phase done", 0)], [],
+                            ["fresh-tool"], 0, 0, placeholders=["fresh-tool"])
+    check("placeholder: a done-claim over a placeholder still summons the "
+          "cousin", [t for t, _ in fired] == ["DONE_CLAIM"], fired)
+    fired = triggers.detect([("tool-new fresh-tool && cat > tools/own/other <<EOF\n"
+                              "x\nEOF", 0)], ["other"], ["fresh-tool", "other"],
+                            0, 0, placeholders=["fresh-tool"])
+    check("placeholder: a real write in the same command still counts",
+          [t for t, _ in fired] == ["TOOL_WRITE"], fired)
+    with io.open(os.path.join(own, "fresh-tool"), "a", encoding="utf-8") as f:
+        f.write("# real work\n")
+    check("placeholder: once the creature has written it, it is not one",
+          not triggers.is_placeholder(own, "fresh-tool"))
+    fired = triggers.detect([("printf 'x\\n' | tool-replace plan", 0)],
+                            ["plan"], ["plan"], 0, 0)
+    check("placeholder: an edit through tool-replace rings the bell",
+          fired == [("TOOL_WRITE", {"tools": [], "edit": True})], fired)
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_real_cycle_neither_visits_a_placeholder_nor_an_unchanged_tool():
+    """The 2026-09-30 verifier: the placeholder rule was proven on `detect`
+    with the list typed by hand, so deleting the wiring in `run_cycle` left
+    every test green; `choose_target` still picked the placeholder when
+    something else fired the visit; and an edit command that changed nothing
+    (a refused `tool-replace`) still rang. Driven here through real cycles,
+    with our real hands on the creature's PATH."""
+    import run as runmod
+    d = tmpdir()
+    j = Journal(os.path.join(d, "journal.jsonl"))
+    b = runmod.PathBody(os.path.join(d, "body"))
+    b.bin = runmod.install_hands(b)
+    own = os.path.join(b.mind, "tools", "own")
+    os.makedirs(own, exist_ok=True)
+    py = b.run("python3 -c 'print(40 + 2)'")
+    if py.code != 0 or "42" not in py.stdout:
+        # Our hands are `#!/usr/bin/env python3`. On the Windows bench that
+        # resolves to the Store stub (exit 49), so no hand runs and every
+        # check below would pass having tested nothing (round-two verifier).
+        print("  SKIP real cycle: no working python3 on this body's PATH; "
+              "the laptop's gate runs these")
+        b.destroy(); shutil.rmtree(d, ignore_errors=True)
+        return
+    _write_tool(own, "plan", does="keeps the plan", call="plan list")
+    replies = ["```bash\ntool-new zz-report\n```",
+               "```bash\ntool-replace plan < /dev/null\n```"]
+    e = Engine(j, b, "BRIEF", backends.scripted(replies), backends.scripted([]),
+               os.path.join(d, "context.md"))
+    e.write_context("# Your world\n\nBuild something.")
+    e.run_cycle()
+    ch = j.read(kinds=["tools_changed"])
+    check("real cycle: tool-new's placeholder is recorded as one",
+          ch and ch[-1].get("placeholders") == ["zz-report"], ch[-1:] if ch else ch)
+    check("real cycle: ...and summons nobody",
+          j.read(kinds=["trigger_fired"]) == [], j.read(kinds=["trigger_fired"]))
+    e.run_cycle()
+    ends = j.read(kinds=["exec_end"])
+    check("real cycle: (the tool-replace really ran, and refused)",
+          ends and ends[-1].get("exit_code") == 1
+          and "no SEARCH/REPLACE block" in (ends[-1].get("stderr") or ""), ends[-1:])
+    check("real cycle: an edit command that changed no file summons nobody",
+          j.read(kinds=["trigger_fired"]) == [], j.read(kinds=["trigger_fired"]))
+    # choose_target: a placeholder beside a real write is not the target...
+    with io.open(os.path.join(own, "zz-two"), "w", encoding="utf-8") as f:
+        f.write(triggers.PLACEHOLDER.format(name="zz-two"))
+    target = e.choose_target([("tool-new zz-two && printf x | tool-replace plan", 0)],
+                             ["plan", "zz-report", "zz-two"], ["plan", "zz-report"])
+    check("real cycle: beside a real write, the visit goes to what was written",
+          target == ("plan", "written"), target)
+    target = e.choose_target([("tool-new zz-two", 0),
+                              ("remember current-phase done", 0)],
+                             ["plan", "zz-report", "zz-two"], ["plan", "zz-report"])
+    check("real cycle: a done-claim over a placeholder alone still meets it",
+          target == ("zz-two", "new"), target)
+    # A guess the stamps confirm beats one they do not: the heredoc body
+    # names `plan`, a later tool-replace of `plan` was refused, and only
+    # `gen` actually changed.
+    _write_tool(own, "gen", does="generates")
+    e._edited = ["gen"]
+    target = e.choose_target(
+        [("cat > tools/own/gen <<'EOF'\necho x > tools/own/plan\nEOF", 0),
+         ("printf x | tool-replace plan", 1)],
+        ["gen", "plan", "zz-report", "zz-two"], ["gen", "plan", "zz-report", "zz-two"])
+    check("real cycle: the visit goes to the file that changed, not to a name "
+          "in a heredoc or a refused edit", target == ("gen", "written"), target)
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_the_cousins_last_notes_before_a_restart_are_kept():
+    """The 2026-09-30 verifier: the 'we installed this world' flag lived only
+    in memory, so after every restart the first sync skipped the harvest and
+    the install overwrote the world from the store -- the cousin's notes from
+    its last visit before a restart were lost without a word. The marker on
+    disk says it; it is removed before the copy brings the creature's notes
+    in, so a crash in between can never make those look like the cousin's."""
+    e, j, b, d = build_engine([""], [])
+    _write_tool(os.path.join(b.mind, "tools", "own"), "plan", does="plans")
+    os.makedirs(os.path.join(b.mind, "state"), exist_ok=True)
+    with io.open(os.path.join(b.mind, "state", "memory.json"), "w", encoding="utf-8") as f:
+        f.write('{"plan-verified": "true"}')
+    cmind = os.path.join(d, "cousin-body", "mind")
+    os.makedirs(cmind)
+    CB = type("CB", (), {"mind": cmind})
+    e.cousin_body = CB()
+    e.sync_cousin_world()
+    # IN ONE RUN, a sync whose install fails must not be vouched for by the
+    # flag the previous install set (round-two verifier).
+    e._install_cousin_memory = lambda dst_mind: None
+    e.sync_cousin_world()
+    check("restart: a world whose install failed is not ours, even in the "
+          "run that installed the last one", not e._world_is_ours())
+    del e._install_cousin_memory       # the real method again
+    e.sync_cousin_world()
+    world = os.path.join(cmind, "state", "memory.json")
+    with io.open(world, "w", encoding="utf-8") as f:
+        f.write('{"plan-list": "needs a goal first"}')      # the cousin's `remember`
+    # RESTART: a new engine over the same root, nothing held in memory.
+    def store_of(eng):
+        try:
+            return json.load(io.open(eng.cousin_memory_path(), encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+    e2, j2, b2, _ = build_engine([""], [], d=d)
+    e2.cousin_body = CB()
+    e2.sync_cousin_world()
+    store = store_of(e2)
+    check("restart: the cousin's last notes before it are harvested",
+          store.get("plan-list") == "needs a goal first", store)
+    check("restart: ...and the creature's own never are",
+          "plan-verified" not in store, store)
+    # A CRASH BETWEEN THE COPY AND THE INSTALL: the copy has put the
+    # CREATURE's notes in the world, and the install never ran.
+    e3, j3, b3, _ = build_engine([""], [], d=d)
+    e3.cousin_body = CB()
+    e3._install_cousin_memory = lambda dst_mind: None
+    e3.sync_cousin_world()
+    check("restart: (the crashed sync left the creature's notes in the world)",
+          "plan-verified" in io.open(world, encoding="utf-8").read())
+    e4, j4, b4, _ = build_engine([""], [], d=d)
+    e4.cousin_body = CB()
+    e4.sync_cousin_world()
+    store = store_of(e4)
+    check("restart: a world a sync did not finish installing is never read "
+          "as the cousin's", "plan-verified" not in store
+          and store.get("plan-list") == "needs a goal first", store)
+    for x in (b, b2, b3, b4):
+        x.destroy()
+    shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_run_from_before_a_rewrite_is_not_judged():
+    """2026-09-29 00:56 the cousin ran `archive-get-recent` while it was a
+    placeholder; the verdict was lost to a dry tier; the creature wrote the
+    tool at 01:02; and at 01:07 the RECOVERED verdict told it *"it told me it
+    was not written yet"*. 27 of run 2's 231 recovered verdicts were formed
+    on a run from before a later write. A run is evidence about the tool as
+    it was; once the file has changed, the visit runs it afresh."""
+    e, j, b, d = build_engine(["thinking"], [])
+    own = os.path.join(b.mind, "tools", "own")
+    _write_tool(own, "plan", does="keeps the plan", call="plan list")
+    j.append("cousin_probe", tool="plan", exit_code=0, bare=False,
+             cmd="plan list", stdout="ok", stderr="")
+    pts = float(j.read(kinds=["cousin_probe"])[-1]["ts"])
+    os.utime(os.path.join(own, "plan"), (pts - 30, pts - 30))
+    check("stale: a run of the tool as it still is gets its verdict late",
+          e.orphan_probe() is not None)
+    os.utime(os.path.join(own, "plan"), (pts + 30, pts + 30))
+    check("stale: a run from before the tool was rewritten is not judged",
+          e.orphan_probe() is None)
+    os.remove(os.path.join(own, "plan"))
+    check("stale: nor is a run of a tool that is gone", e.orphan_probe() is None)
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_note_on_a_recovered_visit_after_a_restart_is_kept():
+    """The step-5 verifier's nit, 2026-09-27, fixed 2026-09-30: a recovered
+    verdict re-runs nothing and so installs no world, and a note it carried
+    was dropped without a word. It goes into the store the next install
+    reads; no harvest can overwrite it first."""
+    e, j, b, d = build_engine([""], [])
+    cmind = os.path.join(d, "cousin-body", "mind")
+    os.makedirs(cmind)
+    e.cousin_body = type("CB", (), {"mind": cmind})()
+    store = e.cousin_memory_path()
+    with io.open(store, "w", encoding="utf-8") as f:
+        f.write('{"old": "kept"}')
+    check("restart note: nothing installed yet in this run",
+          not getattr(e, "_cousin_memory_installed", False))
+    got = e.keep_cousin_notes([("plan-list", "needs a goal first")])
+    kept = json.load(io.open(store, encoding="utf-8"))
+    check("restart note: the note is kept, in the store",
+          got == 1 and kept.get("plan-list") == "needs a goal first"
+          and kept.get("old") == "kept", kept)
+    check("restart note: ...and it says where",
+          j.read(kinds=["cousin_noted"])[-1].get("where") == "store")
+    check("restart note: a harvest before any install cannot overwrite it",
+          e.harvest_cousin_memory() is None
+          and json.load(io.open(store, encoding="utf-8")).get("plan-list"))
+    check("restart note: the next install hands it to the cousin",
+          e._install_cousin_memory(cmind) == 2
+          and "needs a goal first" in io.open(
+              os.path.join(cmind, "state", "memory.json"), encoding="utf-8").read())
+    check("restart note: the creature's own mind never received it",
+          not os.path.exists(os.path.join(b.mind, "state", "memory.json"))
+          or "needs a goal first" not in io.open(
+              os.path.join(b.mind, "state", "memory.json"), encoding="utf-8").read())
+    b.destroy(); shutil.rmtree(d, ignore_errors=True)
+
+
+def test_both_inhabitants_are_told_the_truth_about_jq():
+    """2026-09-30. Neither body has `jq`, by the Dockerfile's own rule, and
+    neither was told: since 09-25 the cousin's own pipelines failed on it 36
+    times and 7 verdicts blamed it, and on 09-30 the creature tried three
+    times to `apt-get install jq` *"to help the cousin"* as a non-root user.
+    The prompts now say so -- and must stop saying so the day the image
+    installs it."""
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    dockerfile = io.open(os.path.join(repo, "deploy", "Dockerfile"),
+                         encoding="utf-8").read()
+    installs_jq = bool(re.search(r"^\s*RUN\b[^\n]*\bjq\b", dockerfile, re.M))
+    prompt = io.open(os.path.join(repo, "CREATURE-PROMPT.md"), encoding="utf-8").read()
+    check("jq: the image does not install it (else the sentences below are false)",
+          not installs_jq)
+    check("jq: the cousin is told its shell has no jq",
+          "`jq` is not installed" in cousin.INVOKE_TEMPLATE)
+    check("jq: the creature is told there is no root and no jq",
+          "no root" in prompt and "`jq` is not there" in prompt
+          and "pip install --user" in prompt)
+    check("jq: the invocation template still formats",
+          "{" not in cousin.INVOKE_TEMPLATE.format(header="H", library="L"))
+
+
 def test_a_standing_want_says_why_its_user_has_not_come():
     """PLAN 4c, 2026-09-27. With the cousin unable to reach a rung for 5.2 h,
     the creature spent 27 thinks re-verifying a finished tool and telling its
@@ -10463,6 +10724,12 @@ def main():
                test_a_baseline_is_written_where_a_reader_can_see_it,
                test_a_standing_want_says_why_its_user_has_not_come,
                test_the_cousins_notes_never_reach_the_creature,
+               test_a_placeholder_is_not_work_to_judge,
+               test_a_real_cycle_neither_visits_a_placeholder_nor_an_unchanged_tool,
+               test_the_cousins_last_notes_before_a_restart_are_kept,
+               test_a_run_from_before_a_rewrite_is_not_judged,
+               test_a_note_on_a_recovered_visit_after_a_restart_is_kept,
+               test_both_inhabitants_are_told_the_truth_about_jq,
                test_resume_is_derived_from_the_journal,
                test_resume_matches_a_live_run,
                test_history_can_never_parse_as_a_command,

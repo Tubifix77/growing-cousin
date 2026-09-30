@@ -17,29 +17,87 @@ import re
 DONE_MARK_RE = re.compile(r"\bremember\s+current-phase\s+[\"']?done[\"']?", re.I)
 
 # A write INTO tools/own, not a read OF it. Blocking on `cat tool` would be a
-# gate nobody could satisfy.
+# gate nobody could satisfy. `tool-replace` (the partial-edit hand, 2026-09-25)
+# was missing until 2026-09-30: an edit through our own newest door rang no
+# bell, so the cousin was never sent to what it changed.
 TOOL_WRITE_RE = re.compile(
     r"(?:>|>>|\btee\b)\s*['\"]?(?:/mind/)?tools/own/|"
-    r"\btool-new\b|\btool-edit\b")
+    r"\btool-new\b|\btool-edit\b|\btool-replace\b")
 
 STALL_CYCLES = 12
 HEARTBEAT_CYCLES = 20   # the parent's RETRO_INTERVAL: its retro already IS this
 
+# What `hands/tool-new` writes, byte for byte. A file that is still exactly
+# this is OUR placeholder, not the creature's work. The hand cannot import the
+# kernel (it runs inside the body), so the text lives in both places and
+# `test_a_placeholder_is_not_work_to_judge` runs the real hand and compares.
+PLACEHOLDER = ("#!/usr/bin/env python3\n"
+               "# tool: {name}\n# call: {name}\n# does: TODO\n\n"
+               'print("{name}: not written yet")\n')
+
+
+def is_placeholder(tools_dir, name):
+    """True while `tools_dir/name` is still exactly tool-new's placeholder."""
+    try:
+        with open(os.path.join(tools_dir, name), encoding="utf-8") as f:
+            return f.read() == PLACEHOLDER.format(name=name)
+    except (OSError, ValueError):
+        return False
+
+
+def stamps(tools_dir, names):
+    """`{name: (mtime_ns, size)}` -- enough to tell that a file was written."""
+    out = {}
+    for n in names:
+        try:
+            st = os.stat(os.path.join(tools_dir, n))
+            out[n] = (st.st_mtime_ns, st.st_size)
+        except OSError:
+            pass
+    return out
+
+
+def _still_writes(cmd, placeholders):
+    """Does `cmd` write a tool once `tool-new <placeholder>` is set aside?"""
+    if placeholders:
+        cmd = re.sub(r"\btool-new\s+(['\"]?)([\w.-]+)\1",
+                     lambda m: "" if m.group(2) in placeholders else m.group(0),
+                     cmd)
+    return bool(TOOL_WRITE_RE.search(cmd))
+
 
 def detect(executed, tools_before, tools_after, cycles_since_visit,
-           cycles_since_change):
+           cycles_since_change, placeholders=(), edited=None):
     """Return a list of (trigger_type, fields). Order is significance, not time:
-    a done-claim outranks a write, which outranks a stall."""
+    a done-claim outranks a write, which outranks a stall.
+
+    `placeholders` are new names that are still tool-new's own text. They are
+    not a write: 24 visits in run 2 (to 2026-09-30) ran such a file, and all
+    the cousin could say was what our hand had printed -- *not written yet* --
+    a visit of two model calls on a shared tier spent on the framework's own
+    stub, and a refusal the creature then had to answer for. The creature's
+    real write of the file fires TOOL_WRITE then. A DONE_CLAIM over a
+    placeholder still fires: that is a false claim, and catching it is the
+    cousin's job.
+
+    `edited` is the tools whose file actually changed this cycle (None: not
+    known, the old behaviour). An edit command that changed nothing -- a
+    `tool-replace` whose SEARCH did not match refuses and writes nothing, a
+    `cat /hands/tool-replace` reads -- is not a write, and sending the cousin
+    to re-run an unchanged tool is the waste this function exists to avoid
+    (the 2026-09-30 verifier)."""
     fired = []
     cmds = [c for c, _ in executed]
+    placeholders = set(placeholders or ())
 
     if any(DONE_MARK_RE.search(c) for c in cmds):
         fired.append(("DONE_CLAIM", {"commands": len(cmds)}))
 
-    new_tools = sorted(set(tools_after) - set(tools_before))
+    new_tools = sorted(set(tools_after) - set(tools_before) - placeholders)
     if new_tools:
         fired.append(("TOOL_WRITE", {"tools": new_tools}))
-    elif any(TOOL_WRITE_RE.search(c) for c in cmds):
+    elif (edited is None or edited) and any(_still_writes(c, placeholders)
+                                            for c in cmds):
         # Written through the proper door but not a new NAME -- an edit.
         fired.append(("TOOL_WRITE", {"tools": [], "edit": True}))
 

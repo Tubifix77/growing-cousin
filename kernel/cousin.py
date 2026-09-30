@@ -324,7 +324,8 @@ you do, you get to USE it, in a shell of your own. The other tools listed
 below are on your PATH too, and so is `recall`, which reads back YOUR OWN
 notes from your earlier visits -- not the builder's, which you never see.
 `remember <key> <value>` keeps one for your next visit; nothing else you do
-here survives.
+here survives. The shell is bash with python3; `jq` is not installed, so read
+JSON with python3 if you need to.
 
 You also have instruments of your own, which are not the builder's tools and
 tell you about the library as a whole rather than about one file: `lib-startable`

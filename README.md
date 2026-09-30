@@ -552,12 +552,23 @@ accepted a tool, asked for the next thing, and the creature built it — and
 nine tools now pass the headline metric, up from seven. The cousin's testimony
 audit found nothing new.
 
-**One fix is prepared and waiting to be applied** (`PLAN.md` 6b): the backup
-model `cloudflare/llama-3.3-70b`, when it answers for the creature, pastes
-Python straight into a shell command in 25 of its 58 answers since 09-20
-(the main model: 0 of 992). It comes off the creature's list of models and
-stays on the cousin's, where it judges well. The list is read when the engine
-starts, so this needs a restart.
+**Fixes prepared and waiting for one restart** (`PLAN.md` 6b and 6c):
+
+- The backup model `cloudflare/llama-3.3-70b` comes off the creature's list of
+  models: when it answered for the creature it pasted Python straight into a
+  shell command in 25 of its 58 answers since 09-20 (the main model: 0 of 992).
+  It stays on the cousin's, where it judges well.
+- A cousin verdict that was retried after the free tier ran dry could judge a
+  run of the tool from **before** the creature rewrote it — 27 of 231 such
+  retries — and once told the creature a tool it had written was "not written
+  yet". A retry now only reuses a run of the tool as it still is.
+- A brand-new tool's empty placeholder no longer sends the cousin to run it
+  (24 wasted visits); an edit that changed nothing no longer does either; and
+  the newest editing tool now does ring the bell.
+- Neither shell has `jq`, and neither inhabitant was told. The cousin's own
+  commands failed on it 36 times, and the creature tried to install it for its
+  cousin three times without the rights to. Both are now told plainly.
+- The cousin's notes survive a restart.
 
 Design settled 2026-09-10; the brief was scored against real fixtures
 2026-09-11 -- in-sample, on a local stand-in, which is a floor and not a

@@ -813,6 +813,7 @@ class Engine:
         """Returns a dict describing what happened. Substantive = something ran."""
         tools_dir = os.path.join(self.body.mind, "tools", "own")
         tools_before = trigmod.list_tools(tools_dir)
+        stamps_before = trigmod.stamps(tools_dir, tools_before)
 
         context = self.serve_context()
         self.done_blocked = None
@@ -914,21 +915,28 @@ class Engine:
             return {"substantive": False, "reason": "nothing_ran"}
 
         tools_after = trigmod.list_tools(tools_dir)
+        added = sorted(set(tools_after) - set(tools_before))
+        placeholders = [t for t in added if trigmod.is_placeholder(tools_dir, t)]
         if tools_after != tools_before:
             # Journalled explicitly, and not left to be inferred from
             # TOOL_WRITE: a DELETION changes the set and fires no trigger, so
             # inferring "did the library change" from triggers silently misses
             # it. State is derived from the event log (CLAUDE.md 6.1), which
             # only works when the event is actually IN the log.
-            self.j.append("tools_changed",
-                          added=sorted(set(tools_after) - set(tools_before)),
-                          removed=sorted(set(tools_before) - set(tools_after)))
+            self.j.append("tools_changed", added=added,
+                          removed=sorted(set(tools_before) - set(tools_after)),
+                          placeholders=placeholders)
             self.cycles_since_change = 0
         else:
             self.cycles_since_change += 1
 
+        after = trigmod.stamps(tools_dir, tools_after)
+        edited = sorted(t for t in stamps_before
+                        if t in after and after[t] != stamps_before[t])
+        self._edited = edited   # read by choose_target for this cycle's visit
         fired = trigmod.detect(executed, tools_before, tools_after,
-                               self.cycles_since_visit, self.cycles_since_change)
+                               self.cycles_since_visit, self.cycles_since_change,
+                               placeholders=placeholders, edited=edited)
         for t, fields in fired:
             self.j.append("trigger_fired", type=t, **fields)
 
@@ -1069,18 +1077,42 @@ class Engine:
         second user should be sent to try.
         """
         new = sorted(set(tools_after) - set(tools_before))
-        if new:
-            return new[-1], "new"
+        # tool-new's own placeholder is not the creature's work (2026-09-30,
+        # 24 visits ran one). It is chosen only when it is ALL that is new
+        # and nothing real was written -- a done-claim over it is a false
+        # claim about exactly that file, and the cousin should meet it.
+        own = os.path.join(self.body.mind, "tools", "own")
+        stubs = [t for t in new if trigmod.is_placeholder(own, t)]
+        real = [t for t in new if t not in stubs]
+        if real:
+            return real[-1], "new"
         have = set(tools_after)
+        # A name a write command points at is a GUESS; a tool whose file
+        # changed this cycle is a FACT. Guesses the facts confirm come first,
+        # so a refused `tool-replace plan` after a real write elsewhere, or a
+        # `> tools/own/plan` inside a heredoc body being written to another
+        # tool, cannot pull the visit to a file nobody changed (round-two
+        # verifier). `_edited` is None outside a cycle: guesses alone.
+        edited = getattr(self, "_edited", None)
+        guesses = []
         for cmd, _ in reversed(executed):
-            m = trigmod.TOOL_WRITE_RE.search(cmd)
-            if m:
+            # Every write in the command, not only the first: `tool-new x &&
+            # ... | tool-replace plan` wrote `plan`, and a first-match-only
+            # reading saw nothing but the placeholder.
+            for m in trigmod.TOOL_WRITE_RE.finditer(cmd):
                 tail = cmd[m.end():].strip().split()
                 if tail:
                     guess = os.path.basename(tail[0].strip("'\""))
                     # Only if the library actually holds it.
-                    if guess in have:
-                        return guess, "written"
+                    if guess in have and guess not in stubs:
+                        guesses.append(guess)
+        for guess in guesses:
+            if edited is None or guess in edited:
+                return guess, "written"
+        if guesses and not edited:
+            return guesses[0], "written"
+        if stubs:
+            return stubs[-1], "new"
         # PLAN 18.6. `ran` used to return the MOST RECENT tool the creature
         # invoked, and a done-claim is indeed most likely about that -- but
         # the creature runs `plan` on most cycles, so the most recent name is
@@ -1171,6 +1203,20 @@ class Engine:
         # died half way still has its notes taken on the next one, and so that
         # there is exactly ONE call site for a thing that must never be missed.
         self.harvest_cousin_memory()
+        # From here until the install below the world holds the CREATURE's
+        # notes (the copy writes its `state/memory.json`), so it is not ours
+        # to harvest -- the marker goes first, and comes back only with the
+        # install. A crash in between leaves no marker, and so no leak.
+        try:
+            os.unlink(self._installed_marker())
+        except OSError:
+            pass
+        # And the in-memory half with it: set once and never cleared, it
+        # vouched for a world whose install then FAILED (a mode the copy
+        # carried over, a full disk) -- the builder's notes left in place for
+        # this visit to `recall` and the next harvest to keep (round-two
+        # verifier, 2026-10-01).
+        self._cousin_memory_installed = False
         os.makedirs(dst_mind, exist_ok=True)
         for n in os.listdir(dst_mind):
             p = os.path.join(dst_mind, n)
@@ -1262,7 +1308,34 @@ class Engine:
         # the world it had already been given and persist them as the cousin's
         # own -- the leak, made permanent, by the commit that closes it.
         self._cousin_memory_installed = True
+        # AND ON DISK, so a restart still knows. Held only in memory, the
+        # flag was False after every restart: the first sync skipped the
+        # harvest and the install overwrote the world from the store, so
+        # whatever the cousin noted on its LAST visit before a restart was
+        # lost without a word (the 2026-09-30 verifier). Removed at the top
+        # of every sync, before the copy that brings the creature's notes in.
+        try:
+            m = self._installed_marker()
+            self._write_new(m + ".tmp", m, os.path.realpath(dst_mind))
+        except OSError:
+            pass
         return len(mine)
+
+    def _installed_marker(self):
+        return self.cousin_memory_path() + ".installed"
+
+    def _world_is_ours(self):
+        """Did WE install the cousin world as it stands -- this run, or a run
+        before a restart? Only then may its memory be read as the cousin's."""
+        if getattr(self, "_cousin_memory_installed", False):
+            return True
+        if self.cousin_body is None:
+            return False
+        try:
+            with io.open(self._installed_marker(), encoding="utf-8") as f:
+                return f.read() == os.path.realpath(self.cousin_body.mind)
+        except OSError:
+            return False
 
     @staticmethod
     def _cousin_state_file(mind):
@@ -1316,9 +1389,19 @@ class Engine:
         import json
         if not notes or self.cousin_body is None:
             return 0
-        if not getattr(self, "_cousin_memory_installed", False):
-            return 0
-        p = self._cousin_state_file(self.cousin_body.mind)
+        where = "world"
+        if not self._world_is_ours():
+            # No world of ours in this run yet: the first visit after a
+            # restart was a RECOVERED verdict, which re-runs nothing and so
+            # installs nothing. Until 2026-09-30 the notes were dropped here
+            # without a word (the step-5 verifier's nit). The store itself is
+            # what the next install reads, and no harvest can overwrite it
+            # first -- a harvest needs a world we installed -- so they go
+            # there. The store is outside every mount, so §2.3 is untouched.
+            p = self.cousin_memory_path()
+            where = "store"
+        else:
+            p = self._cousin_state_file(self.cousin_body.mind)
         if p is None:
             self.j.append("cousin_memory_refused", where="notes",
                           reason="state or memory.json is a link or leaves the world")
@@ -1337,7 +1420,8 @@ class Engine:
             self._write_new(p + ".tmp", p, json.dumps(d, indent=2))
         except OSError:
             return 0
-        self.j.append("cousin_noted", keys=[str(k)[:120] for k, _ in notes])
+        self.j.append("cousin_noted", keys=[str(k)[:120] for k, _ in notes],
+                      where=where)
         return len(notes)
 
     def harvest_cousin_memory(self):
@@ -1357,9 +1441,9 @@ class Engine:
         and the creature never reads it.
         """
         import json
-        if not getattr(self, "_cousin_memory_installed", False):
-            return None
         if self.cousin_body is None:
+            return None
+        if not self._world_is_ours():
             return None
         src = self._cousin_state_file(self.cousin_body.mind)
         if src is None:
@@ -1456,7 +1540,30 @@ class Engine:
         if tries.get(ts, 0) >= self.ORPHAN_MAX_TRIES:
             # Let it go rather than keep the cousin from everything else.
             return None
+        if self.tool_changed_since(last.get("tool"), ts):
+            # THE TOOL MUST STILL BE THE ONE THAT RAN. The age bound above
+            # was standing in for "the library moved on", and a tool moves in
+            # minutes: 2026-09-29 00:56 the cousin ran `archive-get-recent`
+            # while it was tool-new's placeholder, the creature wrote it at
+            # 01:02 and claimed it done at 01:05, and at 01:07 the recovered
+            # verdict told it *"it told me it was not written yet"* -- about a
+            # file that had been written. 27 of run 2's 231 recovered
+            # verdicts were formed on a run from before a later write. A
+            # verdict on a tool that has changed since is testimony about a
+            # tool that no longer exists (§2.5, the framework as author); the
+            # visit makes a fresh run instead.
+            return None
         return last
+
+    def tool_changed_since(self, tool, ts):
+        """True when tools/own/<tool> was written after `ts`, or is gone."""
+        if not tool:
+            return False
+        try:
+            return os.path.getmtime(
+                os.path.join(self.body.mind, "tools", "own", tool)) > ts
+        except OSError:
+            return True
 
     def replay_evidence(self, probe, now=None, trigger=None):
         """What the cousin is shown when judging a run it already made.
