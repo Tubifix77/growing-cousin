@@ -285,7 +285,10 @@ enters or leaves ALARM, so `tail` it to see what changed since you last looked.
 Every detector was proven by replay on the real journal slice where its scar
 happened (`tests/fixtures/journal/`). **Tue's standing instruction
 (2026-09-15): no Claude-side monitor. Let it run; he asks for a check in the
-morning.** The page says which commit is running and whether a restart is
+morning.** **And no self-scheduled check of any kind (Tue, 2026-10-01)** --
+no scheduled task, cron job, loop or wake-up on either machine: *"i will ask
+you when you need to run a check."* A one-time task from 09-18 was found on
+his PC and deleted that day. The page says which commit is running and whether a restart is
 owed; do not work it out from `git log` and systemd by hand again.
 
 **While it runs, it does not need you.** If it gives up it exits
