@@ -511,9 +511,26 @@ Full method, fixtures and per-case results: [`trial/`](trial/).
 
 ## Status
 
-**As of 2026-09-27 20:41 the laptop runs `1b3ff3a`.** What it carries that
+**As of 2026-10-01 20:19 the laptop runs `c48d92b`.** What it carries that
 earlier engines did not, newest first — each with its reason in `CLAUDE.md` §5
 and its reading on `PLAN.md`'s board:
+
+- **A cousin verdict retried after the free tier ran dry judges only a run of
+  the tool as it still is.** Before, 27 of 231 such retries judged a run from
+  before the creature rewrote the tool, and once told it a tool it had written
+  was "not written yet".
+- **The cousin is no longer sent to an empty placeholder.** A brand-new
+  tool's stub cost 24 visits that could only report what our own hand
+  printed. An edit that changed nothing no longer sends it either, and the
+  newest editing tool now does.
+- **Both shells are described truthfully**: neither has `jq` and neither has
+  root. The cousin's own commands had failed on `jq` 36 times, and the
+  creature tried three times to install it for its cousin.
+- **The cousin's notes survive a restart.**
+- **The backup model `cloudflare/llama-3.3-70b` no longer answers for the
+  creature** — in 25 of its 58 answers it pasted Python straight into a shell
+  command (the main model: 0 of 992). It still serves the cousin, where it
+  judges well.
 
 - **The cousin is told truthfully why it came** — a new tool, a quiet
   stretch, a heartbeat — instead of always *"the creature says it finished
@@ -543,7 +560,7 @@ and its reading on `PLAN.md`'s board:
 - **A refusal is not a crash** to systemd any more, so a deliberate STOP left
   over a reboot no longer spends the restart budget and locks the Start button.
 
-What its first two days measured (read 2026-09-28 and 09-29, `PLAN.md` rows
+What `1b3ff3a`'s first two days measured (read 2026-09-28 and 09-29, `PLAN.md` rows
 *5 + 4c read* and *day 2*): no alarms, and no correctness indicator worse than
 the engine before it. The creature reads the new visits line and reasons with
 it in its own words, and by the second day it had stopped re-checking finished
@@ -551,24 +568,6 @@ tools and was re-running only the one it was building. The loop kept closing —
 accepted a tool, asked for the next thing, and the creature built it — and
 nine tools now pass the headline metric, up from seven. The cousin's testimony
 audit found nothing new.
-
-**Fixes prepared and waiting for one restart** (`PLAN.md` 6b and 6c):
-
-- The backup model `cloudflare/llama-3.3-70b` comes off the creature's list of
-  models: when it answered for the creature it pasted Python straight into a
-  shell command in 25 of its 58 answers since 09-20 (the main model: 0 of 992).
-  It stays on the cousin's, where it judges well.
-- A cousin verdict that was retried after the free tier ran dry could judge a
-  run of the tool from **before** the creature rewrote it — 27 of 231 such
-  retries — and once told the creature a tool it had written was "not written
-  yet". A retry now only reuses a run of the tool as it still is.
-- A brand-new tool's empty placeholder no longer sends the cousin to run it
-  (24 wasted visits); an edit that changed nothing no longer does either; and
-  the newest editing tool now does ring the bell.
-- Neither shell has `jq`, and neither inhabitant was told. The cousin's own
-  commands failed on it 36 times, and the creature tried to install it for its
-  cousin three times without the rights to. Both are now told plainly.
-- The cousin's notes survive a restart.
 
 Design settled 2026-09-10; the brief was scored against real fixtures
 2026-09-11 -- in-sample, on a local stand-in, which is a floor and not a

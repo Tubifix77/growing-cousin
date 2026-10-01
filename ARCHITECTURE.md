@@ -343,7 +343,7 @@ that: **139 false-completion blocks in one window.** It claims done constantly.
 | Trigger | Fires when |
 |---|---|
 | `DONE_CLAIM` | The creature marks a phase or tool complete |
-| `TOOL_WRITE` | A new file lands in `tools/own/` (creation, not edit) |
+| `TOOL_WRITE` | A new file lands in `tools/own/`, or a write through our hands (`tool-edit`, `tool-replace`, `> tools/own/…`) actually changes a tool's file. Not `tool-new`'s own placeholder, and not an edit command that changed nothing (2026-09-30) |
 | `STALL` | N cycles with no new file and no done-claim |
 | `HEARTBEAT` | Every N cycles regardless, so a quiet creature is still visited |
 

@@ -92,9 +92,9 @@ because every count written here has gone stale within a day.
 
 **What is running.** Read the first two lines of `live/monitor/status.md` for
 the engine commit and whether a restart is owed; do not derive it from `git
-log`. As of 2026-09-25 23:21 it is `d833f7d` (before it, `3a6a642` from
-09-24 17:46), and what that engine carries is the thing to understand before
-changing any bound:
+log`. As of 2026-10-01 20:19 it is `c48d92b` (before it `1b3ff3a` from
+09-27 20:41, `d833f7d` from 09-25 23:21); the bounds below have not moved
+since `d833f7d`, and they are the thing to understand before changing any:
 
 | bound | value | why |
 |---|---|---|

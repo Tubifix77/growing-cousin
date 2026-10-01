@@ -169,6 +169,7 @@ in `main()`, before the loop starts.
 | `rungs.local.json`, `rungs.cousin.local.json` | **restart** | `load_spec` runs once in `main()` |
 | what the ladder has learned: rungs walled for a rejected credential, and the smallest request each rung refused as too large (413) | **forgotten on restart** | held in the process on purpose -- a restart is the one moment a provider that raised its limit, or a fixed key, gets asked again |
 | `deploy/*.service`, `*.timer` | **`daemon-reload` + restart** | and copy it to `~/.config/systemd/user/` first — editing the repo copy alone changes nothing |
+| the cousin's notes, `live/cousin-body/cousin-memory.json`, and the `.installed` marker beside it | **kept across restarts** | the marker says the cousin world on disk was set up by us, so a restart still collects what the cousin noted on its last visit; deleting it costs only those last notes, never a leak |
 | `live/context.md` (the wants) | **live** | the cousin writes it, the kernel re-reads it every wake. This is the whole point of "the manager writes the context, the kernel serves it" |
 | `live/journal.jsonl` | **live** | append-only; `vitals.py`, `census.py` and the observer all read it while the engine runs |
 | `tools/own/*` | **live** | the creature's own world, discovered per cycle |
