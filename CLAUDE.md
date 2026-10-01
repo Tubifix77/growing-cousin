@@ -59,14 +59,20 @@ journal and `live/monitor/status.md`, pulling the checkout -- goes this way.
 which expands `*`, `=word` and `$VAR` before the command runs.
 
 **ASK TUE BEFORE ANYTHING DESTRUCTIVE ON THE LAPTOP (his rule, same day):**
-deleting files, restarting services, installing packages. **That includes
+deleting files, restarting services, installing packages. ~~**That includes
 every engine deploy** -- the STOP-file stop and the start are a service
 restart, so a deploy is prepared, gated and pushed, and then waits for his
-yes. Read-only work needs no asking: status, journal reads, `git pull
+yes.~~ *Restarts were authorised outright on 2026-10-01 -- see below.* Read-only work needs no asking: status, journal reads, `git pull
 --ff-only` of the checkout (docs-only pulls change no running code), and
 running the gate. **Treated as not destructive, and told to him when
 decided:** overwriting files in the scratch gate clone under `/tmp` that
 Claude itself created; *removing* that clone, or anything outside it, asks.
+
+**RESTARTS ARE NOW AUTHORISED (Tue, 2026-10-01): *"always restart if
+needed!"*** An engine deploy -- pull, STOP-file stop, start -- no longer
+waits for his yes when a fix needs it; it is still gated, verified and
+pushed first, and still done in separate calls. **Deleting files and
+installing packages on the laptop still ask.**
 
 **A DAILY CHECK FIXES WHAT IT FINDS (Tue, 2026-09-30).** *"you should
 actually fix stuff you find in daily checkups not just register them."* On
@@ -159,14 +165,13 @@ not warn you; this paragraph is the warning.
    (the bench cleared it -- step 3) and 4c's `visits_block`, which tells the
    creature when its cousin last finished a visit and why visits since have
    not. **Read twice, clean both times** (PLAN rows *5 + 4c read*, 09-28,
-   and *day 2*, 09-29). **Next, one restart on Tue's yes:** PLAN 6b
-   (cloudflare off the CREATURE's ladder, `rungs.local.json`, laptop config
-   -- the config write was refused by the session's permission check on
-   09-30) and PLAN 6c (four framework fixes from the 09-30 check plus four
-   from its verifier: stale recovered verdicts, placeholder visits, the
-   truth about `jq`, cousin notes across a restart). The laptop checkout is
-   NOT pulled past `45df478` until then, because a pull of code is a
-   deploy. Then remove the switch after a clean week (~10-04). Before it: `ac45fb2`'s reading
+   and *day 2*, 09-29). **Then `c48d92b`, deployed 2026-10-01 20:19:17**
+   (`selfcheck` ok, nothing unproven): PLAN 6b (cloudflare off the
+   CREATURE's ladder; backup `~/rungs.local.json.bak-20260930`) and 6c (the
+   09-30 check's framework fixes and its verifier's: stale recovered
+   verdicts, placeholder visits, the truth about `jq`, cousin notes across a
+   restart). **Next:** read 6c's acceptance signals at the next check, and
+   remove the switch after a clean week (~10-04). Before it: `ac45fb2`'s reading
    (PLAN step 4): 8b holds, the first marked `tool-replace` landed on `plan`,
    4b answered *not measurably* so the budget stays. The
    `d833f7d` and `3a6a642` readings are in PLAN. *Kept for the record:* the
@@ -526,8 +531,8 @@ not a midnight patch.**
   start` — and the tool's timeout killed it between the wait and the start,
   leaving the engine stopped with a STOP file for ninety seconds. Nothing
   would have restarted it. Stop; confirm; start; confirm — four calls.
-  **And since 2026-09-28 all four come after Tue's yes** (*How to reach
-  the laptop*, above): a deploy is a service restart.
+  ~~**And since 2026-09-28 all four come after Tue's yes**~~ -- since
+  2026-10-01 they need no yes (*"always restart if needed!"*, above).
 - **A patch script writes to a sibling file and renames it.** `open(path,
   "w")` truncates BEFORE the constructor can fail. On 2026-09-16 an illegal
   `newline="\\n"` — a shell escape typed into a Python file through the
