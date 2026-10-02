@@ -511,9 +511,20 @@ Full method, fixtures and per-case results: [`trial/`](trial/).
 
 ## Status
 
-**As of 2026-10-01 20:19 the laptop runs `c48d92b`.** What it carries that
-earlier engines did not, newest first — each with its reason in `CLAUDE.md` §5
-and its reading on `PLAN.md`'s board:
+**As of 2026-10-02 the laptop runs the engine named on the first two lines of
+`live/monitor/status.md`** (`c48d92b` from 2026-10-01 20:19, then the fixes
+below). What it carries that earlier engines did not, newest first — each with
+its reason in `CLAUDE.md` §5 and its reading on `PLAN.md`'s board:
+
+- **The whole-file editing tool refuses a partial-edit block.** On 2026-10-02
+  the creature handed `tool-edit` a `tool-replace` block three times, and the
+  hand wrote it as the entire tool; the third time its central tool, `plan`,
+  was lost from its directory, because the next edit backed the broken file
+  up over the good copy. Now the block is refused, and neither editing tool
+  replaces a working backup with a broken one. The creature's `plan` itself
+  was not restored by us: its tools are its own.
+- **The status page counts the real library.** It had been counting tools
+  from the end of the journal only, and said 77 of 108.
 
 - **A cousin verdict retried after the free tier ran dry judges only a run of
   the tool as it still is.** Before, 27 of 231 such retries judged a run from

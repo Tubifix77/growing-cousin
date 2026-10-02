@@ -6604,6 +6604,63 @@ def test_the_creature_is_shown_the_hands_it_was_given():
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
+def test_a_hand_never_writes_a_search_block_as_a_tool_nor_loses_the_good_backup():
+    """2026-10-02. `tool-edit plan` was handed a SEARCH/REPLACE block three
+    times in one night and wrote it as the WHOLE file each time (389 -> 30,
+    389 -> 5, 427 -> 69 lines), exit 0. The creature restored from `plan.bak`
+    twice; the third time a `tool-replace` on the broken file backed the
+    broken file up over the good one, and its central tool was gone from its
+    own directory. tool-edit now refuses our own block format, and neither
+    hand puts a copy that cannot start over a backup that can."""
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    d = tmpdir()
+    mind = os.path.join(d, "mind")
+    own = os.path.join(mind, "tools", "own")
+    os.makedirs(own)
+    p = os.path.join(own, "t")
+    good = "#!/bin/sh\n# tool: t\n# call: t\n# does: says hi\necho hi\n"
+
+    def run(hand, stdin):
+        return subprocess.run([sys.executable, os.path.join(here, "hands", hand), "t"],
+                              input=stdin.encode(), capture_output=True,
+                              env=dict(os.environ, MIND=mind), timeout=60)
+
+    def read(x):
+        return io.open(x, encoding="utf-8", newline="").read() if os.path.exists(x) else None
+
+    with io.open(p, "w", encoding="utf-8", newline="") as f:
+        f.write(good)
+    block = "<<<<<<< SEARCH\necho hi\n=======\necho hello\n>>>>>>> REPLACE\n"
+    r = run("tool-edit", block)
+    check("search block: tool-edit refuses it and writes nothing",
+          r.returncode == 1 and read(p) == good and read(p + ".bak") is None,
+          (r.returncode, r.stderr[-200:]))
+    check("search block: ...and says which hand takes it",
+          b"tool-replace" in r.stderr, r.stderr[-200:])
+    # A body that cannot start is still written (that stays a warning) and
+    # the good original is backed up.
+    junk = "echo no shebang\n"
+    r = run("tool-edit", junk)
+    check("backup: a body with no #! is still written, the good one backed up",
+          r.returncode == 0 and read(p) == junk and read(p + ".bak") == good,
+          (r.returncode, read(p + ".bak")))
+    # The next edit, of the broken file, must not back the broken file up
+    # over the good copy -- through either hand.
+    r = run("tool-replace", "<<<<<<< SEARCH\necho no shebang\n=======\necho still none\n>>>>>>> REPLACE\n")
+    check("backup: tool-replace on a broken file keeps the last good .bak",
+          r.returncode == 0 and read(p) == "echo still none\n" and read(p + ".bak") == good,
+          (r.returncode, r.stderr[-160:], read(p + ".bak")))
+    r = run("tool-edit", "echo yet another broken body\n")
+    check("backup: ...and so does tool-edit",
+          r.returncode == 0 and read(p + ".bak") == good, read(p + ".bak"))
+    r = run("tool-edit", good.replace("hi", "hello"))
+    r = run("tool-edit", good)
+    check("backup: a good tool replacing a good tool is backed up as before",
+          r.returncode == 0 and read(p + ".bak") == good.replace("hi", "hello"),
+          read(p + ".bak"))
+    shutil.rmtree(d, ignore_errors=True)
+
+
 def test_an_editing_hand_never_empties_a_tool_and_never_rewrites_its_bytes():
     """**`tool-edit` could empty a tool.** 2026-09-24, found on the Windows bench
     and then reproduced in a container built from the production image: given
@@ -9985,6 +10042,28 @@ def test_the_drills_give_the_unproven_detectors_their_red():
     check("monitor: ...and the unit's own root still gets it",
           (own or {}).get("ActiveState") == "active", own)
 
+    # THE LIBRARY IS THE DISK, NOT A FOLD OVER A TAIL (2026-10-02: the page
+    # said 77 tools of 108). A journal that only remembers `a` being added,
+    # beside a tools directory holding a, b and c and a backup.
+    lroot = os.path.join(tmpdir(), "live")
+    own_dir = os.path.join(lroot, "body", "mind", "tools", "own")
+    os.makedirs(own_dir)
+    for n in ("a", "b", "c", "c.bak"):
+        io.open(os.path.join(own_dir, n), "w").close()
+    Journal(os.path.join(lroot, "journal.jsonl")).append(
+        "tools_changed", added=["a"], removed=[])
+    try:
+        monstatus2.systemd_show = lambda u, p: {}
+        lib = monstatus2.collect(lroot).library
+        shutil.rmtree(os.path.join(lroot, "body"))
+        tail_only = monstatus2.collect(lroot).library
+    finally:
+        monstatus2.systemd_show = real_show
+    check("monitor: the library is read from disk, with the kernel's own "
+          "definition of a tool", lib == {"a", "b", "c"}, lib)
+    check("monitor: ...and only a root with no tools directory falls back to "
+          "the journal's", tail_only == {"a"}, tail_only)
+
 
 def test_the_giveup_drill_proves_the_chain_systemd_owns():
     """PLAN item 6.2/6.4. `run.py` exits 5 when the supervisor gives up so
@@ -10578,6 +10657,7 @@ def main():
     t0 = time.time()
     for fn in (test_the_creature_is_shown_the_hands_it_was_given,
                test_an_editing_hand_never_empties_a_tool_and_never_rewrites_its_bytes,
+               test_a_hand_never_writes_a_search_block_as_a_tool_nor_loses_the_good_backup,
                test_a_tool_can_be_changed_by_the_passage_not_by_the_whole,
                test_no_visit_but_a_done_claim_is_told_the_creature_finished,
                test_a_verdict_note_is_kept_for_the_cousin_and_never_reaches_the_creature,

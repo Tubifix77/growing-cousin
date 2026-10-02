@@ -29,6 +29,18 @@ body = (sys.stdin.buffer.read().decode("utf-8", SE)
         .replace("\r\n", "\n").replace("\r", "\n"))
 if not body.strip():
     sys.stderr.write("refusing to write an empty tool\n"); sys.exit(1)
+# A SEARCH/REPLACE BLOCK IS tool-replace's INPUT, NEVER A TOOL (2026-10-02).
+# Three times in one night `tool-edit plan` was handed one, and wrote it as
+# the WHOLE file -- 389 -> 30, 389 -> 5, 427 -> 69 lines -- exiting 0 with
+# only a warning, until the last good copy was gone. A file that opens with
+# our own marker can never be a tool, so this is the one refusal here.
+if body.lstrip().startswith("<<<<<<< SEARCH"):
+    sys.stderr.write(
+        "refusing: that is a SEARCH/REPLACE block, which is tool-replace's "
+        "input. `tool-replace %s` with it on stdin changes only the passages it "
+        "quotes; tool-edit writes the WHOLE file and would have replaced %s "
+        "with the block itself. Nothing was written.\n" % (name, name))
+    sys.exit(1)
 old = None
 
 
@@ -39,10 +51,24 @@ def _write(path, text):
     os.replace(tmp, path)
 
 
+def _keep_backup(path, text):
+    """The .bak -- unless it would put a copy that cannot start over one that
+    can (2026-10-02: a broken `plan` was backed up over the last good one)."""
+    bak = path + ".bak"
+    if not text.startswith("#!") and os.path.exists(bak):
+        try:
+            with open(bak, encoding="utf-8", errors=SE, newline="") as f:
+                if f.read(2) == "#!":
+                    return
+        except OSError:
+            pass
+    _write(bak, text)
+
+
 if os.path.exists(p):
     with open(p, encoding="utf-8", errors=SE, newline="") as f:
         old = f.read()
-    _write(p + ".bak", old)                  # never edit without a .bak
+    _keep_backup(p, old)                     # never edit without a .bak
 _write(p, body)
 os.chmod(p, os.stat(p).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 print("wrote tools/own/%s (%d -> %d lines)"

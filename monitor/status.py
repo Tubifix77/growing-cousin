@@ -244,6 +244,19 @@ def collect(root, repo=None, now=None):
         stop_present=os.path.exists(os.path.join(root, "STOP")),
         complete=complete, bad=bad)
     ctx.root, ctx.repo = root, repo
+    # THE LIBRARY IS WHAT IS ON DISK, whenever the disk is here to read.
+    # `library_from_journal` folds `tools_changed` over the rows it is given,
+    # and once the journal outgrew the read bound those rows are a TAIL: every
+    # tool created before it dropped out. 2026-10-02 the page said 77 tools,
+    # `archive-*` x29, of a library that held 108 and 54 -- an undercount
+    # that grows every day, in the reassuring direction, and the same set
+    # decides which names `tool_vanished` and `window_reread` will even look
+    # for. The kernel's own definition of a tool is used, so the page and the
+    # creature cannot disagree about what one is.
+    own = os.path.join(root, "body", "mind", "tools", "own")
+    if os.path.isdir(own):
+        from kernel import triggers as trigmod
+        ctx.library = set(trigmod.list_tools(own))
     ctx.units = {u: systemd_show(u, ["ActiveState", "SubState", "LastTriggerUSec",
                                      "NextElapseUSecRealtime",
                                      "ExecMainStartTimestamp"]) for u in UNITS}

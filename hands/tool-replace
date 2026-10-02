@@ -47,6 +47,24 @@ def fail(msg):
     sys.exit(1)
 
 
+def keep_backup(p, old):
+    """Write `<tool>.bak` -- unless that would put a copy that cannot start
+    over one that can. 2026-10-02: a whole-file write left `plan` holding a
+    SEARCH block; the next partial edit, on that broken file, backed the
+    broken file up over the last good copy, and the creature's central tool
+    could no longer be restored from its own directory."""
+    bak = p + ".bak"
+    if not old.startswith("#!") and os.path.exists(bak):
+        try:
+            with open(bak, encoding="utf-8", errors=SE, newline="") as f:
+                if f.read(2) == "#!":
+                    return
+        except OSError:
+            pass
+    with open(bak, "w", encoding="utf-8", errors=SE, newline="") as f:
+        f.write(old)
+
+
 def starts(text, search):
     """Every offset where `search` begins AT THE START OF A LINE.
 
@@ -125,8 +143,7 @@ def main():
         new = new[:-1]
     if new == old:
         fail("the blocks change nothing; %s left as it was" % name)
-    with open(p + ".bak", "w", encoding="utf-8", errors=SE, newline="") as f:
-        f.write(old)                                     # never edit without a .bak
+    keep_backup(p, old)                                  # never edit without a .bak
     tmp = p + ".tmp"
     with open(tmp, "w", encoding="utf-8", errors=SE, newline="") as f:
         f.write(new)

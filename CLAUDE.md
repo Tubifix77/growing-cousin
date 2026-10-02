@@ -1365,6 +1365,25 @@ guess with authority it has not earned.
 *Signature first, so a recurrence is a lookup and not a re-diagnosis. Name what
 was measured, with what, and on what date.*
 
+- **ONE OF OUR HANDS WROTE ANOTHER HAND'S INPUT AS A WHOLE TOOL, AND A
+  ONE-DEEP BACKUP LET THE LOSS STICK.** 2026-10-02, found by the daily check
+  reading `plan`'s failures: *"line 1: syntax error near unexpected token
+  `<<<' ... `<<<<<<< SEARCH'"*. *Signature:* a tool whose first line is
+  `<<<<<<< SEARCH`; `tool-edit` output `wrote tools/own/X (389 -> 30 lines)`
+  with a no-`#!` WARNING. The creature handed `tool-edit` a
+  `tool-replace` block three times in one night; the hand did exactly what
+  it was told -- replaced the whole file -- and exited 0. Twice the creature
+  restored from `.bak`; the third time its next edit backed the broken file
+  up over the good copy, and `plan`, the headline metric's first survivor,
+  was gone from its own directory. **Two invariants:** *a hand refuses the
+  one input it can know is never a tool -- its sibling's format*; and *a
+  backup's job is to restore a working thing, so a copy that cannot start
+  never replaces one that can.* Not restored by us (§2.1); an uncut copy is
+  in the journal. **And the page said 77 tools of 108** -- its library was a
+  fold over the journal TAIL, which loses every tool created before the read
+  bound: *a set derived from a tail undercounts in the direction that reads
+  as tidy*, the 2026-09-21 *era boundary* scar arriving through the monitor.
+
 - **A BOUND STOOD IN FOR THE INVARIANT, AND THE COUSIN WAS MADE TO TESTIFY
   ABOUT A FILE THAT NO LONGER EXISTED.** 2026-09-30, found by the daily
   check following a "not written yet" verdict back to its probe.
