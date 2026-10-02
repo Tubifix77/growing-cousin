@@ -6691,6 +6691,14 @@ def test_a_hand_never_writes_a_search_block_as_a_tool_nor_loses_the_good_backup(
           "up a broken one over it",
           read(p + ".good.bak") == good and read(p + ".bak") == "echo broken one\n"
           and b"good.bak" in r.stderr, (read(p + ".good.bak"), read(p + ".bak")))
+    # A displaced #! is named where it is, never reported as missing (the
+    # spine lost a working tool to ten edits obeying "no #! line", 09-17).
+    r = run("tool-edit", "# a note first\n" + good)
+    check("shebang: a #! below line 1 is named by its line, not called missing",
+          b"on line 2" in r.stderr and b"has no #! line" not in r.stderr, r.stderr[-200:])
+    r = run("tool-edit", "echo no shebang anywhere\n")
+    check("shebang: ...and a body with none at all still says so",
+          b"has no #! line" in r.stderr, r.stderr[-200:])
     r = run("tool-edit", good.replace("hi", "hello"))
     r = run("tool-edit", good)
     check("backup: a good tool replacing a good tool is backed up as before",

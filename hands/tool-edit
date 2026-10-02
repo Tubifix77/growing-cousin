@@ -87,7 +87,18 @@ print("wrote tools/own/%s (%d -> %d lines)"
       % (name, len((old or "").splitlines()), len(body.splitlines())))
 # A WARNING, never a refusal: the file is saved exactly as given and exit stays 0.
 first = body.splitlines()[0] if body.splitlines() else ""
-if not first.startswith("#!"):
+# NAME WHERE IT IS, never "missing" when it is only misplaced. Growing Spine,
+# 2026-09-17: its warning said "no #! line" of a tool whose #! sat on line 3,
+# and the creature obeyed it with ten edits in five minutes until a working
+# tool was gone. Read across 2026-10-02 and adopted before it happened here.
+shebang_at = next((n for n, l in enumerate(body.splitlines(), 1)
+                   if l.startswith("#!")), None)
+if not first.startswith("#!") and shebang_at:
+    sys.stderr.write("WARNING: %s has its #! on line %d, but a #! only works as "
+                     "the very first two characters of the file, so nothing tells "
+                     "the kernel how to run it. A tool must be able to start.\n"
+                     % (name, shebang_at))
+elif not first.startswith("#!"):
     sys.stderr.write("WARNING: %s has no #! line, so nothing tells the kernel how "
                      "to run it. A tool must be able to start.\n" % name)
 elif "python" in first:
