@@ -250,11 +250,18 @@ def collect(root, repo=None, now=None):
     # tool created before it dropped out. 2026-10-02 the page said 77 tools,
     # `archive-*` x29, of a library that held 108 and 54 -- an undercount
     # that grows every day, in the reassuring direction, and the same set
-    # decides which names `tool_vanished` and `window_reread` will even look
-    # for. The kernel's own definition of a tool is used, so the page and the
-    # creature cannot disagree about what one is.
+    # decides which tools `repeated_failure` can blame. The kernel's own
+    # definition of a tool is used, so the page and the creature cannot
+    # disagree about what one is. A directory that exists and cannot be LISTED
+    # keeps the journal's set rather than becoming an empty library that every
+    # detector would read as "nothing to look at" (the verifier, same day).
     own = os.path.join(root, "body", "mind", "tools", "own")
-    if os.path.isdir(own):
+    try:
+        os.listdir(own)
+        listable = True
+    except OSError:
+        listable = False
+    if listable:
         from kernel import triggers as trigmod
         ctx.library = set(trigmod.list_tools(own))
     ctx.units = {u: systemd_show(u, ["ActiveState", "SubState", "LastTriggerUSec",
@@ -670,7 +677,7 @@ def render_md(d):
     lib = d["library"]
     out.extend(render_surviving(d.get("surviving")))
 
-    out.append("## Library (%d tools the journal knows of)" % lib["tools"])
+    out.append("## Library (%d tools)" % lib["tools"])
     out.append("")
     # EVERY METRIC SPLIT ON THE TAG (§6.2). Stated in words either way,
     # because "nothing was inherited" and "nobody checked" must never render

@@ -48,17 +48,23 @@ def fail(msg):
 
 
 def keep_backup(p, old):
-    """Write `<tool>.bak` -- unless that would put a copy that cannot start
-    over one that can. 2026-10-02: a whole-file write left `plan` holding a
-    SEARCH block; the next partial edit, on that broken file, backed the
-    broken file up over the last good copy, and the creature's central tool
-    could no longer be restored from its own directory."""
+    """`<tool>.bak` is ALWAYS the version this edit replaces. 2026-10-02: a
+    whole-file write left `plan` holding a SEARCH block; the next partial
+    edit, on that broken file, backed it up over the last good copy, and the
+    creature's central tool could no longer be restored from its own
+    directory. So when a copy with no #! is about to replace a .bak that has
+    one, that .bak is first kept as `<tool>.good.bak`. Nothing is lost."""
     bak = p + ".bak"
     if not old.startswith("#!") and os.path.exists(bak):
         try:
             with open(bak, encoding="utf-8", errors=SE, newline="") as f:
-                if f.read(2) == "#!":
-                    return
+                prev = f.read()
+            if prev.startswith("#!"):
+                with open(p + ".good.bak", "w", encoding="utf-8", errors=SE,
+                          newline="") as f:
+                    f.write(prev)
+                sys.stderr.write("kept the last copy that starts with #! as "
+                                 "tools/own/%s.good.bak\n" % os.path.basename(p))
         except OSError:
             pass
     with open(bak, "w", encoding="utf-8", errors=SE, newline="") as f:

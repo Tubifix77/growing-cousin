@@ -101,8 +101,9 @@ def share(num, den, small=SMALL_N):
 
 def library_from_journal(rows):
     """The set of tools the journal believes exist: a fold over
-    `tools_changed`. Derived, so it can be wrong only where the journal is --
-    and comparing it against what the kernel says it SERVED is the point."""
+    `tools_changed`. Over a TAIL it loses every tool created before the tail
+    began, so `status.collect` reads the tools directory instead whenever it
+    can (2026-10-02); this remains for fixtures and replays."""
     tools = set()
     for r in rows:
         if r.get("kind") == "tools_changed":
@@ -124,7 +125,10 @@ def stems(names):
 
 FIRST_WORD = re.compile(r"^\s*([A-Za-z0-9_.\-]+)", re.M)
 TOOL_PATH_RE = re.compile(r"tools/own/([A-Za-z0-9_.\-]+)")
-TOOL_HAND_RE = re.compile(r"\btool-(?:edit|new)\s+['\"]?([A-Za-z0-9_.\-]+)")
+# `tool-replace` added 2026-10-02: partial edits through our newest door were
+# not counted as writes, so the page undercounted edits and `repeated_failure`
+# could not see the rewrite between two failures.
+TOOL_HAND_RE = re.compile(r"\btool-(?:edit|new|replace)\s+['\"]?([A-Za-z0-9_.\-]+)")
 TOOL_REDIRECT_RE = re.compile(
     r"(?:>|>>|\btee\b)\s*['\"]?(?:/mind/|\$MIND/|\$\{MIND\}/)?tools/own/"
     r"([A-Za-z0-9_.\-]+)")

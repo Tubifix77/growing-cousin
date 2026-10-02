@@ -360,8 +360,12 @@ def repeated_failure(ctx):
         if m and not m.group(1).endswith(".bak"):
             tool = m.group(1)
         elif start is not None:
-            named = derive.commands_named(start.get("cmd")) & ctx.library
-            tool = sorted(named)[0] if named else None
+            # The FIRST library tool the command invokes, in the order it
+            # wrote them -- never the alphabetically first, which pinned a
+            # failure naming `archive` and `plan` on `archive` whichever
+            # failed (a position in a sorted list is never a reason, §5).
+            tool = next((w for w in derive.FIRST_WORD.findall(start.get("cmd") or "")
+                         if w in ctx.library), None)
         if tool is None:
             continue
         groups[(tool, sig)].append(_ts(end))
@@ -471,8 +475,8 @@ def served_context_contract(ctx):
     shown, total = w.get("library_shown") or 0, w.get("library_total") or 0
     if total == 0 and ctx.library:
         return Finding("served_context_contract", ALARM,
-                       "the last wake served an EMPTY library while the journal "
-                       "knows %d tools" % len(ctx.library),
+                       "the last wake served an EMPTY library while the library "
+                       "holds %d tools" % len(ctx.library),
                        {"wake_ts": _ts(w), "journal_library": len(ctx.library)},
                        scar="the builder's library gap survived a day")
     named = w.get("library_named")
@@ -620,7 +624,7 @@ def probe_stuck(ctx):
 
 
 def tool_vanished(ctx):
-    """exit 127 on a name the journal knows as a tool: a body/PATH fault
+    """exit 127 on a name the library holds as a tool: a body/PATH fault
     (the relative-root scar), NOT the creature's `Goal:`-as-a-command
     confusion. Keyed on the exit code -- the box speaks Danish."""
     recent = ctx.recent(RECENT_H)

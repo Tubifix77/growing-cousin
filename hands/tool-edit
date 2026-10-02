@@ -2,7 +2,7 @@
 # tool: tool-edit
 # call: tool-edit <name>   (new body on stdin)
 # does: Replace a tool's body from stdin, keeping a .bak, and warn if it cannot start.
-import os, stat, subprocess, sys, tempfile
+import os, re, stat, subprocess, sys, tempfile
 name = sys.argv[1] if len(sys.argv) > 1 else ""
 if not name:
     sys.stderr.write("usage: tool-edit <name>  (body on stdin)\n"); sys.exit(1)
@@ -32,9 +32,14 @@ if not body.strip():
 # A SEARCH/REPLACE BLOCK IS tool-replace's INPUT, NEVER A TOOL (2026-10-02).
 # Three times in one night `tool-edit plan` was handed one, and wrote it as
 # the WHOLE file -- 389 -> 30, 389 -> 5, 427 -> 69 lines -- exiting 0 with
-# only a warning, until the last good copy was gone. A file that opens with
-# our own marker can never be a tool, so this is the one refusal here.
-if body.lstrip().startswith("<<<<<<< SEARCH"):
+# only a warning, until the last good copy was gone. A body with no #! that
+# holds a whole block of tool-replace's own format is that hand's input, never
+# a tool -- with a comment, a fence or a BOM in front of it as much as without
+# (the verifier, same day) -- so this is the one refusal here. A #!-led tool
+# that merely CONTAINS the markers (tool-replace's own source) is written.
+BLOCK = re.compile(r"^<{7} SEARCH[ \t]*\n.*?^={7}[ \t]*\n.*?^>{7} REPLACE[ \t]*$",
+                   re.S | re.M)
+if not body.startswith("#!") and BLOCK.search(body):
     sys.stderr.write(
         "refusing: that is a SEARCH/REPLACE block, which is tool-replace's "
         "input. `tool-replace %s` with it on stdin changes only the passages it "
@@ -52,14 +57,21 @@ def _write(path, text):
 
 
 def _keep_backup(path, text):
-    """The .bak -- unless it would put a copy that cannot start over one that
-    can (2026-10-02: a broken `plan` was backed up over the last good one)."""
+    """`<tool>.bak` is ALWAYS the version this edit replaces -- never edit
+    without one. But on 2026-10-02 a broken `plan` was backed up over the last
+    good one and the good one was gone, so when a copy with no #! is about to
+    replace a .bak that has one, that .bak is first kept as `<tool>.good.bak`.
+    Nothing is ever lost; "no #!" only decides what is set aside, never what
+    is backed up (a shell tool can run without one -- the verifier)."""
     bak = path + ".bak"
     if not text.startswith("#!") and os.path.exists(bak):
         try:
             with open(bak, encoding="utf-8", errors=SE, newline="") as f:
-                if f.read(2) == "#!":
-                    return
+                prev = f.read()
+            if prev.startswith("#!"):
+                _write(path + ".good.bak", prev)
+                sys.stderr.write("kept the last copy that starts with #! as "
+                                 "tools/own/%s.good.bak\n" % os.path.basename(path))
         except OSError:
             pass
     _write(bak, text)

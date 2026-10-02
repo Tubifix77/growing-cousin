@@ -6637,6 +6637,24 @@ def test_a_hand_never_writes_a_search_block_as_a_tool_nor_loses_the_good_backup(
           (r.returncode, r.stderr[-200:]))
     check("search block: ...and says which hand takes it",
           b"tool-replace" in r.stderr, r.stderr[-200:])
+    # The same block in any wrapping is still the other hand's input.
+    for label, body in (("a comment line in front", "# fix the loader\n" + block),
+                        ("a markdown fence around it", "```\n" + block + "```\n"),
+                        ("CRLF line endings", block.replace("\n", "\r\n")),
+                        ("leading blank lines", "\n\n  \n" + block)):
+        r = run("tool-edit", body)
+        check("search block: refused with %s" % label,
+              r.returncode == 1 and read(p) == good, (r.returncode, r.stderr[-120:]))
+    # A real tool that merely CONTAINS the markers -- tool-replace's own
+    # source is one -- is a tool, and is written.
+    marked = "#!/bin/sh\n# tool: t\n# call: t\n# does: shows a block\ncat <<'X'\n" + block + "X\n"
+    r = run("tool-edit", marked)
+    check("search block: a #!-led tool that contains the markers is written",
+          r.returncode == 0 and read(p) == marked, (r.returncode, r.stderr[-120:]))
+    r = run("tool-edit", good)
+    for x in (p + ".bak", p + ".good.bak"):
+        if os.path.exists(x):
+            os.remove(x)
     # A body that cannot start is still written (that stays a warning) and
     # the good original is backed up.
     junk = "echo no shebang\n"
@@ -6647,18 +6665,66 @@ def test_a_hand_never_writes_a_search_block_as_a_tool_nor_loses_the_good_backup(
     # The next edit, of the broken file, must not back the broken file up
     # over the good copy -- through either hand.
     r = run("tool-replace", "<<<<<<< SEARCH\necho no shebang\n=======\necho still none\n>>>>>>> REPLACE\n")
-    check("backup: tool-replace on a broken file keeps the last good .bak",
-          r.returncode == 0 and read(p) == "echo still none\n" and read(p + ".bak") == good,
+    check("backup: tool-replace on a broken file still backs up what it replaced",
+          r.returncode == 0 and read(p) == "echo still none\n"
+          and read(p + ".bak") == "echo no shebang\n",
           (r.returncode, r.stderr[-160:], read(p + ".bak")))
+    check("backup: ...and sets the last good copy aside rather than losing it",
+          read(p + ".good.bak") == good and b"good.bak" in r.stderr,
+          (read(p + ".good.bak"), r.stderr[-160:]))
     r = run("tool-edit", "echo yet another broken body\n")
-    check("backup: ...and so does tool-edit",
-          r.returncode == 0 and read(p + ".bak") == good, read(p + ".bak"))
+    check("backup: tool-edit backs up the version it replaced, every time",
+          r.returncode == 0 and read(p + ".bak") == "echo still none\n",
+          read(p + ".bak"))
+    check("backup: ...and the good copy set aside is still there",
+          read(p + ".good.bak") == good, read(p + ".good.bak"))
+    check("backup: the set-aside copy is a backup, not a tool",
+          triggers.list_tools(own) == ["t"], triggers.list_tools(own))
+    # tool-edit's own set-aside, from scratch: good -> broken -> broken again.
+    for x in (p + ".bak", p + ".good.bak"):
+        if os.path.exists(x):
+            os.remove(x)
+    run("tool-edit", good)
+    run("tool-edit", "echo broken one\n")
+    r = run("tool-edit", "echo broken two\n")
+    check("backup: tool-edit sets the good copy aside itself before backing "
+          "up a broken one over it",
+          read(p + ".good.bak") == good and read(p + ".bak") == "echo broken one\n"
+          and b"good.bak" in r.stderr, (read(p + ".good.bak"), read(p + ".bak")))
     r = run("tool-edit", good.replace("hi", "hello"))
     r = run("tool-edit", good)
     check("backup: a good tool replacing a good tool is backed up as before",
           r.returncode == 0 and read(p + ".bak") == good.replace("hi", "hello"),
           read(p + ".bak"))
     shutil.rmtree(d, ignore_errors=True)
+
+
+def test_a_repeated_failure_is_blamed_on_what_the_command_ran_first():
+    """The 2026-10-02 verifier: `repeated_failure` blamed the alphabetically
+    first library tool a failing command named, and its write count could not
+    see `tool-replace`. A command running `plan` and then `archive`, failing
+    three times with a partial edit of `plan` between, is `plan`'s failure."""
+    from monitor import derive, detectors as det
+    check("writes: tool-replace is a write",
+          derive.tools_written("printf x | tool-replace plan") == {"plan"},
+          derive.tools_written("printf x | tool-replace plan"))
+    t0 = time.time() - 3600
+    rows = []
+    for i in range(3):
+        rows.append({"ts": t0 + i * 60, "kind": "exec_start", "block": 1,
+                     "cmd": "plan list\narchive list"})
+        rows.append({"ts": t0 + i * 60 + 1, "kind": "exec_end", "block": 1,
+                     "exit_code": 1, "stderr": "Traceback\nKeyError: 'tasks'"})
+        if i < 2:
+            rows.append({"ts": t0 + i * 60 + 30, "kind": "exec_start", "block": 1,
+                         "cmd": "printf x | tool-replace plan"})
+            rows.append({"ts": t0 + i * 60 + 31, "kind": "exec_end", "block": 1,
+                         "exit_code": 0, "stderr": ""})
+    ctx = det.Context(rows, now=t0 + 600)
+    ctx.library = {"archive", "plan"}
+    names = [f.name for f in det.repeated_failure(ctx)]
+    check("repeated: blamed on the tool the command ran first, not the first "
+          "in the alphabet", names == ["repeated_failure[plan]"], names)
 
 
 def test_an_editing_hand_never_empties_a_tool_and_never_rewrites_its_bytes():
@@ -10052,13 +10118,25 @@ def test_the_drills_give_the_unproven_detectors_their_red():
         io.open(os.path.join(own_dir, n), "w").close()
     Journal(os.path.join(lroot, "journal.jsonl")).append(
         "tools_changed", added=["a"], removed=[])
+    unlistable = None
     try:
         monstatus2.systemd_show = lambda u, p: {}
         lib = monstatus2.collect(lroot).library
+        if os.name == "posix" and os.geteuid() != 0:
+            os.chmod(own_dir, 0)
+            try:
+                unlistable = monstatus2.collect(lroot).library
+            finally:
+                os.chmod(own_dir, 0o755)
         shutil.rmtree(os.path.join(lroot, "body"))
         tail_only = monstatus2.collect(lroot).library
     finally:
         monstatus2.systemd_show = real_show
+    if unlistable is None:
+        print("  SKIP monitor unlistable: needs a POSIX host and a non-root user")
+    else:
+        check("monitor: a tools directory that cannot be listed keeps the "
+              "journal's set, never an empty library", unlistable == {"a"}, unlistable)
     check("monitor: the library is read from disk, with the kernel's own "
           "definition of a tool", lib == {"a", "b", "c"}, lib)
     check("monitor: ...and only a root with no tools directory falls back to "
@@ -10658,6 +10736,7 @@ def main():
     for fn in (test_the_creature_is_shown_the_hands_it_was_given,
                test_an_editing_hand_never_empties_a_tool_and_never_rewrites_its_bytes,
                test_a_hand_never_writes_a_search_block_as_a_tool_nor_loses_the_good_backup,
+               test_a_repeated_failure_is_blamed_on_what_the_command_ran_first,
                test_a_tool_can_be_changed_by_the_passage_not_by_the_whole,
                test_no_visit_but_a_done_claim_is_told_the_creature_finished,
                test_a_verdict_note_is_kept_for_the_cousin_and_never_reaches_the_creature,
