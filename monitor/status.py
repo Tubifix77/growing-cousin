@@ -161,6 +161,11 @@ RUNBOOK = {
                  "do anything at all.",
     "journal_integrity": "Never repair the journal in place from here. Look at the "
                          "bad lines; a crash mid-append is the usual cause.",
+    "history_keeping": "The history never stops a cycle, so it can stop alone. Read "
+                       "the last `history_failed` / `history_kept.failed` record; "
+                       "check `df` and the permissions of live/history. It restores "
+                       "nothing -- `python3 -m kernel.history --root live list <path>` "
+                       "only reads (deploy/README.md).",
     "deploy_regression": "One hour is one window; read the table in "
                          "live/monitor/regression/ and the raw thinks behind the "
                          "indicator that moved BEFORE reverting anything. A "

@@ -1494,6 +1494,48 @@ def context_outgrew_rung(ctx):
                    % (now_ctx, OUTGREW_LOOKBACK_H, biggest), ev)
 
 
+HISTORY_QUIET_H = 24
+HISTORY_MIN_COMMANDS = 20
+
+
+def history_keeping(ctx):
+    """PLAN 6f. The history of the creature's world is built never to break a
+    cycle, so it can stop without anything else stopping -- a backup nobody
+    knows has stopped is the failure it exists to prevent. Read across from
+    Growing Spine, 2026-10-02: *a guard whose count is always exactly zero is
+    broken, not idle.*"""
+    if not any(r.get("kind") in ("history_kept", "history_failed") for r in ctx.rows):
+        return Finding("history_keeping", CANNOT_TELL,
+                       "no history record in the tail: an engine from before "
+                       "PLAN 6f, or one that has run nothing yet", human=False)
+    recent = ctx.recent(HISTORY_QUIET_H)
+    fails = [r for r in recent if r.get("kind") == "history_failed"]
+    kept = [r for r in recent if r.get("kind") == "history_kept"]
+    perfile = [f for r in kept for f in (r.get("failed") or [])]
+    ran = sum(1 for r in recent if r.get("kind") == "exec_start")
+    if fails:
+        return Finding("history_keeping", ALARM,
+                       "the history failed %d time(s) in %dh: %s"
+                       % (len(fails), HISTORY_QUIET_H, fails[-1].get("error")),
+                       {"last_ts": _ts(fails[-1])},
+                       scar="a bound stood in for the invariant")
+    if perfile:
+        return Finding("history_keeping", ALARM,
+                       "%d file(s) could not be kept in %dh: %s"
+                       % (len(perfile), HISTORY_QUIET_H, ", ".join(perfile[:5])),
+                       {"failed": perfile[:20]}, scar="a bound stood in for the invariant")
+    files = sum(int(r.get("files") or 0) for r in kept)
+    if files == 0 and ran >= HISTORY_MIN_COMMANDS:
+        return Finding("history_keeping", ALARM,
+                       "%d commands ran in %dh and the history kept nothing -- the "
+                       "creature writes test data almost every hour, so a zero is "
+                       "a claim about the instrument first" % (ran, HISTORY_QUIET_H),
+                       {"commands": ran}, scar="a bound stood in for the invariant")
+    return Finding("history_keeping", OK,
+                   "kept %d file version(s) in %dh" % (files, HISTORY_QUIET_H),
+                   {"files": files}, human=False)
+
+
 ALL = (engine_silent, gave_up, unusable_verdicts, replies_unusable,
        commands_lost,
        repeated_failure, want_retired_unacted, want_never_served,
@@ -1503,7 +1545,7 @@ ALL = (engine_silent, gave_up, unusable_verdicts, replies_unusable,
        deploy_regression, want_repeated, probe_stuck, complaint_fidelity,
        body_unrecoverable, window_reread, creature_said,
        shared_tier_contested, cousin_starved, testimony_repeated,
-       context_outgrew_rung)
+       context_outgrew_rung, history_keeping)
 
 
 def run_all(ctx, detectors=ALL):

@@ -6604,6 +6604,224 @@ def test_the_creature_is_shown_the_hands_it_was_given():
     b.destroy(); shutil.rmtree(d, ignore_errors=True)
 
 
+def test_every_version_of_the_creatures_world_is_kept_outside_it():
+    """PLAN 6f, 2026-10-02. A third of the creature's tool writes went through
+    no hand and kept no backup, its data stores were overwritten 70 times in a
+    week, and its central tool was recoverable only because a `cat` happened to
+    be in the journal. Now every version, whatever door wrote it, is kept beside
+    the journal -- outside every mount, never through a link, bounded fairly,
+    and unable to break a cycle. It restores nothing. The first version's
+    verifier found the bounds and the link handling wrong; each is asserted."""
+    from kernel import history as hist
+    e, j, b, d = build_engine(["I am only thinking.", "```bash\necho v1 > tools/own/y\n```"], [])
+    mind = b.mind
+    own = os.path.join(mind, "tools", "own")
+    os.makedirs(own, exist_ok=True)
+    root = os.path.join(os.path.dirname(os.path.abspath(j.path)), "history")
+
+    def put(rel, text, bump):
+        p = os.path.join(mind, *rel.split("/"))
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with io.open(p, "w", encoding="utf-8", newline="") as f:
+            f.write(text)
+        t = time.time() + bump
+        os.utime(p, (t, t))
+
+    put("tools/own/x", "#!/bin/sh\necho one\n", 0)
+    put("data/store.json", '{"a": 1}', 0)
+    for rel in (".local/lib/pkg.py", ".cmd-77.sh", "__pycache__/m.pyc", ".cache/pip/x"):
+        put(rel, "not the creature's work\n", 0)
+    # THE BASELINE, taken by the cycle itself even when nothing runs.
+    e.run_cycle()
+    h = e.history
+    check("history: the first cycle keeps the world as found, though nothing ran",
+          h is not None and len(h.versions("tools/own/x")) == 1
+          and len(h.versions("data/store.json")) == 1,
+          h and (h.versions("tools/own/x"), h.versions("data/store.json")))
+    check("history: it lives beside the journal, outside the mind",
+          h.root == root and not os.path.realpath(root).startswith(
+              os.path.realpath(mind) + os.sep), h.root)
+    elsewhere = tmpdir()
+    j2 = Journal(os.path.join(elsewhere, "live", "journal.jsonl"))
+    e2 = Engine(j2, b, "BRIEF", backends.scripted([]), backends.scripted([]),
+                os.path.join(elsewhere, "context.md"))
+    e2.keep_history()
+    check("history: it follows the journal, never a guess from the body's path",
+          e2.history is not None
+          and e2.history.root == os.path.join(elsewhere, "live", "history")
+          and os.path.isdir(os.path.join(elsewhere, "live", "history", "files")),
+          e2.history and e2.history.root)
+    shutil.rmtree(elsewhere, ignore_errors=True)
+    try:
+        hist.History(mind, os.path.join(mind, "history"))
+        inside_refused = False
+    except ValueError:
+        inside_refused = True
+    check("history: a store inside the mind is refused outright", inside_refused)
+    check("history: caches, packages and the body's scripts are not kept",
+          not any(h.versions(r) for r in (".local/lib/pkg.py", ".cmd-77.sh",
+                                          "__pycache__/m.pyc", ".cache/pip/x")))
+    n0 = len(j.read(kinds=["history_kept"]))
+    e.keep_history()
+    check("history: nothing changed, nothing kept, nothing journalled",
+          len(h.versions("tools/own/x")) == 1 and len(j.read(kinds=["history_kept"])) == n0)
+    hist.History(mind, root, journal=j).keep()
+    check("history: after a restart, unchanged content is not kept again",
+          len(h.versions("tools/own/x")) == 1 and len(h.versions("data/store.json")) == 1)
+    # A REDIRECT, the door no hand covers.
+    put("tools/own/x", "echo two, and the shebang is gone\n", 5)
+    put("data/store.json", '{"a": "test data"}', 5)
+    e.keep_history()
+    vs = h.versions("tools/own/x")
+    check("history: a version a redirect overwrote can still be read back",
+          len(vs) == 2 and h.read("tools/own/x", vs[0][0]) == b"#!/bin/sh\necho one\n", vs)
+    check("history: ...and so can a data store the creature's test overwrote",
+          h.read("data/store.json", h.versions("data/store.json")[0][0]) == b'{"a": 1}')
+    # THE CLOCK STEPS BACK: names stay monotonic, so "newest" stays true.
+    put("tools/own/x", "#!/bin/sh\necho three\n", 10)
+    h.keep(now=time.time() - 86400)
+    vs = h.versions("tools/own/x")
+    check("history: a clock stepping back still makes the newest version last",
+          len(vs) == 3 and h.read("tools/own/x", vs[-1][0]) == b"#!/bin/sh\necho three\n"
+          and vs[-1][0] > vs[-2][0], [v[0] for v in vs])
+    # WIRED INTO THE CYCLE: a real `echo > tools/own/y`.
+    r = e.run_cycle()
+    yv = h.versions("tools/own/y")
+    check("history: a cycle's redirect write is kept without any hand involved",
+          r.get("substantive") and len(yv) == 1
+          and h.read("tools/own/y", yv[0][0]).strip() == b"v1", (r, yv))
+    # NEVER THROUGH A LINK, never stuck on a FIFO, never broken by a name.
+    secret_dir = tmpdir()
+    with open(os.path.join(secret_dir, "a.key"), "w") as f:
+        f.write("HOST-SECRET-123")
+    try:
+        os.symlink(os.path.join(secret_dir, "a.key"), os.path.join(mind, "linked.key"))
+        os.symlink(secret_dir, os.path.join(mind, "linkdir"), target_is_directory=True)
+        linked = True
+    except (OSError, NotImplementedError, AttributeError):
+        linked = False
+    if linked and hasattr(os, "mkfifo"):
+        os.mkfifo(os.path.join(mind, "a.fifo"))
+        odd = os.fsdecode(b"odd-\xff-name")
+        with open(os.path.join(mind, odd), "w") as f:
+            f.write("odd\n")
+        before_failed = len(j.read(kinds=["history_failed"]))
+        e.keep_history()
+        leaked = [fn for dp, _ds, fs in os.walk(root) for fn in fs
+                  if b"HOST-SECRET-123" in open(os.path.join(dp, fn), "rb").read()]
+        check("history: a link is never followed, so no host file is copied",
+              not leaked and not h.versions("linked.key"), leaked)
+        check("history: a FIFO is passed over, never opened to block the engine",
+              not h.versions("a.fifo"))
+        check("history: a filename that is not UTF-8 is kept and journalled, not failed",
+              len(h.versions(odd)) == 1
+              and len(j.read(kinds=["history_failed"])) == before_failed
+              and any("odd-" in p for r2 in j.read(kinds=["history_kept"])
+                      for p in (r2.get("paths") or [])))
+    else:
+        print("  SKIP history links/fifo/names: needs a POSIX host that can make links")
+    # ONE PATH THAT CANNOT BE KEPT NEVER STOPS THE REST.
+    put("data/sub/blocked.json", "1", 30)
+    os.makedirs(os.path.join(root, "files", "data"), exist_ok=True)
+    with open(os.path.join(root, "files", "data", "sub"), "w") as f:
+        f.write("a file where a directory must go")
+    put("tools/own/x", "#!/bin/sh\necho after the blocked one\n", 30)
+    e.keep_history()
+    last = j.read(kinds=["history_kept"])[-1]
+    check("history: one path that cannot be kept is recorded, the others kept",
+          any("data/sub/blocked.json" in f2 for f2 in (last.get("failed") or []))
+          and h.read("tools/own/x", h.versions("tools/own/x")[-1][0])
+          == b"#!/bin/sh\necho after the blocked one\n", last)
+    os.remove(os.path.join(root, "files", "data", "sub"))
+    # BOUNDS.
+    with open(os.path.join(mind, "data", "big.bin"), "wb") as f:
+        f.write(b"x" * (hist.MAX_FILE_BYTES + 10))
+    e.keep_history()
+    check("history: a file over the bound is skipped and says so",
+          not h.versions("data/big.bin")
+          and any("data/big.bin" in (r2.get("skipped") or [])
+                  for r2 in j.read(kinds=["history_kept"])))
+    put("data/gone.json", "short-lived\n", 40)
+    e.keep_history()
+    os.remove(os.path.join(mind, "data", "gone.json"))
+    far = time.time() + hist.MAX_AGE_S + 3600
+    h.prune(now=far)
+    check("history: past the age bound a still-present file keeps its newest only",
+          len(h.versions("tools/own/x")) == 1 and len(h.versions("data/store.json")) == 1,
+          (h.versions("tools/own/x"), h.versions("data/store.json")))
+    check("history: ...and a file the creature deleted ages out entirely",
+          h.versions("data/gone.json") == [], h.versions("data/gone.json"))
+    # FAIRNESS: one file rewritten every cycle cannot erase another's past.
+    for i in range(3):
+        put("tools/own/plan", "#!/bin/sh\necho plan %d\n" % i, 50 + i)
+        e.keep_history()
+    for i in range(10):
+        put("data/archive.json", "A" * 2000 + str(i), 60 + i)
+        e.keep_history()
+    total = sum(os.path.getsize(os.path.join(dp, fn)) for dp, _ds, fs in os.walk(root)
+                for fn in fs)
+    old_cap = hist.MAX_TOTAL_BYTES
+    try:
+        hist.MAX_TOTAL_BYTES = total - 6000
+        h.prune()
+    finally:
+        hist.MAX_TOTAL_BYTES = old_cap
+    check("history: over the size bound the biggest path pays first -- plan's past survives",
+          len(h.versions("tools/own/plan")) == 3 and len(h.versions("data/archive.json")) < 10,
+          (len(h.versions("tools/own/plan")), len(h.versions("data/archive.json"))))
+    try:
+        hist.MAX_TOTAL_BYTES = 1
+        h.prune()
+    finally:
+        hist.MAX_TOTAL_BYTES = old_cap
+    check("history: ...and at any size the newest of every present file stays",
+          len(h.versions("tools/own/plan")) == 1
+          and h.read("tools/own/plan", h.versions("tools/own/plan")[-1][0])
+          == b"#!/bin/sh\necho plan 2\n", h.versions("tools/own/plan"))
+    # IT CAN NEVER BREAK A CYCLE, and says each new failure once.
+    real = e.history
+
+    class Broken:
+        def keep(self):
+            raise OSError("disk full")
+    e.history = Broken()
+    n1 = len(j.read(kinds=["history_failed"]))
+    e.keep_history()
+    e.keep_history()
+    fails = j.read(kinds=["history_failed"])[n1:]
+    check("history: a failure is journalled once, never raised, never every cycle",
+          len(fails) == 1 and fails[0].get("error") == "OSError: disk full", fails)
+    e.history = real
+    # THE MONITOR WATCHES IT.
+    from monitor import detectors as det
+    t = time.time()
+    rows = [{"ts": t - 60, "kind": "history_kept", "files": 2}]
+    check("monitor: history kept -> OK",
+          det.history_keeping(det.Context(rows, now=t)).state == det.OK)
+    check("monitor: no history record at all -> cannot tell",
+          det.history_keeping(det.Context([{"ts": t, "kind": "wake"}], now=t)).state
+          == det.CANNOT_TELL)
+    check("monitor: a history_failed -> ALARM",
+          det.history_keeping(det.Context(rows + [{"ts": t - 30, "kind": "history_failed",
+                                                   "error": "OSError: x"}], now=t)).state
+          == det.ALARM)
+    busy = [{"ts": t - 3600 * 30, "kind": "history_kept", "files": 1}] + \
+        [{"ts": t - 60 * i, "kind": "exec_start", "cmd": "echo"} for i in range(25)]
+    check("monitor: commands all day and nothing kept -> ALARM (a zero is a claim)",
+          det.history_keeping(det.Context(busy, now=t)).state == det.ALARM)
+    import contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = hist.main(["--root", d, "list", "tools/own/y"])
+    check("history: the reader lists versions", rc == 0 and yv[0][0] in buf.getvalue(),
+          buf.getvalue()[:200])
+    check("history: ...and refuses a path it has none of",
+          hist.main(["--root", d, "list", "tools/own/never"]) == 1)
+    b.destroy()
+    shutil.rmtree(d, ignore_errors=True)
+    shutil.rmtree(secret_dir, ignore_errors=True)
+
+
 def test_a_hand_never_writes_a_search_block_as_a_tool_nor_loses_the_good_backup():
     """2026-10-02. `tool-edit plan` was handed a SEARCH/REPLACE block three
     times in one night and wrote it as the WHOLE file each time (389 -> 30,
@@ -10744,6 +10962,7 @@ def main():
     for fn in (test_the_creature_is_shown_the_hands_it_was_given,
                test_an_editing_hand_never_empties_a_tool_and_never_rewrites_its_bytes,
                test_a_hand_never_writes_a_search_block_as_a_tool_nor_loses_the_good_backup,
+               test_every_version_of_the_creatures_world_is_kept_outside_it,
                test_a_repeated_failure_is_blamed_on_what_the_command_ran_first,
                test_a_tool_can_be_changed_by_the_passage_not_by_the_whole,
                test_no_visit_but_a_done_claim_is_told_the_creature_finished,

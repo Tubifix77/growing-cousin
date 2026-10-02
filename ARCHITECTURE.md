@@ -300,6 +300,7 @@ intervene was a missing bound. The fix is always a limiter, never a judgment.
 | Provider ladder mechanics + `classify_error` | An unrecognised error routes to the next rung, never walls the account, and announces itself once with its text — since 2026-09-24 with the provider's own words (`rung_declined.detail`, credentials redacted) |
 | A request a rung refused as too large is not sent to it again at that size (2026-09-25) | A 413 is a fact about the request, not the hour, so remembering it keeps the ladder deterministic. Groq refused every creature think with 413 — ~400 a day, 0 answered in four days, on an account shared with the spine. A 429 still skips nothing |
 | A budget on the **whole** page the creature is served (56,000 chars, transcript sized last) | A bound on each part is not a bound on the whole: on 2026-09-24 three per-part caps let the page outgrow the only rung serving it, and nothing answered for eight hours |
+| Every version of the creature's world, kept outside it (`kernel/history.py`, 2026-10-02) | Evidence, like the journal: after each cycle every changed file under the mind is kept in `live/history/`, whatever wrote it, never through a link, bounded by size and age. A third of tool writes went through no hand and kept no backup, and the creature's central tool was lost from its own directory on 2026-10-02. It restores nothing -- that stays the creature's consent |
 | Test gate | Must literally contain `ALL TESTS PASS`, written to a file, never a pipe |
 | Trigger detection | Mechanical, cheap, unarguable — see below |
 

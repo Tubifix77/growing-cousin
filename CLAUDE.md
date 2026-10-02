@@ -32,7 +32,8 @@ a constant nobody chose, obeyed forever, which is the first fault this file's
 own doctrine names. Run it for the number; `test_no_document_hard_codes_the_gate_count`
 keeps it that way.
 
-`kernel/` is **ten modules** plus `__init__.py`, and that list is asserted
+`kernel/` is **eleven modules** plus `__init__.py` (`history` joined
+2026-10-02, PLAN 6f), and that list is asserted
 against the directory rather than typed: see
 `test_the_module_list_matches_the_kernel`.
 
@@ -172,7 +173,11 @@ not warn you; this paragraph is the warning.
    verdicts, placeholder visits, the truth about `jq`, cousin notes across a
    restart). **Then `82986ef`, 2026-10-02 16:00** (PLAN 6d: `tool-edit` refuses
    a SEARCH block, the last good backup is never lost, the page counts the
-   real library). **Next:** read 6d's signals at the next check, and
+   real library), and the same day PLAN 6f: **every version of the
+   creature's world is kept in `live/history/`**, whatever wrote it
+   (`kernel/history.py`; read with `python3 -m kernel.history --root live
+   list <path>`; a restore into `tools/own` still needs the creature's
+   consent). **Next:** read 6d's and 6f's signals at the next check, and
    remove the switch after a clean week (~10-04). Before it: `ac45fb2`'s reading
    (PLAN step 4): 8b holds, the first marked `tool-replace` landed on `plan`,
    4b answered *not measurably* so the budget stays. The

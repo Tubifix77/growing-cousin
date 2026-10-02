@@ -18,6 +18,7 @@ import time
 
 from . import body as bodymod
 from . import cousin as cousinmod
+from . import history as historymod
 from . import library as librarymod
 from . import think as thinkmod
 from . import triggers as trigmod
@@ -63,6 +64,35 @@ class Engine:
         # THE COUSIN'S OWN HANDS. None keeps the old bare probe, which is what
         # every figure before 2026-09-16 was measured with.
         self.cousin_body = cousin_body
+        # EVERY VERSION OF THE CREATURE'S WORLD, kept outside it (PLAN 6f).
+        self.history = None
+        self._history_seeded = False
+
+    def keep_history(self):
+        """Keep what changed in the mind. NEVER raises: a failure is journalled
+        and the cycle goes on, because an instrument that can kill a cycle is
+        worse than no instrument."""
+        try:
+            if self.history is None:
+                # BESIDE THE JOURNAL, which is the live root by construction --
+                # not derived from the body's path, where a default body would
+                # have put it in a shared temp directory (the verifier).
+                root = os.path.join(os.path.dirname(os.path.abspath(self.j.path)),
+                                    "history")
+                self.history = historymod.History(self.body.mind, root, journal=self.j)
+            self.history.keep()
+            self._history_error = None
+        except Exception as e:                       # noqa: BLE001 -- by design
+            err = "%s: %s" % (type(e).__name__, e)
+            if err != getattr(self, "_history_error", None):
+                # Said once per new error, not on every cycle it persists.
+                try:
+                    self.j.append("history_failed", error=err)
+                except Exception:
+                    pass
+            self._history_error = err
+        finally:
+            self._history_seeded = True     # the baseline is attempted once
 
     # ---------------------------------------------------------------- context
 
@@ -812,6 +842,8 @@ class Engine:
     def run_cycle(self):
         """Returns a dict describing what happened. Substantive = something ran."""
         tools_dir = os.path.join(self.body.mind, "tools", "own")
+        if not self._history_seeded:
+            self.keep_history()          # the baseline: the world as found
         tools_before = trigmod.list_tools(tools_dir)
         stamps_before = trigmod.stamps(tools_dir, tools_before)
 
@@ -914,6 +946,7 @@ class Engine:
             self.cycles_since_change += 1
             return {"substantive": False, "reason": "nothing_ran"}
 
+        self.keep_history()              # whatever door wrote it
         tools_after = trigmod.list_tools(tools_dir)
         added = sorted(set(tools_after) - set(tools_before))
         placeholders = [t for t in added if trigmod.is_placeholder(tools_dir, t)]

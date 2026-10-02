@@ -169,6 +169,7 @@ in `main()`, before the loop starts.
 | `rungs.local.json`, `rungs.cousin.local.json` | **restart** | `load_spec` runs once in `main()` |
 | what the ladder has learned: rungs walled for a rejected credential, and the smallest request each rung refused as too large (413) | **forgotten on restart** | held in the process on purpose -- a restart is the one moment a provider that raised its limit, or a fixed key, gets asked again |
 | `deploy/*.service`, `*.timer` | **`daemon-reload` + restart** | and copy it to `~/.config/systemd/user/` first — editing the repo copy alone changes nothing |
+| `live/history/` -- every version of the creature's files | **kept across restarts** | the engine adds to it after each cycle and prunes it hourly (30 days, 200 MB, never the newest version of a file); see *Finding an old version* below |
 | the cousin's notes, `live/cousin-body/cousin-memory.json`, and the `.installed` marker beside it | **kept across restarts** | the marker says the cousin world on disk was set up by us, so a restart still collects what the cousin noted on its last visit; deleting it costs only those last notes, never a leak |
 | `live/context.md` (the wants) | **live** | the cousin writes it, the kernel re-reads it every wake. This is the whole point of "the manager writes the context, the kernel serves it" |
 | `live/journal.jsonl` | **live** | append-only; `vitals.py`, `census.py` and the observer all read it while the engine runs |
@@ -184,6 +185,27 @@ first, which matters when a rung call is in progress and the free tier is thin.
 only" commit also touched `run.py`; comparing the two revisions' ASTs with
 docstrings stripped showed the only executable difference was an argparse help
 string, so it genuinely needed none — but that was verified rather than assumed.
+
+## Finding an old version of something the creature wrote
+
+Since 2026-10-02 the engine keeps every version of every file in the
+creature's world under `live/history/`, whatever wrote it -- one of our hands,
+a `cat >` redirect, a `cp` -- outside both containers, so neither inhabitant
+can see or reach it. Links are never followed; caches, installed packages and
+the body's own command scripts are left out.
+
+```bash
+cd ~/growing-cousin && python3 -m kernel.history --root live list tools/own/plan
+```
+
+```bash
+cd ~/growing-cousin && python3 -m kernel.history --root live show tools/own/plan <version>
+```
+
+**It restores nothing, and nobody restores into `tools/own` on the creature's
+behalf without its consent** (`CLAUDE.md` §2.1). The store holds raw
+creature output; like the evidence tarball it stays on the laptop, and `live/`
+is never committed.
 
 ## Speaking to the creature, and hearing back
 

@@ -286,7 +286,7 @@ verified at its call site: the creature's own `run_cycle`, `_maybe_retrospective
 
 | | Growing Spine | Growing Cousin | |
 |---|---|---|---|
-| Size | `loop.py` ~4,100 lines plus `executive/` and `keychain/` | `kernel/`, ten small modules | different |
+| Size | `loop.py` ~4,100 lines plus `executive/` and `keychain/` | `kernel/`, eleven small modules | different |
 | Free tier only, same accounts, same laptop | yes | yes | **same** |
 | Provider ladder | `keychain` + `quota_state` | `backends.ladder` + `kernel/quota.py` | **same shape** |
 | 429 steps down, never retries | yes | yes | **same** |
@@ -525,6 +525,12 @@ its reason in `CLAUDE.md` §5 and its reading on `PLAN.md`'s board:
   own.
 - **The status page counts the real library.** It had been counting tools
   from the end of the journal only, and said 77 of 108.
+- **Every version of the creature's files is kept, outside its world** —
+  whatever wrote them. A third of its tool writes went through no editing
+  tool of ours and kept no backup, and it overwrote its own data stores 70
+  times in a week while testing. The history restores nothing by itself; it
+  only means a good version can always be found. *(Inspired by Growing
+  Spine's own conclusion that per-tool backups miss writes.)*
 
 - **A cousin verdict retried after the free tier ran dry judges only a run of
   the tool as it still is.** Before, 27 of 231 such retries judged a run from
