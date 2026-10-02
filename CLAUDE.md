@@ -170,7 +170,9 @@ not warn you; this paragraph is the warning.
    CREATURE's ladder; backup `~/rungs.local.json.bak-20260930`) and 6c (the
    09-30 check's framework fixes and its verifier's: stale recovered
    verdicts, placeholder visits, the truth about `jq`, cousin notes across a
-   restart). **Next:** read 6c's acceptance signals at the next check, and
+   restart). **Then `82986ef`, 2026-10-02 16:00** (PLAN 6d: `tool-edit` refuses
+   a SEARCH block, the last good backup is never lost, the page counts the
+   real library). **Next:** read 6d's signals at the next check, and
    remove the switch after a clean week (~10-04). Before it: `ac45fb2`'s reading
    (PLAN step 4): 8b holds, the first marked `tool-replace` landed on `plan`,
    4b answered *not measurably* so the budget stays. The
@@ -1377,8 +1379,13 @@ was measured, with what, and on what date.*
   up over the good copy, and `plan`, the headline metric's first survivor,
   was gone from its own directory. **Two invariants:** *a hand refuses the
   one input it can know is never a tool -- its sibling's format*; and *a
-  backup's job is to restore a working thing, so a copy that cannot start
-  never replaces one that can.* Not restored by us (§2.1); an uncut copy is
+  backup's job is to restore a working thing, so the last copy that starts
+  is never lost* -- `.bak` stays the version replaced, and a `#!` backup
+  about to be overwritten by a no-`#!` copy is first kept as
+  `<tool>.good.bak`. **My first version of that second fix was the
+  09-30 scar again**, found by the verifier the same hour: it used *"no
+  `#!`"* as a proxy for *"cannot run"* and so stopped backing up shell
+  tools that run without one. Not restored by us (§2.1); an uncut copy is
   in the journal. **And the page said 77 tools of 108** -- its library was a
   fold over the journal TAIL, which loses every tool created before the read
   bound: *a set derived from a tail undercounts in the direction that reads
