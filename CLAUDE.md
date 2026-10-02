@@ -93,9 +93,10 @@ because every count written here has gone stale within a day.
 
 **What is running.** Read the first two lines of `live/monitor/status.md` for
 the engine commit and whether a restart is owed; do not derive it from `git
-log`. As of 2026-10-01 20:19 it is `c48d92b` (before it `1b3ff3a` from
-09-27 20:41, `d833f7d` from 09-25 23:21); the bounds below have not moved
-since `d833f7d`, and they are the thing to understand before changing any:
+log`. As of 2026-10-02 18:37 it is `be1b9cc` (before it `b83bdf7`, `82986ef`
+and `c48d92b` from 10-01 20:19, `1b3ff3a` from 09-27 20:41, `d833f7d` from
+09-25 23:21); the bounds below have not moved since `d833f7d`, and they are
+the thing to understand before changing any:
 
 | bound | value | why |
 |---|---|---|
@@ -171,7 +172,8 @@ not warn you; this paragraph is the warning.
    CREATURE's ladder; backup `~/rungs.local.json.bak-20260930`) and 6c (the
    09-30 check's framework fixes and its verifier's: stale recovered
    verdicts, placeholder visits, the truth about `jq`, cousin notes across a
-   restart). **Then `82986ef`, 2026-10-02 16:00** (PLAN 6d: `tool-edit` refuses
+   restart). **Then `82986ef` (16:00), `b83bdf7` (17:25) and `be1b9cc`
+   (18:37), all 2026-10-02** (PLAN 6d: `tool-edit` refuses
    a SEARCH block, the last good backup is never lost, the page counts the
    real library), and the same day PLAN 6f: **every version of the
    creature's world is kept in `live/history/`**, whatever wrote it

@@ -511,8 +511,8 @@ Full method, fixtures and per-case results: [`trial/`](trial/).
 
 ## Status
 
-**As of 2026-10-02 16:00 the laptop runs `82986ef`** (before it `c48d92b`
-from 2026-10-01 20:19). What it carries that earlier engines did not, newest first — each with
+**As of 2026-10-02 18:37 the laptop runs `be1b9cc`** (before it `b83bdf7` and
+`82986ef` earlier that day, and `c48d92b` from 2026-10-01 20:19). What it carries that earlier engines did not, newest first — each with
 its reason in `CLAUDE.md` §5 and its reading on `PLAN.md`'s board:
 
 - **The whole-file editing tool refuses a partial-edit block.** On 2026-10-02
@@ -531,6 +531,10 @@ its reason in `CLAUDE.md` §5 and its reading on `PLAN.md`'s board:
   times in a week while testing. The history restores nothing by itself; it
   only means a good version can always be found. *(Inspired by Growing
   Spine's own conclusion that per-tool backups miss writes.)*
+- **A misplaced `#!` is named by its line, never called missing** — Growing
+  Spine lost a working tool to ten edits obeying exactly that wrong message.
+  Its other guardrails were read across too; most do not transfer, because
+  they put judgement in the framework, and `PLAN.md` 6e says which and why.
 
 - **A cousin verdict retried after the free tier ran dry judges only a run of
   the tool as it still is.** Before, 27 of 231 such retries judged a run from

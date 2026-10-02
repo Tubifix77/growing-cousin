@@ -34,7 +34,7 @@ Status: `[ ]` not started · `[~]` in flight · `[x]` done and verified.
 
 ---
 
-## WHERE THE BOARD STANDS — 2026-09-24
+## WHERE THE BOARD STANDS — 2026-10-02 (rewritten; the 09-24 version had gone stale)
 
 Tue, 2026-09-21: *"then lets get the board cleared."* It is, as far as work
 can clear it. **Every heading that is not `[x]` is in the table below, and that is the whole list.** What is left is not work anybody can do tonight, and the distinction matters more than any count:
@@ -44,16 +44,24 @@ can clear it. **Every heading that is not `[x]` is in the table below, and that 
 | still open | why, in one line | what would move it |
 |---|---|---|
 | **11** run 3 | Tue's call, and he made it: it waits for an empty board | this table reaching zero |
-| **14.5** tell the creature `say` exists | **BUILT 2026-09-24, not deployed**: a served "Your hands" block, read from each installed hand's own header, announces `say` and every hand added later. The guard that held `say` as an exception now requires a header instead | deploy after `3a6a642`'s day-reading, 2026-09-25 ~17:47, with 21.2 |
-| **16** the cousin notices a tool serves nothing | the rule can be drafted; scoring it spends the same tier the live run is on | 20.4, then score under item 8's discipline |
+| **A question for Tue** | **Should the creature be offered its old `plan` back?** On 2026-10-02 our editing tool wrote over its central tool and the good copy was lost from its directory; an uncut copy (427 lines, 11:27 that day) is in the journal. Its tools are its own, so we put nothing back without its yes. Asking it costs one chat message from Tue; not asking means it rebuilds `plan` itself | Tue: ask it through the chat channel, or leave it to rebuild |
+| **6** remove `TRUTHFUL_VISITS` and the legacy framing | the switch has been ON since 2026-09-27 and two day-readings were clean | a clean week, ~2026-10-04 |
+| **7** the cousin's memory store | verdict-time notes exist since 09-27 and survive restarts since 10-02 (6c/6d), but 0 were kept in the verdicts read so far -- this is 20.4 | a week after step 5, ~2026-10-04 |
+| **6d / 6f signals** | the 10-02 fixes (no SEARCH block written as a tool, the last good backup kept, the page counting the real library) and the history of the creature's world | read at the next daily check |
+| **16** the cousin notices a tool serves nothing | the rule can be drafted; scoring it spends the same tier the live run is on | step 7, then score under item 8's discipline |
 | **17.3** the deciding half | moves with 16 by construction | 16 |
-| **20.4** the cousin carries ONE note and has not added a second | 59 harvests carry it, none empty since 09-19, and the last 40 all carried exactly one key — continuity proven, accumulation not | a week of 20.2, read beside the store's key count |
-| **21.2** the rewrite wall | **HAND BUILT 2026-09-24, not deployed**: `tool-replace`, SEARCH/REPLACE, all-or-nothing, whole lines only. The read side landed on 09-24 as a WHOLE-PAGE budget after 40k wedged the engine (§5). Local rehearsal of whether a model USES the hand is written and has not run -- the GPU was taken | deploy with 14.5; rehearse on the Windows bench when its GPU is free |
 | **22.1 / 22.2** | a fence inside a heredoc, and the cost of re-reading a journal that only grows | both named and dated in item 22 |
-| **23.3** the creature is promised an LLM API its box may not have | 80 runs against `api.openai.com` with the literal `"default_key"` | a design decision, not a patch — see item 23 |
-| **23.4 / 23.5** the same audit on the cousin's brief and the kernel's served text | **23.5 found two and fixed both in code, 2026-09-24**: the framework served a completion claim on 220 of 246 visits that had none, and the cousin could only note what it knew BEFORE seeing output. Scored on `gemma4:12b`: arm A (deployed) 24/24 caught, 9/24 falsely returned; arm C (the truthful framing) not yet run. **Staged OFF** behind `Engine.TRUTHFUL_VISITS`, proven byte-identical to the deployed prompt (15 of 15) while off, so it rides the creature-side deploy dormant. **23.4 read in full 2026-09-24**: seven presuppositions recorded, one hypothesis refuted, nothing changed | arm C, then a one-line commit flipping the switch, deployed in its OWN window |
+| ~~**14.5** tell the creature `say` exists~~ | **DONE**: the served *"Your hands"* block, deployed 2026-09-25 in `d833f7d` | -- |
+| ~~**21.2** the rewrite wall~~ | **DONE**: `tool-replace`, deployed 2026-09-25 in `d833f7d`; used 9 times on 10-02; its misuse through `tool-edit` produced 6d's fixes | -- |
+| ~~**23.3** the creature is promised an LLM API~~ | **DONE** by 8b (Tue: no model for the creature, and tell it so), deployed 2026-09-25 | -- |
+| ~~**23.4 / 23.5**~~ | **DONE**: arm C scored on the bench (step 3), the truthful framing switched on 2026-09-27 in `1b3ff3a`; only the switch's removal is left (step 6) | -- |
 
 ## NEXT STEPS, IN ORDER — written 2026-09-24 evening
+
+> **2026-10-02:** the laptop runs `be1b9cc` and GitHub, the laptop and the
+> PC are in step; the rows below are the record of how it got there, newest
+> at the bottom. The paragraph that follows is 2026-09-24's and is kept as
+> history.
 
 **Where things are.** Running on the laptop: `3a6a642` (the whole-page budget
 that ended the 09-24 wedge). On GitHub and NOT on the laptop, on purpose:
