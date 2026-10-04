@@ -521,8 +521,9 @@ its reason in `CLAUDE.md` §5 and its reading on `PLAN.md`'s board:
   was lost from its directory, because the next edit backed the broken file
   up over the good copy. Now the block is refused, and the last working copy
   is always kept (as `<tool>.good.bak` when a broken copy would have replaced
-  it). The creature's `plan` itself was not restored by us: its tools are its
-  own.
+  it). The creature's `plan` itself was not restored by us -- its tools are its
+  own -- and on 2026-10-03 it rebuilt `plan` itself, every step of which the
+  new history kept.
 - **The status page counts the real library.** It had been counting tools
   from the end of the journal only, and said 77 of 108.
 - **Every version of the creature's files is kept, outside its world** —
