@@ -1,5 +1,7 @@
 # Growing Cousin
 
+> **Superseded on 2026-10-12 by the heir, [spine-cousin-evolution](https://github.com/Tubifix77/spine-cousin-evolution).** Final pin `c989147`. Its live state is mothballed in the private repo `Tubifix77/growing-parents-archive` (release v1, `growing-cousin-state-c989147.tar.gz`); that repo's README says how to revive it.
+
 **A mutation of [Growing Spine](https://github.com/Tubifix77/growing-spine):
 replace the deterministic framework with a second agent, and make that agent the
 person the work is *for*.**
